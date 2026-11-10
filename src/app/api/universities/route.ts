@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { UserRole } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
-import { requireApiRole } from '@/lib/auth'
+import { requireApiRole, requireApiUser } from '@/lib/auth'
 import { audit } from '@/lib/audit'
 
 export async function POST(request: NextRequest) {
@@ -39,8 +39,12 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    // Настоящая проверка сессии: middleware смотрит только наличие cookie
+    const { response } = await requireApiUser(request)
+    if (response) return response
+
     const universities = await prisma.university.findMany({
       include: { region: true, _count: { select: { projects: true } } },
       orderBy: { name: 'asc' },

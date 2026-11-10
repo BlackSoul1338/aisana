@@ -1,12 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
-import { canAccessUniversity, requireApiRole } from '@/lib/auth'
-import { deleteUpload } from '@/lib/uploads'
+import { canAccessUniversity, requireApiRole, requireApiUser } from '@/lib/auth'
+import { deleteUpload, isAllowedFileUrl } from '@/lib/uploads'
 import { audit } from '@/lib/audit'
 import { UserRole } from '@prisma/client'
 
-export async function GET(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  // Настоящая проверка сессии: middleware смотрит только наличие cookie
+  const { response } = await requireApiUser(request)
+  if (response) return response
+
   const { id } = await params
   const project = await prisma.project.findUnique({
     where: { id },
@@ -34,7 +38,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const { url } = await request.json()
 
     // Basic sanity check on the URL to avoid storing garbage / javascript: links
-    if (url && !/^https?:\/\//i.test(url) && !url.startsWith('/uploads/')) {
+    if (url && !isAllowedFileUrl(url)) {
       return NextResponse.json(
         { error: 'Ссылка должна начинаться с http(s):// или быть загруженным файлом (/uploads/)' },
         { status: 400 }

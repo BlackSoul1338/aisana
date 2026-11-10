@@ -15,11 +15,15 @@ export async function POST(request: NextRequest) {
 
     // ── Защита от брутфорса ──────────────────────────────────
     // 20 попыток с одного IP за 15 минут (по любым аккаунтам)
-    // и 5 попыток по конкретной паре IP+email за 15 минут.
+    // и 5 попыток по конкретному email за 15 минут.
+    //
+    // Лимит по аккаунту НЕ содержит IP: клиент подделывает x-forwarded-for
+    // и ротацией заголовка обходил связку IP+email полностью. Ключ по email
+    // перебор не обходит — как бы клиент ни подменял заголовки.
     const ip = getClientIp(request)
     const normalizedEmail = String(email).trim().toLowerCase()
     const byIp = rateLimit(`login:ip:${ip}`, 20, 15 * 60 * 1000)
-    const byAccount = rateLimit(`login:acc:${ip}:${normalizedEmail}`, 5, 15 * 60 * 1000)
+    const byAccount = rateLimit(`login:acc:${normalizedEmail}`, 5, 15 * 60 * 1000)
     if (!byIp.ok || !byAccount.ok) {
       const retryAfter = Math.max(byIp.retryAfterSec, byAccount.retryAfterSec)
       return NextResponse.json(

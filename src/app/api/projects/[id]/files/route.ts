@@ -1,14 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
-import { canAccessUniversity, requireApiRole } from '@/lib/auth'
-import { deleteUpload } from '@/lib/uploads'
+import { canAccessUniversity, requireApiRole, requireApiUser } from '@/lib/auth'
+import { deleteUpload, isAllowedFileUrl } from '@/lib/uploads'
 import { audit } from '@/lib/audit'
 import { ProjectFileType, UserRole } from '@prisma/client'
 
 const FILE_TYPES = new Set<string>(Object.values(ProjectFileType))
 
-export async function GET(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  // Настоящая проверка сессии: middleware смотрит только наличие cookie
+  const { response } = await requireApiUser(request)
+  if (response) return response
+
   const { id } = await params
   const files = await prisma.projectFile.findMany({
     where: { projectId: id },
@@ -37,7 +41,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     // Та же проверка, что и у паспорта проекта: url рендерится как <a href>
     // на публичной странице, поэтому javascript:-ссылки и прочий мусор
     // не должны попадать в базу.
-    if (!/^https?:\/\//i.test(data.url) && !String(data.url).startsWith('/uploads/')) {
+    if (!isAllowedFileUrl(data.url)) {
       return NextResponse.json(
         { error: 'Ссылка должна начинаться с http(s):// или быть загруженным файлом (/uploads/)' },
         { status: 400 }

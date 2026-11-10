@@ -65,9 +65,25 @@ export function isFirstInWindow(key: string, windowMs: number): boolean {
   return true
 }
 
-/** IP клиента с учётом reverse-proxy (nginx / traefik ставят x-forwarded-for). */
+/**
+ * IP клиента для целей ограничения частоты.
+ *
+ * ВАЖНО: значение нельзя считать достоверным. Заголовок x-forwarded-for
+ * клиент подделывает сам (проверено: до контейнера доходит без изменений),
+ * а Next 15 больше не отдаёт IP сокета, и за опубликованным портом
+ * видно только адрес прокси. Поэтому IP-based лимиты — лишь грубый слой,
+ * а настоящую защиту от перебора дают лимиты по аккаунту и по адресу
+ * почты, где IP не участвует.
+ *
+ * Берём ПОСЛЕДНЕЕ значение цепочки: обычный nginx ($proxy_add_x_forwarded_for)
+ * дописывает реальный адрес клиента в конец, и клиент может подделать только
+ * начало цепочки.
+ */
 export function getClientIp(request: NextRequest): string {
   const forwarded = request.headers.get('x-forwarded-for')
-  if (forwarded) return forwarded.split(',')[0].trim()
+  if (forwarded) {
+    const chain = forwarded.split(',').map(part => part.trim()).filter(Boolean)
+    if (chain.length > 0) return chain[chain.length - 1]
+  }
   return request.headers.get('x-real-ip')?.trim() || 'unknown'
 }

@@ -100,12 +100,14 @@ export async function POST(request: NextRequest) {
       }).catch(() => null)
     }
 
-    // Пояснения от модели — поверх уже готовой выдачи, необязательны
+    // Пояснения от модели — поверх уже готовой выдачи, необязательны.
+    // Проект мог быть удалён между сборкой индекса и запросом — тогда
+    // его нет в byId, и он просто не попадает в пояснения.
     const [aiSummary, matchReasons] = await Promise.all([
       generateSearchSummary(query, projects.map(p => ({ title: p.title, description: p.description }))),
-      generateMatchReasons(query, hits.slice(0, 30).map(hit => {
-        const project = byId.get(hit.id)!
-        return { id: hit.id, title: project.title, description: project.description }
+      generateMatchReasons(query, hits.slice(0, 30).flatMap(hit => {
+        const project = byId.get(hit.id)
+        return project ? [{ id: hit.id, title: project.title, description: project.description }] : []
       })),
     ])
 

@@ -2,19 +2,32 @@ import { NextRequest, NextResponse } from 'next/server'
 import { revalidatePath } from 'next/cache'
 import { UserRole } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
-import { canAccessUniversity, requireApiRole } from '@/lib/auth'
+import { canAccessUniversity, requireApiRole, requireApiUser } from '@/lib/auth'
 import { deleteUpload } from '@/lib/uploads'
 import { invalidateSearchIndex, reclassifyProject } from '@/lib/search/store'
 import { audit } from '@/lib/audit'
 
-export async function GET(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    // Middleware проверяет только НАЛИЧИЕ cookie — настоящая проверка
+    // сессии и ролей здесь. Без неё поддельная cookie открывала черновики.
+    const { user, response } = await requireApiUser(request)
+    if (response) return response
+
     const { id } = await params
     const project = await prisma.project.findUnique({
       where: { id },
       include: { university: { include: { region: true } }, technologies: true, hearings: { orderBy: { date: 'desc' } } },
     })
     if (!project) return NextResponse.json({ error: 'Не найдено' }, { status: 404 })
+
+    // Черновик и проект на проверке видны только модераторам и автору из вуза
+    if (project.publication !== 'PUBLISHED' && !canAccessUniversity(user, project.universityId)) {
+      if (user.role !== UserRole.ADMIN && user.role !== UserRole.EDITOR) {
+        return NextResponse.json({ error: 'Не найдено' }, { status: 404 })
+      }
+    }
+
     return NextResponse.json(project)
   } catch {
     return NextResponse.json({ error: 'Ошибка' }, { status: 500 })
@@ -27,7 +40,10 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     if (response) return response
 
     const { id } = await params
-    const existing = await prisma.project.findUnique({ where: { id }, select: { universityId: true } })
+    const existing = await prisma.project.findUnique({
+      where: { id },
+      select: { universityId: true, isBestPractice: true, isScalable: true },
+    })
     if (!existing) return NextResponse.json({ error: 'Не найдено' }, { status: 404 })
     if (!canAccessUniversity(user, existing.universityId)) {
       return NextResponse.json({ error: 'Недостаточно прав для этого проекта' }, { status: 403 })
@@ -38,6 +54,9 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     if (!canAccessUniversity(user, universityId)) {
       return NextResponse.json({ error: 'Недостаточно прав для этого вуза' }, { status: 403 })
     }
+
+    // Бейджи видны публично — выдавать их может только модератор
+    const maySetBadges = user.role === UserRole.ADMIN || user.role === UserRole.EDITOR
 
     const project = await prisma.project.update({
       where: { id },
@@ -51,8 +70,8 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         launchDate: data.launchDate ? new Date(data.launchDate) : null,
         category: data.category,
         status: data.status,
-        isBestPractice: data.isBestPractice || false,
-        isScalable: data.isScalable || false,
+        isBestPractice: maySetBadges ? data.isBestPractice || false : existing.isBestPractice,
+        isScalable: maySetBadges ? data.isScalable || false : existing.isScalable,
         impact: data.impact || null,
         results: data.results || null,
         presentationPdf: data.presentationPdf || null,

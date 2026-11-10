@@ -3,6 +3,7 @@ import { PrismaClient, ProjectCategory, ProjectFileType, ProjectStatus, Publicat
 import type { AuthUser } from '@/lib/auth'
 import { canAccessUniversity } from '@/lib/auth'
 import { canModerate } from '@/lib/publication'
+import { isAllowedFileUrl } from '@/lib/uploads'
 
 type RawRow = Record<string, unknown>
 
@@ -358,7 +359,7 @@ export async function importProjectsFromRows(
       { type: ProjectFileType.ZOOM,          label: 'Zoom запись',        url: text(getField(rowIndex, 'zoomLink')) },
       { type: ProjectFileType.VIDEO,         label: 'Видеодемонстрация',  url: text(getField(rowIndex, 'videoUrl')) },
       { type: ProjectFileType.DOCUMENTATION, label: 'Документация',       url: text(getField(rowIndex, 'documentation')) },
-    ].filter((f): f is typeof f & { url: string } => Boolean(f.url))
+    ].filter((f): f is typeof f & { url: string } => Boolean(f.url) && isAllowedFileUrl(f.url))
 
     async function attachRowFiles(projectId: string) {
       for (const f of rowFiles) {

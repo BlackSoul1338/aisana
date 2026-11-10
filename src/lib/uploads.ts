@@ -23,6 +23,20 @@ export const MAX_UPLOAD_BYTES = 4 * 1024 * 1024
 export const BLOB_PREFIX = 'uploads'
 
 /**
+ * Допустимая ссылка на файл проекта.
+ *
+ * url рендерится как <a href> на публичной странице проекта, поэтому
+ * javascript:-ссылка (и прочий мусор) в базе быть не должен. Проверка
+ * одинаковая для ручного добавления и для импорта из Excel — иначе
+ * импорт был бы обходом проверки.
+ */
+export function isAllowedFileUrl(url: unknown): boolean {
+  const value = String(url ?? '').trim()
+  if (!value) return false
+  return /^https?:\/\//i.test(value) || value.startsWith('/uploads/')
+}
+
+/**
  * Каталог для локального хранения PDF, когда Vercel Blob недоступен.
  *
  * Держим файлы ВНЕ public/: каталог public отдаётся статикой Next.js

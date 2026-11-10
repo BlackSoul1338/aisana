@@ -1,16 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { UserRole } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
-import { requireApiRole } from '@/lib/auth'
+import { requireApiRole, requireApiUser } from '@/lib/auth'
 import { deleteUpload } from '@/lib/uploads'
+import { invalidateSearchIndex } from '@/lib/search/store'
+import { PUBLISHED_PROJECTS_RELATION } from '@/lib/publication'
 import { audit } from '@/lib/audit'
 
-export async function GET(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    // Настоящая проверка сессии: middleware смотрит только наличие cookie
+    const { user, response } = await requireApiUser(request)
+    if (response) return response
+
     const { id } = await params
+    const moderator = user.role === UserRole.ADMIN || user.role === UserRole.EDITOR
+
     const university = await prisma.university.findUnique({
       where: { id },
-      include: { region: true, projects: { include: { technologies: true } } },
+      include: {
+        region: true,
+        // Черновики видны только модераторам и представителю своего вуза
+        projects: {
+          include: { technologies: true },
+          where: moderator ? undefined : PUBLISHED_PROJECTS_RELATION.where,
+        },
+      },
     })
     if (!university) return NextResponse.json({ error: 'Не найдено' }, { status: 404 })
     return NextResponse.json(university)
@@ -42,6 +57,10 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         type: data.type || 'STATE',
       },
     })
+    // Название, краткое имя и регион вуза индексируются поиском —
+    // без сброса кэша переименование видно только через минуту
+    invalidateSearchIndex()
+
     await audit(user, 'UPDATE', 'university', university.id, university.name)
     return NextResponse.json(university)
   } catch (error: any) {
@@ -69,6 +88,9 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       await deleteUpload(p.agentPassportPdf)
       for (const f of p.files) await deleteUpload(f.url)
     }
+
+    // Проекты вуза исчезли из выдачи — индекс поиска надо пересобрать
+    invalidateSearchIndex()
 
     await audit(user, 'DELETE', 'university', id)
     return NextResponse.json({ success: true })

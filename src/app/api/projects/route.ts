@@ -5,7 +5,7 @@ import { prisma } from '@/lib/prisma'
 import { PUBLISHED_ONLY, canModerate } from '@/lib/publication'
 import { invalidateSearchIndex, loadSearchIndex, reclassifyProject } from '@/lib/search/store'
 import { searchIndex } from '@/lib/search/engine'
-import { canAccessUniversity, requireApiRole } from '@/lib/auth'
+import { canAccessUniversity, requireApiRole, requireApiUser } from '@/lib/auth'
 import { audit } from '@/lib/audit'
 
 export async function POST(request: NextRequest) {
@@ -28,6 +28,11 @@ export async function POST(request: NextRequest) {
     // попадёт только после проверки. Администратор и редактор публикуют сразу.
     const publication = canModerate(user) ? PublicationStatus.PUBLISHED : PublicationStatus.DRAFT
 
+    // Бейджи «лучшая практика» и «к тиражированию» видны публично,
+    // поэтому выдавать их может только модератор — представитель вуза
+    // иначе назначал бы их себе сам.
+    const maySetBadges = canModerate(user)
+
     const project = await prisma.project.create({
       data: {
         publication,
@@ -41,8 +46,8 @@ export async function POST(request: NextRequest) {
         launchDate: data.launchDate ? new Date(data.launchDate) : null,
         category: data.category || 'EDUCATION',
         status: data.status || 'IDEA',
-        isBestPractice: data.isBestPractice || false,
-        isScalable: data.isScalable || false,
+        isBestPractice: maySetBadges ? data.isBestPractice || false : false,
+        isScalable: maySetBadges ? data.isScalable || false : false,
         impact: data.impact || null,
         results: data.results || null,
         presentationPdf: data.presentationPdf || null,
@@ -73,6 +78,10 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
+    // Настоящая проверка сессии: middleware смотрит только наличие cookie
+    const { response } = await requireApiUser(request)
+    if (response) return response
+
     const { searchParams } = new URL(request.url)
     const q = searchParams.get('q')
     const status = searchParams.get('status')

@@ -8,12 +8,17 @@
  * предсказуемо: видно, какая основа что поймала.
  */
 
-/** Приводит текст к сравнимому виду: нижний регистр, ё→е, латиница и кириллица, цифры. */
+/** Приводит текст к сравнимому виду: нижний регистр, ё→е, все буквы и цифры.
+ *
+ *  Класс \p{L} покрывает не только русский и латинский, но и казахские
+ *  буквы (ә ғ қ ң ө ұ ү һ і) — прежний диапазон «а-я» их выбрасывал,
+ *  и казахский запрос не находил ничего.
+ */
 export function normalize(input: string | null | undefined): string {
   return String(input ?? '')
     .toLowerCase()
     .replace(/ё/g, 'е')
-    .replace(/[^a-zа-я0-9]+/gi, ' ')
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
     .replace(/\s+/g, ' ')
     .trim()
 }
@@ -29,6 +34,10 @@ const STOP_WORDS = new Set([
   'и', 'в', 'на', 'с', 'по', 'для', 'из', 'к', 'от', 'до', 'за', 'при', 'об', 'о', 'у',
   'же', 'то', 'не', 'но', 'а', 'или', 'что', 'как', 'это', 'все', 'его', 'ее', 'их',
   'the', 'a', 'an', 'of', 'for', 'and', 'or', 'to', 'in', 'on', 'with', 'by', 'is', 'are',
+  // Казахские служебные слова
+  'және', 'бірақ', 'немесе', 'үшін', 'туралы', 'бұл', 'ол', 'мен', 'сен', 'біз',
+  'сіз', 'олар', 'қандай', 'қалай', 'неге', 'қашан', 'қайда', 'бар', 'жоқ', 'тек',
+  'ғана', 'емес', 'кейін', 'дейін', 'арқылы', 'бойынша', 'туралы', 'шешім',
 ])
 
 /**
@@ -50,11 +59,47 @@ export function hasStem(tokens: string[], stem: string): boolean {
 
 /**
  * Признак может быть словом («сварк») или фразой («контроль качества»).
- * Фразы ищем по нормализованному тексту целиком.
+ *
+ * Фразы в справочнике записаны усечёнными основами («обслуживан оборудован»),
+ * а в тексте стоят полные формы («обслуживание оборудования»). Поэтому фразу
+ * сравниваем по-словно с проверкой основ, а не подстрокой: иначе подстрока
+ * не совпадёт никогда и признак молча перестаёт работать.
  */
 export function hasSignal(normalizedText: string, tokens: string[], signal: string): boolean {
-  if (signal.includes(' ')) return normalizedText.includes(signal)
-  return hasStem(tokens, signal)
+  if (!signal.includes(' ')) return hasStem(tokens, signal)
+  return hasPhrase(normalizedText, signal)
+}
+
+/**
+ * Совпадает ли фраза с текстом: слова фразы идут подряд и каждое совпадает
+ * со словом текста по основе.
+ *
+ * lenient — режим для запроса: слово запроса может быть короче основы
+ * («mine» против «mining»), поэтому проверяем совпадение в обе стороны.
+ */
+function hasPhrase(normalizedText: string, phrase: string, lenient = false): boolean {
+  const words = phrase.split(' ').filter(Boolean)
+  if (words.length === 0) return false
+
+  const textWords = normalizedText.split(' ').filter(Boolean)
+  if (textWords.length < words.length) return false
+
+  const wordMatches = (textWord: string, phraseWord: string) => {
+    if (matchesStem(textWord, phraseWord)) return true
+    return lenient && textWord.length >= 4 && phraseWord.startsWith(textWord)
+  }
+
+  for (let i = 0; i + words.length <= textWords.length; i++) {
+    let matched = true
+    for (let j = 0; j < words.length; j++) {
+      if (!wordMatches(textWords[i + j], words[j])) {
+        matched = false
+        break
+      }
+    }
+    if (matched) return true
+  }
+  return false
 }
 
 /**
@@ -66,11 +111,13 @@ export function hasSignal(normalizedText: string, tokens: string[], signal: stri
  * послабление не используется — там оно давало бы ложные срабатывания.
  */
 export function hasQuerySignal(normalizedText: string, tokens: string[], signal: string): boolean {
-  if (signal.includes(' ')) return normalizedText.includes(signal)
-  return tokens.some(token => {
-    if (matchesStem(token, signal)) return true
-    return token.length >= 4 && signal.startsWith(token)
-  })
+  if (!signal.includes(' ')) {
+    return tokens.some(token => {
+      if (matchesStem(token, signal)) return true
+      return token.length >= 4 && signal.startsWith(token)
+    })
+  }
+  return hasPhrase(normalizedText, signal, true)
 }
 
 /** Расстояние Левенштейна с ранним выходом — для опечаток в запросе. */

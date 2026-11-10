@@ -4,7 +4,7 @@ import { PublicationStatus, UserRole } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { canAccessUniversity, requireApiRole } from '@/lib/auth'
 import { canModerate } from '@/lib/publication'
-import { invalidateSearchIndex } from '@/lib/search/store'
+import { invalidateSearchIndex, reclassifyProject } from '@/lib/search/store'
 import { audit } from '@/lib/audit'
 
 const ALLOWED = new Set<string>(Object.values(PublicationStatus))
@@ -66,6 +66,12 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       },
       select: { id: true, title: true, publication: true, universityId: true },
     })
+
+    // Направления считаются по тексту проекта, а текст не менялся —
+    // но проект, созданный до появления классификатора, мог остаться
+    // без направлений и выпасть из фильтра по теме. Пересчитываем.
+    await reclassifyProject(project.id, prisma).catch(err =>
+      console.error('Не удалось классифицировать проект', project.id, err))
 
     // Состав поискового индекса зависит от публикации — сбрасываем кэш
     invalidateSearchIndex()

@@ -109,7 +109,9 @@ export async function loadSearchIndex(db: Db = defaultPrisma): Promise<IndexedPr
     const projects = await db.project.findMany({
       where: PUBLISHED_ONLY,
       select: PROJECT_SELECT,
-      orderBy: { createdAt: 'desc' },
+      // Второй ключ — детерминированный порядок среди равных createdAt:
+      // без него выдача могла «прыгать» между пересборками индекса
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
     })
     return projects.map(project => indexProject(project as any))
   })

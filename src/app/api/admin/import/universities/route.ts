@@ -3,6 +3,7 @@ import { UserRole } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { requireApiRole } from '@/lib/auth'
 import { audit } from '@/lib/audit'
+import { invalidateSearchIndex } from '@/lib/search/store'
 import { parseUniversityWorkbook, importUniversitiesFromRows } from '@/lib/university-import'
 
 export const runtime = 'nodejs'
@@ -30,6 +31,8 @@ export async function POST(request: NextRequest) {
 
     const summary = await importUniversitiesFromRows(prisma, rows, dryRun)
     if (!dryRun) {
+      // Имена вузов индексируются поиском — сбрасываем кэш индекса
+      invalidateSearchIndex()
       await audit(user, 'IMPORT', 'universities', null, `строк: ${rows.length}`)
     }
     return NextResponse.json(summary)

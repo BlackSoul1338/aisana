@@ -111,6 +111,12 @@ export async function PATCH(request: NextRequest) {
       select: { id: true, email: true, name: true, role: true, universityId: true },
     })
 
+    // Смена пароля отзывает все сессии пользователя: иначе старая cookie
+    // продолжает работать и украденный пароль не даёт никакого эффекта.
+    if (password) {
+      await prisma.session.deleteMany({ where: { userId: user.id } })
+    }
+
     await audit(currentUser, 'UPDATE', 'user', user.id, `${user.email} (${user.role})`)
     return NextResponse.json(user)
   } catch (error: any) {

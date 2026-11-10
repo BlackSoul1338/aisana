@@ -9,6 +9,9 @@ import { invalidateSearchIndex, reindexAllProjects } from '@/lib/search/store'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
+/** Предел размера импортируемого файла — 10 МБ. */
+const MAX_IMPORT_BYTES = 10 * 1024 * 1024
+
 export async function POST(request: NextRequest) {
   try {
     const { user, response } = await requireApiRole(request, [UserRole.ADMIN, UserRole.EDITOR, UserRole.UNIVERSITY_REP])
@@ -25,6 +28,12 @@ export async function POST(request: NextRequest) {
     const lowerName = file.name.toLowerCase()
     if (!lowerName.endsWith('.xlsx') && !lowerName.endsWith('.xls') && !lowerName.endsWith('.csv')) {
       return NextResponse.json({ error: 'Поддерживаются .xlsx, .xls и .csv' }, { status: 400 })
+    }
+
+    // Проверяем размер ДО чтения в память: arrayBuffer() съедает весь файл
+    if (file.size > MAX_IMPORT_BYTES) {
+      const limitMb = Math.round(MAX_IMPORT_BYTES / 1024 / 1024)
+      return NextResponse.json({ error: `Файл больше ${limitMb} МБ` }, { status: 400 })
     }
 
     const buffer = Buffer.from(await file.arrayBuffer())
