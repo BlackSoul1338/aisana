@@ -1,6 +1,8 @@
 services:
   db:
-    image: postgres:16-alpine
+    # Полный путь обязателен: rootless podman не резолвит короткие имена
+    # вида postgres:16-alpine (short-name did not resolve to an alias).
+    image: docker.io/library/postgres:16-alpine
     container_name: ai_map_kz_db
     restart: unless-stopped
     environment:
@@ -27,6 +29,9 @@ services:
     container_name: ai_map_kz_migrate
     environment:
       DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@db:5432/ai_map_kz
+      # Пароль создаваемого админа; без него сид сгенерирует случайный
+      # и напечатает его в лог.
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
     depends_on:
       db:
         condition: service_healthy
@@ -47,6 +52,10 @@ services:
       # Публичный адрес портала — используется в sitemap.xml и OpenGraph.
       # В проде поставь в .env реальный домен, например https://aimap.edu.kz
       NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
+      # Каталог для загруженных PDF. Заполняется, только если Vercel Blob
+      # недоступен (нет BLOB_READ_WRITE_TOKEN) — тогда файлы лежат на диске.
+      LOCAL_UPLOADS_DIR: /app/uploads_data
+      BLOB_READ_WRITE_TOKEN: ${BLOB_READ_WRITE_TOKEN:-}
     healthcheck:
       test: ['CMD-SHELL', 'wget -qO- http://127.0.0.1:3000/api/health || exit 1']
       interval: 30s
@@ -54,7 +63,7 @@ services:
       retries: 3
       start_period: 30s
     volumes:
-      - uploads_data:/app/public/uploads
+      - uploads_data:/app/uploads_data
     depends_on:
       db:
         condition: service_healthy
@@ -62,7 +71,7 @@ services:
         condition: service_completed_successfully
 
   backup:
-    image: postgres:16-alpine
+    image: docker.io/library/postgres:16-alpine
     container_name: ai_map_kz_backup
     restart: unless-stopped
     environment:

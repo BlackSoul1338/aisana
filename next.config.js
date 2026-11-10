@@ -28,14 +28,10 @@ const nextConfig = {
           { key: 'Cache-Control', value: 'public, max-age=86400, stale-while-revalidate=604800' },
         ],
       },
-      {
-        // Загруженные PDF имеют уникальные имена (timestamp+random),
-        // при замене создаётся новый файл — можно кэшировать агрессивно
-        source: '/uploads/:path*',
-        headers: [
-          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
-        ],
-      },
+      // /uploads/* намеренно НЕ кэшируем здесь: файлы приватные, отдаёт их
+      // роут /uploads/[filename] с проверкой сессии и собственным заголовком
+      // Cache-Control: private. Заголовок из next.config.js применился бы
+      // раньше роута и выставил приватному файлу public, immutable.
     ]
   },
 }

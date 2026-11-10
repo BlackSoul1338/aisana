@@ -1,5 +1,6 @@
 import { PrismaClient, UserRole } from '@prisma/client'
 import bcrypt from 'bcryptjs'
+import crypto from 'node:crypto'
 
 const prisma = new PrismaClient()
 
@@ -70,7 +71,11 @@ async function main() {
   })
 
   if (!existingAdmin) {
-    const hashedPassword = await bcrypt.hash('admin123', 10)
+    // Пароль админа берём из ADMIN_PASSWORD. Если переменной нет — генерируем
+    // случайный и печатаем его в лог: дефолтный пароль в репозитории — это
+    // готовый вход в админку для всех, кто склонирует проект.
+    const password = process.env.ADMIN_PASSWORD || crypto.randomBytes(12).toString('base64url')
+    const hashedPassword = await bcrypt.hash(password, 10)
     await prisma.user.create({
       data: {
         email: 'admin@mnvo.kz',
@@ -79,8 +84,12 @@ async function main() {
         role: UserRole.ADMIN,
       },
     })
-    console.log('✅ Admin created: admin@mnvo.kz / admin123')
-    console.log('⚠️  Смените пароль администратора после первого входа!')
+    console.log('✅ Admin created: admin@mnvo.kz')
+    if (process.env.ADMIN_PASSWORD) {
+      console.log('   Пароль взят из ADMIN_PASSWORD')
+    } else {
+      console.log(`   Пароль (сохраните его): ${password}`)
+    }
   } else {
     console.log(`✅ Admin already exists: ${existingAdmin.email}`)
   }

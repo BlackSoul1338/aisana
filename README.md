@@ -49,9 +49,9 @@ npm run db:seed
 ```
 
 > **Демо-данных больше нет.** Сид не создаёт вузы и проекты — рабочая база
-> уже наполнена реальными данными. Свежие дампы лежат в `./backups/*.dump`,
-> восстановление — см. `BACKUPS.md`. На чистой базе данные добавляются через
-> админку или импорт из Excel/CSV (`/admin/import`).
+> уже наполнена реальными данными. Свежие дампы лежат в `./backups/*.dump`.
+> На чистой базе данные добавляются через админку или импорт из Excel/CSV
+> (`/admin/import`).
 
 ### 4. Запуск
 
@@ -61,15 +61,24 @@ npm run dev
 
 Откройте [http://localhost:3000](http://localhost:3000)
 
-Вход в админку: `/login` → после сида `admin@mnvo.kz / admin123`
-(**смените пароль после первого входа**).
+Вход в админку: `/login` → `admin@mnvo.kz`.
+Пароль задаётся переменной `ADMIN_PASSWORD` в `.env`; если она не задана,
+сид сгенерирует случайный и напечатает его в лог (`npm run db:seed`).
 
 ---
 
-## Запуск через Docker
+## Запуск через Docker / Podman
 
 ```bash
-docker-compose up -d --build
+docker compose up -d --build          # Docker
+podman-compose up -d --build          # Podman (rootless)
+```
+
+Перед первым запуском на Podman создай внешний том с данными БД
+(в `docker-compose.yml` он объявлен как `external`):
+
+```bash
+podman volume create ai_mapkz_postgres_data
 ```
 
 Больше ничего запускать не нужно:
@@ -81,7 +90,12 @@ docker-compose up -d --build
 - **db** (PostgreSQL 16) наружу не пробрасывается — доступен только внутри docker-сети;
 - **app** слушает `:3000`, состояние — `GET /api/health`.
 
-Подробнее о бэкапах и восстановлении — `BACKUPS.md`.
+Сборка не требует интернета: шрифт Inter лежит в репозитории
+(`src/app/fonts/inter-var.woff2`), а не скачивается с Google Fonts.
+
+Загруженные PDF хранятся в Vercel Blob, если задан `BLOB_READ_WRITE_TOKEN`.
+Без токена приложение пишет их на диск (том `uploads_data`, путь
+`/app/uploads_data`) и отдаёт через тот же приватный роут `/uploads/[filename]`.
 
 ---
 
@@ -138,14 +152,21 @@ src/
 │   ├── audit.ts                 # Журнал аудита
 │   ├── project-import.ts        # Импорт проектов из Excel/CSV
 │   ├── university-import.ts     # Импорт вузов из Excel/CSV
-│   ├── uploads.ts               # Очистка локальных PDF
+│   ├── uploads.ts               # Хранение PDF (Vercel Blob или диск)
+│   ├── geminiSummary.ts         # Пояснения модели поверх готовой выдачи
+│   ├── search/                  # Движок поиска: text, taxonomy, classify, engine, store
 │   ├── data-cache.ts            # In-memory кэш тяжёлых выборок (60 сек)
 │   └── i18n.ts / seo.ts / utils.ts
 ├── context/LangContext.tsx      # Переключение языка (ru/kz)
-└── prisma/
-    ├── schema.prisma            # Схема БД
-    ├── migrations/              # Миграции (migrate deploy)
-    └── seed.ts                  # Регионы, технологии, админ
+└── types/index.ts              # Общие типы
+
+prisma/
+├── schema.prisma               # Схема БД
+├── migrations/                 # Миграции (migrate deploy)
+└── seed.ts                     # Регионы, технологии, админ
+
+docker/                         # backup.sh и разовые SQL-миграции
+src/app/fonts/inter-var.woff2   # Inter (latin + cyrillic) — сборка не тянет Google Fonts
 ```
 
 ---
@@ -157,23 +178,26 @@ src/
 | Метод | URL | Описание |
 |-------|-----|----------|
 | GET | `/api/health` | Здоровье приложения и БД |
-| GET | `/api/universities`, `/api/universities/:id` | Вузы |
-| GET | `/api/projects`, `/api/projects/:id` | Проекты (поиск: `?q=&status=&category=`) |
-| GET | `/api/hearings`, `/api/hearings/:id` | Заслушивания |
-| POST | `/api/projects/:id/view` | Счётчик просмотров (дедуп по IP, 1/час) |
-| POST | `/api/ai-search` | ИИ-поиск (rate limit 10/мин, 100/час на IP) |
 | POST | `/api/auth/login`, `/api/auth/logout` | Вход/выход |
+| POST | `/api/feedback` | Обращение с формы контактов (rate limit 3/10 мин, 10/сутки) |
 
 Требуют авторизации (роль в скобках):
 
 | Метод | URL | Описание |
 |-------|-----|----------|
+| GET | `/api/me` | Текущий пользователь |
+| GET | `/api/universities`, `/api/universities/:id` | Вузы |
+| GET | `/api/projects`, `/api/projects/:id` | Проекты (поиск: `?q=&status=&category=`) |
+| GET | `/api/hearings`, `/api/hearings/:id` | Заслушивания |
+| POST | `/api/projects/:id/view` | Счётчик просмотров (дедуп по IP, 1/час) |
+| POST | `/api/ai-search` | ИИ-поиск (ADMIN/EDITOR, rate limit 30/мин на IP) |
 | POST/PUT/DELETE | `/api/universities...` | CRUD вузов (ADMIN/EDITOR, удаление — ADMIN) |
 | POST/PUT/DELETE | `/api/projects...` | CRUD проектов (+UNIVERSITY_REP для своего вуза) |
 | PUT/DELETE | `/api/projects/:id/passport` | Паспорт ИИ-агента (PDF/ссылка) |
 | GET/POST/DELETE | `/api/projects/:id/files` | Файлы проекта (акты, презентации, ссылки) |
+| GET | `/uploads/:filename` | Отдача загруженного PDF (сессия обязательна) |
 | POST/PUT/DELETE | `/api/hearings...` | CRUD заслушиваний (ADMIN/EDITOR) |
-| POST | `/api/upload` | Загрузка PDF ≤20МБ (проверка магических байт) |
+| POST | `/api/upload` | Загрузка PDF ≤4МБ (проверка магических байт) |
 | POST | `/api/admin/import/projects` | Импорт проектов из .xlsx/.xls/.csv (dry-run поддерживается) |
 | POST | `/api/admin/import/universities` | Импорт вузов (ADMIN/EDITOR) |
 | POST/PATCH/DELETE | `/api/admin/users` | Пользователи (только ADMIN) |
@@ -195,7 +219,7 @@ src/
 
 ```bash
 npm run dev          # Дев-сервер
-npm run build        # Продакшен-сборка (требует интернет: Google Fonts)
+npm run build        # Продакшен-сборка (интернет не нужен)
 npm run lint         # ESLint
 npm run db:migrate   # Новая миграция (dev)
 npm run db:seed      # Сид (регионы/технологии/админ)
@@ -204,8 +228,13 @@ npm run db:studio    # Prisma Studio
 
 ## Примечания по деплою
 
-- Основной путь — **Docker** (`docker-compose up -d --build`).
-- Vercel возможен, но загруженные PDF хранятся локально в `public/uploads` —
-  на Vercel нужен внешний сторедж (S3/Blob). Переменные: `DATABASE_URL`,
-  `GEMINI_API_KEY`, `NEXT_PUBLIC_APP_URL`.
+- Основной путь — **Docker / Podman** (`docker compose up -d --build`).
+- Vercel возможен: загруженные PDF хранятся в Vercel Blob, для этого нужен
+  `BLOB_READ_WRITE_TOKEN`. Переменные: `DATABASE_URL`, `GEMINI_API_KEY`,
+  `NEXT_PUBLIC_APP_URL`.
 - `NEXT_PUBLIC_APP_URL` укажите реальным доменом — используется в sitemap и OpenGraph.
+- **Секреты:** `.env` в git не попадает. В `.env.example` — только плейсхолдеры.
+  Пароль админа задаётся `ADMIN_PASSWORD`; если он не задан, сид генерирует
+  случайный и печатает его в лог.
+- **Перед коммитом:** проверьте, что в истории нет реальных ключей и паролей.
+  `git log --all -p -- .env.example` не должен содержать значений.

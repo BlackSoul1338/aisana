@@ -1,0 +1,23 @@
+# Секреты и локальное окружение — в образ попадать не должны.
+# COPY . . в Dockerfile копирует весь контекст, включая .env.
+.env
+.env.*
+!.env.example
+
+# node_modules и .next пересобираются внутри образа
+node_modules
+.next
+out
+build
+
+# История git: не нужна в образе и раздувает слои
+.git
+.gitignore
+
+# Локальные данные: бэкапы БД и загруженные PDF
+backups
+uploads_data
+
+# Локальная документация
+docs
+AGENTS.md

@@ -1,4 +1,4 @@
-FROM node:20-alpine AS base
+FROM docker.io/library/node:20-alpine AS base
 
 # ── deps stage ──────────────────────────────────────────────
 FROM base AS deps
@@ -36,8 +36,9 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder /app/public ./public
 
-# Ensure uploads dir exists and is writable (mounted as volume)
-RUN mkdir -p ./public/uploads && chown -R nextjs:nodejs ./public/uploads
+# Каталог для загруженных PDF, когда Vercel Blob недоступен.
+# ВНЕ public/: public отдаётся статикой без проверки сессии, а файлы приватные.
+RUN mkdir -p ./uploads_data && chown -R nextjs:nodejs ./uploads_data
 
 # Prisma client needed at runtime for DB queries
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma

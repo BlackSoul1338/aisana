@@ -42,7 +42,12 @@ next-env.d.ts
 # локальные бэкапы БД
 /backups/
 
+# локальные загруженные PDF (когда Vercel Blob не настроен)
+/uploads_data/
+
+# все файлы окружения, кроме шаблона
 .env*
 !.env.example
-.vercel
-.env*
+
+AGENTS.md
+docs/

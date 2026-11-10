@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { put } from '@vercel/blob'
 import { requireApiRole } from '@/lib/auth'
 import { UserRole } from '@prisma/client'
-import { BLOB_PREFIX, BLOB_STORE_ID, MAX_UPLOAD_BYTES } from '@/lib/uploads'
+import { MAX_UPLOAD_BYTES, saveUpload } from '@/lib/uploads'
 
-// PDF складываются в Vercel Blob. Раньше файлы писались в public/uploads,
-// но на Vercel файловая система доступна только на чтение — запись падала
-// с EROFS, и загрузка не работала.
+// PDF складываются в Vercel Blob, а если токена нет — на диск (локальный
+// стенд). Раньше файлы писались в public/uploads, но на Vercel файловая
+// система доступна только на чтение — запись падала с EROFS.
 export async function POST(request: NextRequest) {
   try {
     const { response } = await requireApiRole(request, [UserRole.ADMIN, UserRole.EDITOR, UserRole.UNIVERSITY_REP])
@@ -50,16 +49,10 @@ export async function POST(request: NextRequest) {
     const uniqueId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
     const filename = `${uniqueId}-${baseName || 'document'}${ext}`
 
-    await put(`${BLOB_PREFIX}/${filename}`, buffer, {
-      access: 'private',
-      contentType: 'application/pdf',
-      addRandomSuffix: false,
-      storeId: BLOB_STORE_ID,
-    })
-
-    // Наружу отдаём не ссылку Blob, а собственный адрес: файл приватный,
+    // Наружу отдаём не ссылку хранилища, а собственный адрес: файл приватный,
     // и открыть его можно только через /uploads, где проверяется сессия.
-    return NextResponse.json({ url: `/uploads/${filename}` })
+    const url = await saveUpload(filename, buffer)
+    return NextResponse.json({ url })
   } catch (error: any) {
     console.error('Upload error:', error)
     return NextResponse.json({ error: 'Ошибка загрузки файла' }, { status: 500 })

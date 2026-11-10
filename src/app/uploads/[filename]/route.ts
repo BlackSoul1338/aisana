@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import path from 'path'
-import { get } from '@vercel/blob'
 import { requireApiUser } from '@/lib/auth'
-import { BLOB_STORE_ID, BLOB_PREFIX } from '@/lib/uploads'
+import { readUpload } from '@/lib/uploads'
 
 export const dynamic = 'force-dynamic'
 
 /**
- * Отдаёт загруженный PDF из приватного Blob-хранилища.
+ * Отдаёт загруженный PDF (из Vercel Blob или с диска — локальный стенд).
  *
  * Файлы лежат приватно, публичной ссылки у них нет — поэтому страница проекта
  * запрашивает их здесь, а мы проверяем сессию и стримим содержимое дальше.
@@ -28,19 +27,13 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   }
 
   try {
-    const result = await get(`${BLOB_PREFIX}/${safeName}`, {
-      access: 'private',
-      storeId: BLOB_STORE_ID,
-    })
+    const file = await readUpload(safeName)
+    if (!file) return NextResponse.json({ error: 'Файл не найден' }, { status: 404 })
 
-    if (!result || result.statusCode !== 200) {
-      return NextResponse.json({ error: 'Файл не найден' }, { status: 404 })
-    }
-
-    return new NextResponse(result.stream, {
+    return new NextResponse(file.body as ReadableStream, {
       headers: {
-        'Content-Type': result.blob.contentType || 'application/pdf',
-        'Content-Length': String(result.blob.size),
+        'Content-Type': file.contentType,
+        'Content-Length': String(file.size),
         // inline — чтобы документ открывался во фрейме, а не скачивался
         'Content-Disposition': `inline; filename="${safeName}"`,
         // приватный файл не должен оседать в общих кэшах
