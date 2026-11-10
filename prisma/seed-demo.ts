@@ -126,7 +126,7 @@ const PROJECTS = [
     teamSize: 9,
     category: ProjectCategory.ANALYTICS,
     status: ProjectStatus.IMPLEMENTED,
-    techSlugs: ['machine-learning', 'iot'],
+    techSlugs: ['machine-learning', 'other'],
     tags: ['горнодобыча', 'предиктивное обслуживание', 'датчики', 'цифровой двойник'],
     impact: 'Меньше внеплановых простоев оборудования на руднике.',
     results: 'Прогноз отказа насоса за 12 часов, обслуживание по графику.',
