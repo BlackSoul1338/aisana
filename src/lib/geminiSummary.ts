@@ -1,6 +1,7 @@
-import { GoogleGenerativeAI, SchemaType, type ResponseSchema } from '@google/generative-ai'
+import { SchemaType, type ResponseSchema } from '@google/generative-ai'
 import { z } from 'zod'
 import { cacheKey, readCache, writeCache } from '@/lib/llm-cache'
+import { generateWithFallback } from '@/lib/gemini-models'
 
 interface ProjectSummaryInput {
   title: string
@@ -9,6 +10,9 @@ interface ProjectSummaryInput {
 
 /** Модель можно переопределить через GEMINI_MODEL в .env, не трогая код. */
 const MODEL = process.env.GEMINI_MODEL || 'gemini-3.6-flash'
+
+/** Модель для простых задач — отдельная квотная «корзина». */
+const MODEL_LITE = process.env.GEMINI_MODEL_LITE || 'gemini-3.5-flash-lite'
 
 /** Сколько проектов максимум отправляем в модель за один запрос.
  *  Больше — выше риск, что ответ обрежется на середине и не распарсится. */
@@ -60,12 +64,6 @@ export interface AiResult<T> {
   available: boolean
 }
 
-function getModel() {
-  if (!process.env.GEMINI_API_KEY) return null
-  const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
-  return genAI.getGenerativeModel({ model: MODEL })
-}
-
 /**
  * Приводит текст к безопасному для промпта виду: одна строка, без
  * управляющих символов, ограниченной длины.
@@ -106,8 +104,7 @@ export async function generateSearchSummary(
 ): Promise<AiResult<string>> {
   if (projects.length === 0) return { data: '', available: true }
 
-  const model = getModel()
-  if (!model) return { data: '', available: false }
+  if (!process.env.GEMINI_API_KEY) return { data: '', available: false }
 
   const projectList = projects
     .slice(0, 10)
@@ -125,23 +122,28 @@ ${asDataBlock(['Найденные ИИ-решения казахстански�
 
   // Кэш: ответ зависит от запроса и от того, какие проекты попали в выдачу,
   // поэтому в ключ входит хэш обоих. Правка промпта инвалидирует запись.
-  const key = cacheKey('summary', MODEL, prompt, JSON.stringify(projects.slice(0, 10)))
+  const payload = JSON.stringify(projects.slice(0, 10))
+  const key = cacheKey('summary', MODEL_LITE, prompt, payload)
   const cached = await readCache<string>(key)
   if (cached !== null) return { data: cached, available: true }
 
-  try {
-    const result = await model.generateContent(prompt)
-    const text = (await result.response).text().trim()
-    await writeCache(key, 'summary', MODEL, prompt, text)
-    return { data: text, available: true }
-  } catch (error) {
-    console.error('Failed to generate AI search summary', error)
+  // Простая задача — короткий текст: идём на lite-модель (своя квота).
+  const result = await generateWithFallback(
+    true,
+    model => model.generateContent(prompt),
+    request => request.then(res => res.response.text())
+  )
+  if (!result) {
+    console.error('Failed to generate AI search summary: no model available')
     return { data: '', available: false }
   }
+
+  const text = result.text.trim()
+  await writeCache(key, 'summary', result.model, prompt, text)
+  return { data: text, available: true }
 }
 
 async function reasonsForBatch(
-  model: NonNullable<ReturnType<typeof getModel>>,
   query: string,
   batch: Array<{ id: string; title: string; description: string | null }>
 ): Promise<Record<string, string>> {
@@ -170,21 +172,30 @@ ${asDataBlock(['Список ИИ-решений казахстанских ву
   const cached = await readCache<Record<string, string>>(key)
   if (cached !== null) return cached
 
-  const result = await model.generateContent({
-    contents: [{ role: 'user', parts: [{ text: prompt }] }],
-    generationConfig: {
-      temperature: 0.3,
-      maxOutputTokens: 4096,
-      responseMimeType: 'application/json',
-      responseSchema: RESPONSE_SCHEMA,
-    },
-  })
-
-  const raw = (await result.response).text()
+  // Сложная задача — идём на основную модель, но при исчерпанной квоте
+  // переходим на резервную (у каждой своя квотная «корзина»).
+  const result = await generateWithFallback(
+    false,
+    model =>
+      model.generateContent({
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        generationConfig: {
+          temperature: 0.3,
+          maxOutputTokens: 4096,
+          responseMimeType: 'application/json',
+          responseSchema: RESPONSE_SCHEMA,
+        },
+      }),
+    request => request.then(res => res.response.text())
+  )
+  if (!result) {
+    console.error('Failed to generate match reasons: no model available')
+    return {}
+  }
 
   let parsedJson: unknown
   try {
-    parsedJson = JSON.parse(raw)
+    parsedJson = JSON.parse(result.text)
   } catch {
     console.error('Model returned a non-JSON match-reasons payload')
     return {}
@@ -203,7 +214,7 @@ ${asDataBlock(['Список ИИ-решений казахстанских ву
   for (const item of parsed.data.reasons) {
     reasons[item.id] = item.reason.trim()
   }
-  await writeCache(key, 'reasons', MODEL, prompt, reasons)
+  await writeCache(key, 'reasons', result.model, prompt, reasons)
   return reasons
 }
 
@@ -213,8 +224,7 @@ export async function generateMatchReasons(
 ): Promise<AiResult<Record<string, string>>> {
   if (projects.length === 0) return { data: {}, available: true }
 
-  const model = getModel()
-  if (!model) return { data: {}, available: false }
+  if (!process.env.GEMINI_API_KEY) return { data: {}, available: false }
 
   // Подписи нужны для ВСЕХ найденных проектов, а не только для первых пяти,
   // поэтому режем список на батчи и обрабатываем их параллельно.
@@ -224,7 +234,7 @@ export async function generateMatchReasons(
     batches.push(limited.slice(i, i + BATCH_SIZE))
   }
 
-  const settled = await Promise.allSettled(batches.map(batch => reasonsForBatch(model, query, batch)))
+  const settled = await Promise.allSettled(batches.map(batch => reasonsForBatch(query, batch)))
 
   const reasons: Record<string, string> = {}
   let failed = 0

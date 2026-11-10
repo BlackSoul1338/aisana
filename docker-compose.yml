@@ -48,6 +48,10 @@ services:
     environment:
       DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@db:5432/ai_map_kz
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      # Модели и цепочка резервных: у каждой модели своя квота
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.6-flash}
+      GEMINI_MODEL_LITE: ${GEMINI_MODEL_LITE:-gemini-3.5-flash-lite}
+      GEMINI_MODEL_FALLBACKS: ${GEMINI_MODEL_FALLBACKS:-gemini-3.5-flash-lite,gemini-3.1-flash-lite-preview,gemini-3-flash-preview}
       NODE_ENV: production
       # Публичный адрес портала — используется в sitemap.xml и OpenGraph.
       # В проде поставь в .env реальный домен, например https://aimap.edu.kz
