@@ -5,6 +5,7 @@ import { canAccessUniversity, requireApiRole, requireApiUser } from '@/lib/auth'
 import { deleteUpload, isAllowedFileUrl } from '@/lib/uploads'
 import { audit } from '@/lib/audit'
 import { ProjectFileType, UserRole } from '@prisma/client'
+import { deleteFileSchema, parseBody, projectFileSchema } from '@/lib/schemas'
 
 const FILE_TYPES = new Set<string>(Object.values(ProjectFileType))
 
@@ -33,10 +34,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json({ error: 'Недостаточно прав для этого проекта' }, { status: 403 })
     }
 
-    const data = await request.json()
-    if (!data.label || !data.url || !data.type) {
-      return NextResponse.json({ error: 'label, url и type обязательны' }, { status: 400 })
+    const body = await request.json().catch(() => ({}))
+    const parsed = parseBody(projectFileSchema, body)
+    if (!parsed.success) {
+      return NextResponse.json({ error: parsed.error }, { status: 400 })
     }
+    const data = parsed.data
 
     // Та же проверка, что и у паспорта проекта: url рендерится как <a href>
     // на публичной странице, поэтому javascript:-ссылки и прочий мусор
@@ -87,8 +90,12 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       return NextResponse.json({ error: 'Недостаточно прав для этого проекта' }, { status: 403 })
     }
 
-    const { fileId } = await request.json()
-    if (!fileId) return NextResponse.json({ error: 'fileId обязателен' }, { status: 400 })
+    const body = await request.json().catch(() => ({}))
+    const parsed = parseBody(deleteFileSchema, body)
+    if (!parsed.success) {
+      return NextResponse.json({ error: parsed.error }, { status: 400 })
+    }
+    const { fileId } = parsed.data
 
     // Ensure the file actually belongs to this project (defense in depth)
     const file = await prisma.projectFile.findUnique({ where: { id: fileId } })

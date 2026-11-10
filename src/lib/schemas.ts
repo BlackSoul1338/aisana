@@ -1,0 +1,149 @@
+import { z } from 'zod'
+import { ProjectCategory, ProjectStatus, PublicationStatus, UniversityType } from '@prisma/client'
+
+/**
+ * Схемы тел запросов.
+ *
+ * Раньше тела проверялись вручную или не проверялись вовсе: неверный
+ * enum категории доходил до Prisma и давал 500 вместо 400. Здесь тело
+ * разбирается и проверяется до похода в базу.
+ */
+
+/** Строка не длиннее N символов; пустая строка превращается в null. */
+const shortText = (max: number) =>
+  z.string().trim().max(max).nullish().transform(value => value || null)
+
+/** Список тегов: не больше 50 штук по 50 символов. */
+const tagsList = z
+  .array(z.string().trim().min(1).max(50))
+  .max(50)
+  .optional()
+
+/** Идентификаторы технологий. */
+const technologyIds = z.array(z.string().min(1).max(64)).max(20).optional()
+
+export const loginSchema = z.object({
+  email: z.string().trim().email().max(255),
+  password: z.string().min(1).max(200),
+})
+
+export const feedbackSchema = z.object({
+  name: z.string().trim().min(1).max(120),
+  email: z.string().trim().email().max(160),
+  message: z.string().trim().min(10).max(4000),
+  organization: shortText(200),
+  topic: z.enum(['ACCESS', 'SUGGESTION', 'ERROR', 'QUESTION']).optional(),
+  // Honeypot: поле скрыто от людей, боты его заполняют
+  website: z.string().optional(),
+})
+
+export const projectSchema = z.object({
+  title: z.string().trim().min(1).max(300),
+  description: z.string().trim().min(1).max(20_000),
+  universityId: z.string().trim().min(1).max(64).optional(),
+  leadName: shortText(200),
+  leadEmail: z.union([z.string().trim().email().max(255), z.literal(''), z.null()]).optional(),
+  teamSize: z.coerce.number().int().min(0).max(10_000).nullish(),
+  launchDate: z.union([z.string().trim().max(40), z.null()]).optional(),
+  category: z.nativeEnum(ProjectCategory).optional(),
+  status: z.nativeEnum(ProjectStatus).optional(),
+  isBestPractice: z.boolean().optional(),
+  isScalable: z.boolean().optional(),
+  impact: shortText(5_000),
+  results: shortText(5_000),
+  presentationPdf: shortText(500),
+  presentationPptx: shortText(500),
+  zoomLink: shortText(500),
+  videoUrl: shortText(500),
+  documentation: shortText(500),
+  tags: tagsList,
+  technologyIds,
+})
+
+export const universitySchema = z.object({
+  name: z.string().trim().min(1).max(300),
+  nameKz: shortText(300),
+  shortName: shortText(100),
+  regionId: z.string().trim().min(1).max(64),
+  address: shortText(300),
+  website: shortText(300),
+  email: z.union([z.string().trim().email().max(255), z.literal(''), z.null()]).optional(),
+  phone: shortText(60),
+  rector: shortText(200),
+  description: shortText(5_000),
+  type: z.nativeEnum(UniversityType).optional(),
+})
+
+export const hearingSchema = z.object({
+  projectId: z.string().trim().min(1).max(64),
+  date: z.union([z.string().trim().min(1).max(40), z.date()]),
+  commission: z.array(z.string().trim().min(1).max(200)).max(50).optional(),
+  remarks: shortText(5_000),
+  recommendations: shortText(5_000),
+  decision: z.enum(['PENDING', 'APPROVED', 'REJECTED', 'REVISION', 'RECOMMENDED']).optional(),
+  decisionText: shortText(5_000),
+})
+
+export const projectFileSchema = z.object({
+  label: z.string().trim().min(1).max(300),
+  url: z.string().trim().min(1).max(2_000),
+  type: z.enum(['ACT', 'PRESENTATION', 'DOCUMENTATION', 'VIDEO', 'ZOOM', 'LINK', 'OTHER']),
+  size: z.coerce.number().int().min(0).max(100_000_000).nullish(),
+})
+
+export const passportSchema = z.object({
+  url: z.union([z.string().trim().max(2_000), z.null()]).optional(),
+})
+
+export const publicationSchema = z.object({
+  publication: z.nativeEnum(PublicationStatus),
+  note: z.string().trim().max(1000).optional(),
+})
+
+export const userCreateSchema = z.object({
+  email: z.string().trim().email().max(255),
+  name: z.string().trim().min(1).max(200),
+  password: z.string().min(6).max(200),
+  role: z.enum(['ADMIN', 'EDITOR', 'UNIVERSITY_REP', 'VIEWER']),
+  universityId: z.union([z.string().trim().max(64), z.null()]).optional(),
+})
+
+export const userUpdateSchema = z.object({
+  id: z.string().trim().min(1).max(64),
+  email: z.union([z.string().trim().email().max(255), z.literal('')]).optional(),
+  name: z.union([z.string().trim().max(200), z.null()]).optional(),
+  password: z.union([z.string().min(6).max(200), z.literal('')]).optional(),
+  role: z.enum(['ADMIN', 'EDITOR', 'UNIVERSITY_REP', 'VIEWER']).optional(),
+  universityId: z.union([z.string().trim().max(64), z.null()]).optional(),
+})
+
+export const deleteFileSchema = z.object({
+  fileId: z.string().trim().min(1).max(64),
+})
+
+export const aiSearchSchema = z.object({
+  query: z.string().trim().min(2).max(500),
+  debug: z.boolean().optional(),
+  limit: z.coerce.number().int().min(1).max(100).optional(),
+})
+
+/**
+ * Разбирает тело запроса по схеме.
+ *
+ * Возвращает union с полем success: только так TypeScript сужает тип —
+ * вариант «error: string | null» не сужается, потому что строка не
+ * литеральный тип.
+ */
+export type ParsedBody<T> =
+  | { success: true; data: T }
+  | { success: false; error: string }
+
+export function parseBody<T extends z.ZodTypeAny>(schema: T, body: unknown): ParsedBody<z.infer<T>> {
+  const result = schema.safeParse(body)
+  if (result.success) return { success: true, data: result.data }
+
+  const issue = result.error.issues[0]
+  const field = issue.path.join('.')
+  const message = field ? `Поле «${field}»: ${issue.message}` : issue.message
+  return { success: false, error: message }
+}

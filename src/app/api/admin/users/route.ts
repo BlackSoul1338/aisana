@@ -4,6 +4,7 @@ import { UserRole } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { requireApiRole } from '@/lib/auth'
 import { audit } from '@/lib/audit'
+import { parseBody, userCreateSchema, userUpdateSchema } from '@/lib/schemas'
 
 const VALID_ROLES = new Set<UserRole>([
   UserRole.ADMIN,
@@ -17,18 +18,15 @@ export async function POST(request: NextRequest) {
     const { user: actor, response } = await requireApiRole(request, [UserRole.ADMIN])
     if (response) return response
 
-    const data = await request.json()
-    const email = String(data.email || '').trim().toLowerCase()
-    const password = String(data.password || '')
+    const body = await request.json().catch(() => ({}))
+    const parsed = parseBody(userCreateSchema, body)
+    if (!parsed.success) {
+      return NextResponse.json({ error: parsed.error }, { status: 400 })
+    }
+    const data = parsed.data
+    const email = data.email.trim().toLowerCase()
+    const password = data.password
     const role = data.role as UserRole
-
-    if (!email || !password || !VALID_ROLES.has(role)) {
-      return NextResponse.json({ error: 'Email, пароль и роль обязательны' }, { status: 400 })
-    }
-
-    if (password.length < 6) {
-      return NextResponse.json({ error: 'Пароль должен быть не короче 6 символов' }, { status: 400 })
-    }
 
     if (role === UserRole.UNIVERSITY_REP && !data.universityId) {
       return NextResponse.json({ error: 'Для представителя вуза нужно выбрать вуз' }, { status: 400 })
@@ -38,7 +36,7 @@ export async function POST(request: NextRequest) {
     const user = await prisma.user.create({
       data: {
         email,
-        name: data.name || null,
+        name: data.name,
         password: hashedPassword,
         role,
         universityId: role === UserRole.UNIVERSITY_REP ? data.universityId : null,
@@ -69,12 +67,12 @@ export async function PATCH(request: NextRequest) {
     const { user: currentUser, response } = await requireApiRole(request, [UserRole.ADMIN])
     if (response) return response
 
-    const data = await request.json()
-    const { id, name, email, password, role, universityId } = data
-
-    if (!id) {
-      return NextResponse.json({ error: 'ID пользователя обязателен' }, { status: 400 })
+    const body = await request.json().catch(() => ({}))
+    const parsed = parseBody(userUpdateSchema, body)
+    if (!parsed.success) {
+      return NextResponse.json({ error: parsed.error }, { status: 400 })
     }
+    const { id, name, email, password, role, universityId } = parsed.data
 
     const updateData: Record<string, any> = {}
     if (name !== undefined) updateData.name = name || null

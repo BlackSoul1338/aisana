@@ -6,6 +6,7 @@ import { getClientIp, rateLimit } from '@/lib/rate-limit'
 import { loadSearchIndex } from '@/lib/search/store'
 import { searchIndex } from '@/lib/search/engine'
 import { generateMatchReasons, generateSearchSummary } from '@/lib/geminiSummary'
+import { aiSearchSchema, parseBody } from '@/lib/schemas'
 
 export const dynamic = 'force-dynamic'
 
@@ -38,13 +39,13 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json().catch(() => ({}))
-    const query = typeof body.query === 'string' ? body.query.trim() : ''
-    const debug = body.debug === true
-    const limit = Math.min(Number(body.limit) || 50, 100)
-
-    if (query.length < 2) {
-      return NextResponse.json({ error: 'Введите минимум 2 символа' }, { status: 400 })
+    const bodyParsed = parseBody(aiSearchSchema, body)
+    if (!bodyParsed.success) {
+      return NextResponse.json({ error: bodyParsed.error }, { status: 400 })
     }
+    const query = bodyParsed.data.query
+    const debug = bodyParsed.data.debug === true
+    const limit = bodyParsed.data.limit ?? 50
 
     const index = await loadSearchIndex(prisma)
     const { query: parsed, hits } = searchIndex(index, query, { limit })
@@ -103,7 +104,7 @@ export async function POST(request: NextRequest) {
     // Пояснения от модели — поверх уже готовой выдачи, необязательны.
     // Проект мог быть удалён между сборкой индекса и запросом — тогда
     // его нет в byId, и он просто не попадает в пояснения.
-    const [aiSummary, matchReasons] = await Promise.all([
+    const [summary, reasons] = await Promise.all([
       generateSearchSummary(query, projects.map(p => ({ title: p.title, description: p.description }))),
       generateMatchReasons(query, hits.slice(0, 30).flatMap(hit => {
         const project = byId.get(hit.id)
@@ -115,8 +116,10 @@ export async function POST(request: NextRequest) {
       query,
       count: results.length,
       results,
-      aiSummary,
-      matchReasons,
+      aiSummary: summary.data,
+      matchReasons: reasons.data,
+      // Пользователь должен видеть, что ИИ-часть недоступна, а не пустоту
+      aiAvailable: summary.available && reasons.available,
       topics: parsed.topics,
       ...(debug ? { debug: { parsedQuery: parsed, indexSize: index.length } } : {}),
     })

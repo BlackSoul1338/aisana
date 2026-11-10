@@ -6,6 +6,7 @@ import { canAccessUniversity, requireApiRole } from '@/lib/auth'
 import { canModerate } from '@/lib/publication'
 import { invalidateSearchIndex, reclassifyProject } from '@/lib/search/store'
 import { audit } from '@/lib/audit'
+import { parseBody, publicationSchema } from '@/lib/schemas'
 
 const ALLOWED = new Set<string>(Object.values(PublicationStatus))
 
@@ -33,7 +34,11 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     }
 
     const body = await request.json().catch(() => ({}))
-    const next = String(body.publication || '')
+    const parsed = parseBody(publicationSchema, body)
+    if (!parsed.success) {
+      return NextResponse.json({ error: parsed.error }, { status: 400 })
+    }
+    const next = parsed.data.publication
     if (!ALLOWED.has(next)) {
       return NextResponse.json({ error: 'Неизвестный статус публикации' }, { status: 400 })
     }

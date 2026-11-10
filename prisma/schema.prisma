@@ -254,6 +254,25 @@ model AuditLog {
   @@map("audit_logs")
 }
 
+// ── Кэш ответов ИИ ─────────────────────────────────────────
+// Ответы модели стоят денег, поэтому храним их в базе: кэш переживает
+// рестарт контейнера и одинаков на всех репликах приложения.
+//
+// В ключ входит хэш промпта: правка промпта в коде инвалидирует запись,
+// иначе старые ответы показывались бы как актуальные.
+model LlmCache {
+  cacheKey   String   @id @map("cache_key")
+  kind       String // 'summary' | 'reasons'
+  payload    Json // точное тело ответа модели
+  model      String
+  promptHash String   @map("prompt_hash")
+  createdAt  DateTime @default(now()) @map("created_at")
+  expiresAt  DateTime @map("expires_at")
+
+  @@index([expiresAt])
+  @@map("llm_cache")
+}
+
 // ── Обратная связь с портала ──────────────────────────────
 model Feedback {
   id           String       @id @default(cuid())

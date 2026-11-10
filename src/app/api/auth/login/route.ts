@@ -4,14 +4,16 @@ import crypto from 'crypto'
 import { prisma } from '@/lib/prisma'
 import { SESSION_COOKIE, SESSION_MAX_AGE_SECONDS } from '@/lib/auth'
 import { getClientIp, rateLimit } from '@/lib/rate-limit'
+import { loginSchema, parseBody } from '@/lib/schemas'
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, password } = await request.json()
-
-    if (!email || !password) {
-      return NextResponse.json({ error: 'Введите email и пароль' }, { status: 400 })
+    const body = await request.json().catch(() => ({}))
+    const parsed = parseBody(loginSchema, body)
+    if (!parsed.success) {
+      return NextResponse.json({ error: parsed.error }, { status: 400 })
     }
+    const { email, password } = parsed.data
 
     // ── Защита от брутфорса ──────────────────────────────────
     // 20 попыток с одного IP за 15 минут (по любым аккаунтам)
@@ -21,7 +23,7 @@ export async function POST(request: NextRequest) {
     // и ротацией заголовка обходил связку IP+email полностью. Ключ по email
     // перебор не обходит — как бы клиент ни подменял заголовки.
     const ip = getClientIp(request)
-    const normalizedEmail = String(email).trim().toLowerCase()
+    const normalizedEmail = email.trim().toLowerCase()
     const byIp = rateLimit(`login:ip:${ip}`, 20, 15 * 60 * 1000)
     const byAccount = rateLimit(`login:acc:${normalizedEmail}`, 5, 15 * 60 * 1000)
     if (!byIp.ok || !byAccount.ok) {

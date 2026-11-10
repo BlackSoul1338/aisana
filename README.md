@@ -150,6 +150,8 @@ src/
 │   ├── auth.ts                  # Сессии, роли, guard-функции
 │   ├── rate-limit.ts            # Rate limiting и дедупликация счётчиков
 │   ├── audit.ts                 # Журнал аудита
+│   ├── schemas.ts               # Zod-схемы тел запросов
+│   ├── llm-cache.ts             # Кэш ответов ИИ в Postgres
 │   ├── project-import.ts        # Импорт проектов из Excel/CSV
 │   ├── university-import.ts     # Импорт вузов из Excel/CSV
 │   ├── uploads.ts               # Хранение PDF (Vercel Blob или диск)
@@ -163,11 +165,14 @@ src/
 prisma/
 ├── schema.prisma               # Схема БД
 ├── migrations/                 # Миграции (migrate deploy)
-└── seed.ts                     # Регионы, технологии, админ
+├── seed.ts                     # Регионы, технологии, админ
+└── seed-demo.ts                # ДЕМО-данные для локального стенда
 
 docker/                         # backup.sh и разовые SQL-миграции
 src/app/fonts/inter-var.woff2   # Inter (latin + cyrillic) — сборка не тянет Google Fonts
 ```
+
+Тесты (`npm test`) — на чистые функции в `src/lib/search/`: без БД и без сети.
 
 ---
 
@@ -190,7 +195,7 @@ src/app/fonts/inter-var.woff2   # Inter (latin + cyrillic) — сборка не
 | GET | `/api/projects`, `/api/projects/:id` | Проекты (поиск: `?q=&status=&category=`) |
 | GET | `/api/hearings`, `/api/hearings/:id` | Заслушивания |
 | POST | `/api/projects/:id/view` | Счётчик просмотров (дедуп по IP, 1/час) |
-| POST | `/api/ai-search` | ИИ-поиск (ADMIN/EDITOR, rate limit 30/мин на IP) |
+| POST | `/api/ai-search` | ИИ-поиск (ADMIN/EDITOR, rate limit 30/мин на IP). В ответе `aiAvailable` — доступна ли ИИ-часть |
 | POST/PUT/DELETE | `/api/universities...` | CRUD вузов (ADMIN/EDITOR, удаление — ADMIN) |
 | POST/PUT/DELETE | `/api/projects...` | CRUD проектов (+UNIVERSITY_REP для своего вуза) |
 | PUT/DELETE | `/api/projects/:id/passport` | Паспорт ИИ-агента (PDF/ссылка) |
@@ -221,10 +226,32 @@ src/app/fonts/inter-var.woff2   # Inter (latin + cyrillic) — сборка не
 npm run dev          # Дев-сервер
 npm run build        # Продакшен-сборка (интернет не нужен)
 npm run lint         # ESLint
+npm test             # Тесты (vitest, чистые функции поиска)
 npm run db:migrate   # Новая миграция (dev)
 npm run db:seed      # Сид (регионы/технологии/админ)
+npm run db:seed:demo # ДЕМО-данные: вузы, проекты, тестовые учётки
 npm run db:studio    # Prisma Studio
 ```
+
+### Демо-данные для локального стенда
+
+```bash
+npm run db:seed:demo
+```
+
+Создаёт 5 вузов, 7 проектов (в том числе казахский и черновик на проверку)
+и четыре учётки с паролем `demo12345`:
+
+| Учётка | Роль | Что проверяет |
+|---|---|---|
+| `demo-admin@demo.kz` | ADMIN | Полный доступ |
+| `demo-editor@demo.kz` | EDITOR | Контент без управления пользователями |
+| `demo-rep@demo.kz` | UNIVERSITY_REP | Только свой вуз (ENU) |
+| `demo-viewer@demo.kz` | VIEWER | Просмотр без записи |
+
+После сида нажмите в админке «Пересчитать направления», чтобы проекты
+получили тематические направления. Данные помечены префиксом `demo_` и
+удаляются запросом к базе.
 
 ## Примечания по деплою
 

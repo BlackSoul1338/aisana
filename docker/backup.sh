@@ -24,6 +24,14 @@ do_backup() {
   echo "[$(date '+%F %T')] в хранилище: $(ls "$BACKUP_DIR" | wc -l) файлов"
 }
 
+# Чистка кэша ответов ИИ: просроченные записи больше не нужны.
+# Таблица маленькая, но без чистки она растёт бесконечно.
+purge_llm_cache() {
+  count=$(psql -h db -U postgres -d ai_map_kz -tAc \
+    "DELETE FROM llm_cache WHERE \"expires_at\" <= now() RETURNING 1" 2>/dev/null | wc -l)
+  echo "[$(date '+%F %T')] кэш ИИ: удалено просроченных записей — $count"
+}
+
 if [ "${1:-}" = "once" ]; then
   do_backup
   exit 0
@@ -33,5 +41,6 @@ fi
 # Ошибка одного прогона не убивает цикл — следующая попытка через сутки.
 while true; do
   do_backup || echo "[$(date '+%F %T')] ОШИБКА БЭКАПА — повтор через сутки"
+  purge_llm_cache || echo "[$(date '+%F %T')] ОШИБКА ЧИСТКИ КЭША ИИ — не критично"
   sleep "$INTERVAL_SECONDS"
 done
