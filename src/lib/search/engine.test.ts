@@ -41,7 +41,7 @@ const health = {
 
 const index = [industrial, kazakh, health].map(indexProject)
 
-describe('searchIndex — казахский поиск (регрессия C5)', () => {
+describe('searchIndex — казахский поиск', () => {
   it('находит проект по казахским словам', () => {
     const { hits } = searchIndex(index, 'жасанды интеллект')
     expect(hits.length).toBeGreaterThan(0)
@@ -59,7 +59,7 @@ describe('searchIndex — казахский поиск (регрессия C5)'
   })
 })
 
-describe('searchIndex — фразы с усечёнными основами (регрессия C6)', () => {
+describe('searchIndex — фразы с усечёнными основами', () => {
   it('находит проект по фразе «обслуживание оборудования»', () => {
     const { hits } = searchIndex(index, 'обслуживание оборудования')
     // Совпадение возможно по расширению запроса, главное — что выдача не пуста
@@ -67,7 +67,7 @@ describe('searchIndex — фразы с усечёнными основами (�
   })
 })
 
-describe('searchIndex — порядок выдачи (регрессия C7)', () => {
+describe('searchIndex — порядок выдачи', () => {
   it('сортирует по необработанному баллу, а не по срезанной оценке', () => {
     const { hits } = searchIndex(index, 'производство сварка')
     for (let i = 1; i < hits.length; i++) {
