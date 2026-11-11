@@ -33,8 +33,11 @@ const tagsList = z
 /** Идентификаторы технологий. */
 const technologyIds = z.array(z.string().min(1).max(64)).max(20).optional()
 
+// Формат почты при входе не проверяем: учётки заводились без проверки
+// формата, и строгий .email() (требует домен верхнего уровня) закрыл бы
+// вход тем, у кого адрес вида user@host. Вход — это просто поиск по базе.
 export const loginSchema = z.object({
-  email: z.string().trim().email().max(255),
+  email: z.string().trim().min(1).max(255),
   password: z.string().min(1).max(200),
 })
 
