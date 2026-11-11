@@ -50,6 +50,11 @@ export function rateLimit(
   return { ok: true, retryAfterSec: 0 }
 }
 
+/** Сбрасывает счётчик ключа — например, после успешного входа. */
+export function resetRateLimit(key: string): void {
+  buckets.delete(key)
+}
+
 /**
  * Дедупликация: true только при ПЕРВОМ вызове с данным ключом в пределах окна.
  * Используется для честных счётчиков (просмотры, попадания в ИИ-поиск).

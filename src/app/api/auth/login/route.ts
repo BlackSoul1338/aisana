@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs'
 import crypto from 'crypto'
 import { prisma } from '@/lib/prisma'
 import { SESSION_COOKIE, SESSION_MAX_AGE_SECONDS } from '@/lib/auth'
+import { resetRateLimit } from '@/lib/rate-limit'
 import { getClientIp, rateLimit } from '@/lib/rate-limit'
 import { loginSchema, parseBody } from '@/lib/schemas'
 
@@ -46,6 +47,11 @@ export async function POST(request: NextRequest) {
     if (!valid) {
       return NextResponse.json({ error: 'Неверный email или пароль' }, { status: 401 })
     }
+
+    // Лимит по email считает только неудачные попытки. Иначе общая учётка
+    // (например, VIEWER на отдел) блокировалась бы после пяти успешных
+    // входов за 15 минут с разных машин.
+    resetRateLimit(`login:acc:${normalizedEmail}`)
 
     const sessionToken = crypto.randomBytes(32).toString('hex')
     const expires = new Date(Date.now() + SESSION_MAX_AGE_SECONDS * 1000)
