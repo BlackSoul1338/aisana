@@ -15,10 +15,19 @@ import {
 const shortText = (max: number) =>
   z.string().trim().max(max).nullish().transform(value => value || null)
 
-/** Список тегов: не больше 50 штук по 50 символов. */
+/**
+ * Предел ячейки Excel — 32 767 символов.
+ *
+ * Поля, которые заполняет импорт из Excel, ограничены не строже ячейки:
+ * импорт длину не режет, и проект или вуз с длинным полем иначе нельзя было
+ * бы сохранить через форму после импорта.
+ */
+const EXCEL_CELL_MAX = 32_767
+
+/** Список тегов: импорт берёт их из одной ячейки, поэтому и предел — ячейка. */
 const tagsList = z
-  .array(z.string().trim().min(1).max(50))
-  .max(50)
+  .array(z.string().trim().min(1).max(EXCEL_CELL_MAX))
+  .max(EXCEL_CELL_MAX)
   .optional()
 
 /** Идентификаторы технологий. */
@@ -45,10 +54,10 @@ export const feedbackStatusSchema = z.object({
 })
 
 export const projectSchema = z.object({
-  title: z.string().trim().min(1).max(300),
-  description: z.string().trim().min(1).max(20_000),
+  title: z.string().trim().min(1).max(EXCEL_CELL_MAX),
+  description: z.string().trim().min(1).max(EXCEL_CELL_MAX),
   universityId: z.string().trim().min(1).max(64).optional(),
-  leadName: shortText(200),
+  leadName: shortText(EXCEL_CELL_MAX),
   leadEmail: z.union([z.string().trim().email().max(255), z.literal(''), z.null()]).optional(),
   teamSize: z.coerce.number().int().min(0).max(10_000).nullish(),
   launchDate: z.union([z.string().trim().max(40), z.null()]).optional(),
@@ -56,8 +65,8 @@ export const projectSchema = z.object({
   status: z.nativeEnum(ProjectStatus).optional(),
   isBestPractice: z.boolean().optional(),
   isScalable: z.boolean().optional(),
-  impact: shortText(5_000),
-  results: shortText(5_000),
+  impact: shortText(EXCEL_CELL_MAX),
+  results: shortText(EXCEL_CELL_MAX),
   presentationPdf: shortText(500),
   presentationPptx: shortText(500),
   zoomLink: shortText(500),
@@ -68,16 +77,16 @@ export const projectSchema = z.object({
 })
 
 export const universitySchema = z.object({
-  name: z.string().trim().min(1).max(300),
-  nameKz: shortText(300),
-  shortName: shortText(100),
+  name: z.string().trim().min(1).max(EXCEL_CELL_MAX),
+  nameKz: shortText(EXCEL_CELL_MAX),
+  shortName: shortText(EXCEL_CELL_MAX),
   regionId: z.string().trim().min(1).max(64),
-  address: shortText(300),
-  website: shortText(300),
+  address: shortText(EXCEL_CELL_MAX),
+  website: shortText(EXCEL_CELL_MAX),
   email: z.union([z.string().trim().email().max(255), z.literal(''), z.null()]).optional(),
-  phone: shortText(60),
-  rector: shortText(200),
-  description: shortText(5_000),
+  phone: shortText(EXCEL_CELL_MAX),
+  rector: shortText(EXCEL_CELL_MAX),
+  description: shortText(EXCEL_CELL_MAX),
   type: z.nativeEnum(UniversityType).optional(),
 })
 
