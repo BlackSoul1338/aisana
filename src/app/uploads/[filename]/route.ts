@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import path from 'path'
-import { UserRole } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { requireApiUser } from '@/lib/auth'
+import { canViewProjectContent } from '@/lib/publication'
 import { readUpload } from '@/lib/uploads'
 
 export const dynamic = 'force-dynamic'
@@ -15,8 +15,9 @@ export const dynamic = 'force-dynamic'
  * Адрес намеренно сохранён в прежнем виде (/uploads/имя-файла.pdf): именно
  * так ссылки записаны в базе и такой формат уже проходит валидацию.
  *
- * Права проверяются по проекту-владельцу файла: представитель вуза не должен
- * открыть паспорт проекта чужого вуза, даже зная имя файла.
+ * Права проверяются по проекту-владельцу файла тем же правилом, что и сам
+ * проект (canViewProjectContent): файл опубликованного проекта виден всем
+ * вошедшим, а паспорт черновика чужого вуза не открыть, даже зная имя файла.
  */
 export async function GET(request: NextRequest, { params }: { params: Promise<{ filename: string }> }) {
   const { user, response } = await requireApiUser(request)
@@ -33,28 +34,24 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
   const url = `/uploads/${safeName}`
 
-  // Кто владеет файлом: проект, в котором он записан как файл или паспорт
-  const [asFile, asPassport] = await Promise.all([
-    prisma.projectFile.findFirst({
+  // Кто владеет файлом: проекты, в которых он записан как файл или паспорт.
+  // Уникальности на url нет — один файл может быть привязан к нескольким проектам.
+  const [asFiles, asPassports] = await Promise.all([
+    prisma.projectFile.findMany({
       where: { url },
       select: { project: { select: { universityId: true, publication: true } } },
     }),
-    prisma.project.findFirst({
+    prisma.project.findMany({
       where: { agentPassportPdf: url },
       select: { universityId: true, publication: true },
     }),
   ])
-  const owner = asFile?.project ?? asPassport
+  const owners = [...asFiles.map(file => file.project), ...asPassports]
 
-  // Файл, к которому не привязан ни один проект, не отдаём никому
-  if (!owner) return NextResponse.json({ error: 'Файл не найден' }, { status: 404 })
-
-  const isModerator = user.role === UserRole.ADMIN || user.role === UserRole.EDITOR
-  const isOwnerUniversity = user.role === UserRole.UNIVERSITY_REP && user.universityId === owner.universityId
-  const isPublishedViewer = user.role === UserRole.VIEWER && owner.publication === 'PUBLISHED'
-
-  if (!isModerator && !isOwnerUniversity && !isPublishedViewer) {
-    return NextResponse.json({ error: 'Недостаточно прав' }, { status: 403 })
+  // Файл отдаём, если виден хотя бы один проект-владелец. Файл без
+  // владельца не отдаём никому.
+  if (!owners.some(owner => canViewProjectContent(user, owner))) {
+    return NextResponse.json({ error: 'Файл не найден' }, { status: 404 })
   }
 
   try {
