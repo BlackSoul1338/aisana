@@ -3,12 +3,17 @@ FROM docker.io/library/node:20-alpine
 RUN apk add --no-cache openssl
 WORKDIR /app
 
-COPY package.json package-lock.json ./
-RUN npm ci
+ENV PNPM_HOME=/pnpm
+ENV PATH=$PNPM_HOME:$PATH
+RUN corepack enable && corepack prepare pnpm@12.17.0 --activate
+
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
+    pnpm install --frozen-lockfile
 
 COPY prisma ./prisma
 
-RUN npx prisma generate
+RUN pnpm exec prisma generate
 
 # prisma migrate deploy — применяет только закоммиченные миграции из prisma/migrations,
 # ничего не удаляет и не «синхронизирует» молча (в отличие от db push --accept-data-loss).
@@ -19,12 +24,12 @@ RUN npx prisma generate
 # На свежей базе deploy просто применит 0_init и создаст схему.
 CMD sh -c " \
   echo '⏳ Applying migrations (prisma migrate deploy)...' && \
-  if ! npx prisma migrate deploy; then \
+  if ! pnpm exec prisma migrate deploy; then \
     echo '⚠️  Deploy failed — baselining existing database (0_init)...' && \
-    npx prisma migrate resolve --applied 0_init && \
-    npx prisma migrate deploy; \
+    pnpm exec prisma migrate resolve --applied 0_init && \
+    pnpm exec prisma migrate deploy; \
   fi && \
   echo '🌱 Running seed (regions + technologies + admin only)...' && \
-  npx tsx prisma/seed.ts && \
+  pnpm exec tsx prisma/seed.ts && \
   echo '✅ Migration & seed complete!' \
 "

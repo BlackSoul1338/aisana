@@ -10,6 +10,10 @@ node_modules
 out
 build
 
+# npm не используется — сборка на pnpm
+package-lock.json
+npm-shrinkwrap.json
+
 # История git: не нужна в образе и раздувает слои
 .git
 .gitignore

@@ -1,0 +1,8 @@
+# Сборка pnpm: разрешаем postinstall-скрипты только тем пакетам, которым они нужны.
+# Prisma генерирует клиент и скачивает движок, esbuild ставит бинарник.
+# Без этого pnpm install падает с ERR_PNPM_IGNORED_BUILDS.
+allowBuilds:
+  '@prisma/client': true
+  '@prisma/engines': true
+  prisma: true
+  esbuild: true

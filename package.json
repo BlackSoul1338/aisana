@@ -2,6 +2,7 @@
   "name": "ai-map-kz",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "pnpm@12.17.0",
   "scripts": {
     "dev": "next dev",
     "build": "prisma generate && next build",
