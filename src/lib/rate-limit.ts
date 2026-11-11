@@ -80,15 +80,15 @@ export function isFirstInWindow(key: string, windowMs: number): boolean {
  * а настоящую защиту от перебора дают лимиты по аккаунту и по адресу
  * почты, где IP не участвует.
  *
- * Берём ПОСЛЕДНЕЕ значение цепочки: обычный nginx ($proxy_add_x_forwarded_for)
- * дописывает реальный адрес клиента в конец, и клиент может подделать только
- * начало цепочки.
+ * Берём ПЕРВОЕ значение цепочки, как и раньше. Последнее значение надёжнее,
+ * но только когда перед приложением ровно один свой прокси (nginx с
+ * $proxy_add_x_forwarded_for дописывает адрес клиента в конец). За CDN и
+ * прокси последним окажется адрес CDN, и все клиенты попадут в одну корзину
+ * лимитов. Схема прокси на проде отсюда не видна, поэтому выбор оставлен
+ * прежним; при известной схеме стоит брать адрес, который дописал свой прокси.
  */
 export function getClientIp(request: NextRequest): string {
   const forwarded = request.headers.get('x-forwarded-for')
-  if (forwarded) {
-    const chain = forwarded.split(',').map(part => part.trim()).filter(Boolean)
-    if (chain.length > 0) return chain[chain.length - 1]
-  }
+  if (forwarded) return forwarded.split(',')[0].trim()
   return request.headers.get('x-real-ip')?.trim() || 'unknown'
 }
