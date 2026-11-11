@@ -278,6 +278,8 @@ npm run db:seed:demo
 ## Примечания по деплою
 
 - Основной путь — **Docker / Podman** (`docker compose up -d --build`).
+- **Время и даты** показываются по казахстанскому стандартному времени
+  (`Asia/Qyzylorda`, UTC+5), независимо от часового пояса сервера.
 - Vercel возможен: загруженные PDF хранятся в Vercel Blob, для этого нужен
   `BLOB_READ_WRITE_TOKEN`. Переменные: `DATABASE_URL`, `GEMINI_API_KEY`,
   `NEXT_PUBLIC_APP_URL`.
