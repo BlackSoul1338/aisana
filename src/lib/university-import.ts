@@ -1,4 +1,4 @@
-import * as XLSX from 'xlsx'
+import { XLSX } from '@/lib/xlsx'
 import { PrismaClient, UniversityType } from '@prisma/client'
 
 type RawRow = Record<string, unknown>

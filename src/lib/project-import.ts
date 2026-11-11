@@ -1,4 +1,4 @@
-import * as XLSX from 'xlsx'
+import { XLSX } from '@/lib/xlsx'
 import { PrismaClient, ProjectCategory, ProjectFileType, ProjectStatus, PublicationStatus, UserRole } from '@prisma/client'
 import type { AuthUser } from '@/lib/auth'
 import { canAccessUniversity } from '@/lib/auth'
