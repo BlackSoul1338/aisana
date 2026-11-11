@@ -6,6 +6,7 @@ import { getClientIp, rateLimit } from '@/lib/rate-limit'
 import { loadSearchIndex } from '@/lib/search/store'
 import { searchIndex } from '@/lib/search/engine'
 import { generateMatchReasons, generateSearchSummary } from '@/lib/geminiSummary'
+import { getLlmCacheStats } from '@/lib/llm-cache'
 import { aiSearchSchema, parseBody } from '@/lib/schemas'
 
 export const dynamic = 'force-dynamic'
@@ -121,7 +122,7 @@ export async function POST(request: NextRequest) {
       // Пользователь должен видеть, что ИИ-часть недоступна, а не пустоту
       aiAvailable: summary.available && reasons.available,
       topics: parsed.topics,
-      ...(debug ? { debug: { parsedQuery: parsed, indexSize: index.length } } : {}),
+      ...(debug ? { debug: { parsedQuery: parsed, indexSize: index.length, llmCache: getLlmCacheStats() } } : {}),
     })
   } catch (error) {
     console.error('Search error:', error)

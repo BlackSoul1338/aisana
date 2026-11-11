@@ -1,19 +1,22 @@
 import { describe, expect, it } from 'vitest'
 import { modelChain, MODEL_MAIN, MODEL_LITE, MODEL_FALLBACKS, isRetryableModelError } from '@/lib/gemini-models'
 
+// Модели lite — отдельная квотная «корзина» с запасом в 500 запросов в сутки
+const liteFallbacks = MODEL_FALLBACKS.filter(model => model.includes('lite'))
+
 describe('выбор модели', () => {
   it('простая задача идёт на lite-модель первой', () => {
-    const chain = modelChain(true)
+    const chain = modelChain('summary')
     expect(chain[0]).toBe(MODEL_LITE)
   })
 
   it('сложная задача идёт на основную модель первой', () => {
-    const chain = modelChain(false)
+    const chain = modelChain('reasons')
     expect(chain[0]).toBe(MODEL_MAIN)
   })
 
   it('в цепочке нет повторов', () => {
-    for (const chain of [modelChain(true), modelChain(false)]) {
+    for (const chain of [modelChain('summary'), modelChain('reasons')]) {
       expect(new Set(chain).size).toBe(chain.length)
     }
   })
@@ -21,11 +24,37 @@ describe('выбор модели', () => {
   it('цепочка содержит резервные модели с отдельной квотой', () => {
     // gemini-3.5-flash и gemini-3.6-flash делят один квотный пул,
     // поэтому в резервной цепочке они не стоят рядом
-    const chain = modelChain(false)
+    const chain = modelChain('reasons')
     const mainIndex = chain.indexOf(MODEL_MAIN)
     const fallbackIndex = chain.indexOf(MODEL_FALLBACKS[0])
     expect(mainIndex).toBe(0)
     expect(fallbackIndex).toBeGreaterThan(mainIndex)
+  })
+
+  it('в простой задаче lite-модели идут раньше основной', () => {
+    // У flash-lite квота 500 запросов в сутки против 20 у flash,
+    // поэтому простую задачу дешевле выполнять на lite
+    const chain = modelChain('summary')
+    const mainIndex = chain.indexOf(MODEL_MAIN)
+    for (const model of liteFallbacks) {
+      expect(chain.indexOf(model)).toBeLessThan(mainIndex)
+    }
+  })
+
+  it('в сложной задаче lite-модели идут в конец цепочки', () => {
+    const chain = modelChain('reasons')
+    const mainIndex = chain.indexOf(MODEL_MAIN)
+    for (const model of liteFallbacks) {
+      expect(chain.indexOf(model)).toBeGreaterThan(mainIndex)
+    }
+  })
+
+  it('в цепочку попадают все резервные модели', () => {
+    for (const chain of [modelChain('summary'), modelChain('reasons')]) {
+      for (const model of MODEL_FALLBACKS) {
+        expect(chain).toContain(model)
+      }
+    }
   })
 
   it('модели lite и main по умолчанию разные', () => {

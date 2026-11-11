@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { AlertCircle, CheckCircle2, FileSpreadsheet, Upload, Download } from 'lucide-react'
 
 interface ImportError { row: number; message: string }
@@ -164,7 +165,7 @@ export function UniversityImportForm() {
           {!result.dryRun && result.created + result.updated > 0 && (
             <div className="mt-4 p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-sm text-emerald-700">
               ✓ Успешно: создано {result.created}, обновлено {result.updated} вузов.{' '}
-              <a href="/universities" className="underline hover:no-underline">Перейти к вузам →</a>
+              <Link href="/universities" className="underline hover:no-underline">Перейти к вузам →</Link>
             </div>
           )}
         </div>

@@ -16,15 +16,16 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     const { id } = await params
     const moderator = user.role === UserRole.ADMIN || user.role === UserRole.EDITOR
+    // Черновики видны модераторам и представителю СВОЕГО вуза
+    const canSeeDrafts = moderator || (user.role === UserRole.UNIVERSITY_REP && user.universityId === id)
 
     const university = await prisma.university.findUnique({
       where: { id },
       include: {
         region: true,
-        // Черновики видны только модераторам и представителю своего вуза
         projects: {
           include: { technologies: true },
-          where: moderator ? undefined : PUBLISHED_PROJECTS_RELATION.where,
+          where: canSeeDrafts ? undefined : PUBLISHED_PROJECTS_RELATION.where,
         },
       },
     })

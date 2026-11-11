@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { canAccessUniversity, requireApiRole, requireApiUser } from '@/lib/auth'
+import { canViewProjectContent } from '@/lib/publication'
 import { deleteUpload, isAllowedFileUrl } from '@/lib/uploads'
 import { audit } from '@/lib/audit'
 import { parseBody, passportSchema } from '@/lib/schemas'
@@ -9,15 +10,19 @@ import { UserRole } from '@prisma/client'
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   // Настоящая проверка сессии: middleware смотрит только наличие cookie
-  const { response } = await requireApiUser(request)
+  const { user, response } = await requireApiUser(request)
   if (response) return response
 
   const { id } = await params
   const project = await prisma.project.findUnique({
     where: { id },
-    select: { agentPassportPdf: true },
+    select: { agentPassportPdf: true, universityId: true, publication: true },
   })
-  if (!project) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  // Паспорт черновика не должен утекать: сам проект скрыт от посторонних,
+  // но паспорт читался отдельным эндпоинтом
+  if (!project || !canViewProjectContent(user, project)) {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  }
   return NextResponse.json({ url: project.agentPassportPdf })
 }
 

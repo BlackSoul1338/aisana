@@ -5,12 +5,10 @@ import { parseProjectWorkbook, importProjectsFromRows } from '@/lib/project-impo
 import { requireApiRole } from '@/lib/auth'
 import { audit } from '@/lib/audit'
 import { invalidateSearchIndex, reindexAllProjects } from '@/lib/search/store'
+import { MAX_IMPORT_BYTES, MAX_IMPORT_ROWS } from '@/lib/import-limits'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
-
-/** Предел размера импортируемого файла — 10 МБ. */
-const MAX_IMPORT_BYTES = 10 * 1024 * 1024
 
 export async function POST(request: NextRequest) {
   try {
@@ -41,6 +39,14 @@ export async function POST(request: NextRequest) {
 
     if (rows.length === 0) {
       return NextResponse.json({ error: 'В файле нет строк для импорта' }, { status: 400 })
+    }
+
+    // Большой импорт упирается в память и транзакции БД
+    if (rows.length > MAX_IMPORT_ROWS) {
+      return NextResponse.json(
+        { error: `В файле больше ${MAX_IMPORT_ROWS} строк — разбейте его на части` },
+        { status: 400 }
+      )
     }
 
     const result = await importProjectsFromRows(prisma, rows, user, dryRun)

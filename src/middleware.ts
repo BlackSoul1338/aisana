@@ -69,5 +69,10 @@ export function middleware(request: NextRequest) {
 export const config = {
   // Пропускаем через middleware всё, кроме статики Next.js и картинок:
   // так проверка не тратится на каждый чанк JS и файл шрифта.
-  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
+  //
+  // Импорт исключён: middleware клонирует тело запроса, а Next.js обрезает
+  // клон на 10 МиБ. Файл Import обрезался бы на середине, разбор multipart
+  // падал бы с 500 — и собственный лимит размера в роуте не срабатывал бы.
+  // Доступ к импорту всё равно проверяет requireApiRole в самом роуте.
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|api/admin/import).*)'],
 }

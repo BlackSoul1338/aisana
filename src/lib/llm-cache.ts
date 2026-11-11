@@ -17,6 +17,24 @@ export const CACHE_TTL_MS = 24 * 60 * 60 * 1000
 
 export type CacheKind = 'summary' | 'reasons'
 
+/**
+ * Счётчики попаданий и промахов.
+ *
+ * Считаются в памяти процесса: после рестарта обнуляются. Для оценки
+ * эффективности кэша этого достаточно, а таблица счётчиков в БД была бы
+ * лишней сущностью.
+ */
+const counters = { hits: 0, misses: 0 }
+
+/** Статистика кэша: попадания, промахи и доля попаданий. */
+export function getLlmCacheStats(): { hits: number; misses: number; hitRate: number } {
+  const total = counters.hits + counters.misses
+  return {
+    ...counters,
+    hitRate: total === 0 ? 0 : Math.round((counters.hits / total) * 100) / 100,
+  }
+}
+
 /** Хэш строки — используется и для промпта, и для полезной нагрузки. */
 function hash(value: string): string {
   return createHash('sha256').update(value).digest('hex')
@@ -37,14 +55,19 @@ export function cacheKey(kind: CacheKind, model: string, prompt: string, payload
  */
 export async function readCache<T>(key: string): Promise<T | null> {
   const record = await prisma.llmCache.findUnique({ where: { cacheKey: key } })
-  if (!record) return null
+  if (!record) {
+    counters.misses++
+    return null
+  }
 
   if (record.expiresAt.getTime() <= Date.now()) {
     // Просроченную запись удаляем — заодно чистим таблицу
     await prisma.llmCache.delete({ where: { cacheKey: key } }).catch(() => null)
+    counters.misses++
     return null
   }
 
+  counters.hits++
   return record.payload as T
 }
 

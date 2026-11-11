@@ -5,6 +5,7 @@ import { Search, Sparkles, Building2, ArrowRight, Loader2, AlertCircle, X } from
 import Link from 'next/link'
 import { StatusBadge } from '@/components/ui/status-badge'
 import { CategoryBadge } from '@/components/ui/category-badge'
+import { useLang } from '@/context/LangContext'
 
 const EXAMPLES = [
   'Проекты в области нефтегазовой и энергетической отрасли',
@@ -53,6 +54,7 @@ function saveStoredState(state: StoredState) {
 }
 
 export function AISearchWidget() {
+  const { t } = useLang()
   const [query, setQuery] = useState('')
   const [loading, setLoading] = useState(false)
   const [results, setResults] = useState<AIResult[] | null>(null)
@@ -202,8 +204,7 @@ export function AISearchWidget() {
 
           {!aiAvailable && (
             <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50/80 p-4 text-sm text-amber-900">
-              Пояснения от ИИ сейчас недоступны — выдача поиска полная, но без
-              автоматических подписей.
+              {t('search', 'aiUnavailableBanner')}
             </div>
           )}
 

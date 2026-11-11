@@ -8,8 +8,6 @@ import { invalidateSearchIndex, reclassifyProject } from '@/lib/search/store'
 import { audit } from '@/lib/audit'
 import { parseBody, publicationSchema } from '@/lib/schemas'
 
-const ALLOWED = new Set<string>(Object.values(PublicationStatus))
-
 /**
  * Смена статуса публикации проекта.
  *
@@ -39,9 +37,6 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       return NextResponse.json({ error: parsed.error }, { status: 400 })
     }
     const next = parsed.data.publication
-    if (!ALLOWED.has(next)) {
-      return NextResponse.json({ error: 'Неизвестный статус публикации' }, { status: 400 })
-    }
 
     // Публиковать и снимать с публикации может только модератор
     const moderator = canModerate(user)

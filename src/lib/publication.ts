@@ -18,6 +18,25 @@ export function canModerate(user: { role: UserRole }): boolean {
   return user.role === UserRole.ADMIN || user.role === UserRole.EDITOR
 }
 
+/**
+ * Видно ли содержимое проекта пользователю.
+ *
+ * Опубликованный проект виден всем. Черновик и проект «на проверке» —
+ * только модераторам и представителю вуза-владельца.
+ *
+ * Нужен для вторичных данных проекта (файлы, паспорт, слушания): их
+ * отдают отдельные эндпоинты, и без этой проверки черновик читался бы
+ * в обход правил видимости самого проекта.
+ */
+export function canViewProjectContent(
+  user: { role: UserRole; universityId?: string | null },
+  project: { universityId: string; publication: PublicationStatus },
+): boolean {
+  if (project.publication === PublicationStatus.PUBLISHED) return true
+  if (canModerate(user)) return true
+  return user.role === UserRole.UNIVERSITY_REP && user.universityId === project.universityId
+}
+
 export const PUBLICATION_LABELS: Record<PublicationStatus, string> = {
   DRAFT: 'Черновик',
   REVIEW: 'На проверке',

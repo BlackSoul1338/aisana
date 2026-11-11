@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { UserRole } from '@prisma/client'
+import { PublicationStatus, UserRole } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { requireApiRole, requireApiUser } from '@/lib/auth'
+import { canModerate } from '@/lib/publication'
 import { audit } from '@/lib/audit'
 import { parseBody, hearingSchema } from '@/lib/schemas'
 
@@ -40,10 +41,22 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     // Настоящая проверка сессии: middleware смотрит только наличие cookie
-    const { response } = await requireApiUser(request)
+    const { user, response } = await requireApiUser(request)
     if (response) return response
 
+    // Слушания черновиков не показываем посторонним: модераторы видят всё,
+    // представитель вуза — проекты своего вуза, остальные — только опубликованные
     const hearings = await prisma.hearing.findMany({
+      where: canModerate(user)
+        ? undefined
+        : {
+            OR: [
+              { project: { publication: PublicationStatus.PUBLISHED } },
+              ...(user.universityId
+                ? [{ project: { universityId: user.universityId } }]
+                : []),
+            ],
+          },
       include: { project: { include: { university: true } } },
       orderBy: { date: 'desc' },
     })

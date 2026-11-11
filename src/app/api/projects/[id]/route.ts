@@ -24,9 +24,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     // Черновик и проект на проверке видны только модераторам и автору из вуза
     if (project.publication !== 'PUBLISHED' && !canAccessUniversity(user, project.universityId)) {
-      if (user.role !== UserRole.ADMIN && user.role !== UserRole.EDITOR) {
-        return NextResponse.json({ error: 'Не найдено' }, { status: 404 })
-      }
+      return NextResponse.json({ error: 'Не найдено' }, { status: 404 })
     }
 
     return NextResponse.json(project)

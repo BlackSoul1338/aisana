@@ -2,19 +2,28 @@ import { NextRequest, NextResponse } from 'next/server'
 import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { canAccessUniversity, requireApiRole, requireApiUser } from '@/lib/auth'
+import { canViewProjectContent } from '@/lib/publication'
 import { deleteUpload, isAllowedFileUrl } from '@/lib/uploads'
 import { audit } from '@/lib/audit'
-import { ProjectFileType, UserRole } from '@prisma/client'
+import { UserRole } from '@prisma/client'
 import { deleteFileSchema, parseBody, projectFileSchema } from '@/lib/schemas'
-
-const FILE_TYPES = new Set<string>(Object.values(ProjectFileType))
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   // Настоящая проверка сессии: middleware смотрит только наличие cookie
-  const { response } = await requireApiUser(request)
+  const { user, response } = await requireApiUser(request)
   if (response) return response
 
   const { id } = await params
+  // Файлы черновика не должны утекать: сам проект скрыт от посторонних,
+  // но файлы читались отдельным эндпоинтом
+  const project = await prisma.project.findUnique({
+    where: { id },
+    select: { universityId: true, publication: true },
+  })
+  if (!project || !canViewProjectContent(user, project)) {
+    return NextResponse.json({ error: 'Не найдено' }, { status: 404 })
+  }
+
   const files = await prisma.projectFile.findMany({
     where: { projectId: id },
     orderBy: { createdAt: 'asc' },
@@ -49,11 +58,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         { error: 'Ссылка должна начинаться с http(s):// или быть загруженным файлом (/uploads/)' },
         { status: 400 }
       )
-    }
-
-    // Неизвестный тип раньше валился в 500 от Prisma — отвечаем понятной ошибкой
-    if (!FILE_TYPES.has(String(data.type))) {
-      return NextResponse.json({ error: 'Неизвестный тип файла' }, { status: 400 })
     }
 
     const file = await prisma.projectFile.create({

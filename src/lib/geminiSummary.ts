@@ -1,18 +1,12 @@
 import { SchemaType, type ResponseSchema } from '@google/generative-ai'
 import { z } from 'zod'
 import { cacheKey, readCache, writeCache } from '@/lib/llm-cache'
-import { generateWithFallback } from '@/lib/gemini-models'
+import { generateWithFallback, MODEL_LITE, MODEL_MAIN } from '@/lib/gemini-models'
 
 interface ProjectSummaryInput {
   title: string
   description: string | null
 }
-
-/** Модель можно переопределить через GEMINI_MODEL в .env, не трогая код. */
-const MODEL = process.env.GEMINI_MODEL || 'gemini-3.6-flash'
-
-/** Модель для простых задач — отдельная квотная «корзина». */
-const MODEL_LITE = process.env.GEMINI_MODEL_LITE || 'gemini-3.5-flash-lite'
 
 /** Сколько проектов максимум отправляем в модель за один запрос.
  *  Больше — выше риск, что ответ обрежется на середине и не распарсится. */
@@ -129,7 +123,7 @@ ${asDataBlock(['Найденные ИИ-решения казахстански�
 
   // Простая задача — короткий текст: идём на lite-модель (своя квота).
   const result = await generateWithFallback(
-    true,
+    'summary',
     model => model.generateContent(prompt),
     request => request.then(res => res.response.text())
   )
@@ -168,14 +162,14 @@ ${asDataBlock(['Список ИИ-решений казахстанских ву
 
   // Каждый батч кэшируется отдельно: при изменении выдачи изменится и состав
   // батчей, и промах по кэшу будет только у затронутых.
-  const key = cacheKey('reasons', MODEL, prompt, JSON.stringify(batch))
+  const key = cacheKey('reasons', MODEL_MAIN, prompt, JSON.stringify(batch))
   const cached = await readCache<Record<string, string>>(key)
   if (cached !== null) return cached
 
   // Сложная задача — идём на основную модель, но при исчерпанной квоте
   // переходим на резервную (у каждой своя квотная «корзина»).
   const result = await generateWithFallback(
-    false,
+    'reasons',
     model =>
       model.generateContent({
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
@@ -188,17 +182,17 @@ ${asDataBlock(['Список ИИ-решений казахстанских ву
       }),
     request => request.then(res => res.response.text())
   )
+  // Ошибку пробрасываем наверх: вызывающий считает неудачные батчи и
+  // сообщает пользователю, что пояснения от ИИ недоступны.
   if (!result) {
-    console.error('Failed to generate match reasons: no model available')
-    return {}
+    throw new Error('No Gemini model available for match reasons')
   }
 
   let parsedJson: unknown
   try {
     parsedJson = JSON.parse(result.text)
   } catch {
-    console.error('Model returned a non-JSON match-reasons payload')
-    return {}
+    throw new Error('Model returned a non-JSON match-reasons payload')
   }
 
   const parsed = MatchReasonsSchema.safeParse(parsedJson)
@@ -206,8 +200,7 @@ ${asDataBlock(['Список ИИ-решений казахстанских ву
   // Невалидный ответ отбрасываем целиком: раньше регулярка выковыривала
   // уцелевшие пары и молча теряла проекты без единой ошибки в логе.
   if (!parsed.success) {
-    console.error('Model returned an invalid match-reasons payload', parsed.error.issues)
-    return {}
+    throw new Error(`Model returned an invalid match-reasons payload: ${parsed.error.issues[0]?.message}`)
   }
 
   const reasons: Record<string, string> = {}

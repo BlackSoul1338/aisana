@@ -6,13 +6,6 @@ import { requireApiRole } from '@/lib/auth'
 import { audit } from '@/lib/audit'
 import { parseBody, userCreateSchema, userUpdateSchema } from '@/lib/schemas'
 
-const VALID_ROLES = new Set<UserRole>([
-  UserRole.ADMIN,
-  UserRole.EDITOR,
-  UserRole.UNIVERSITY_REP,
-  UserRole.VIEWER,
-])
-
 export async function POST(request: NextRequest) {
   try {
     const { user: actor, response } = await requireApiRole(request, [UserRole.ADMIN])
@@ -78,7 +71,8 @@ export async function PATCH(request: NextRequest) {
     if (name !== undefined) updateData.name = name || null
     if (email) updateData.email = String(email).trim().toLowerCase()
 
-    if (role && VALID_ROLES.has(role)) {
+    // Роль уже проверена схемой userUpdateSchema — enum из ролей
+    if (role) {
       // Prevent demoting the last remaining admin (including yourself)
       if (role !== UserRole.ADMIN) {
         const target = await prisma.user.findUnique({ where: { id }, select: { role: true } })

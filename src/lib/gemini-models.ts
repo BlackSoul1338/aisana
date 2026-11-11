@@ -3,18 +3,24 @@ import { GoogleGenerativeAI, type GenerativeModel } from '@google/generative-ai'
 /**
  * Выбор модели Gemini.
  *
- * Квота Free Tier — 20 запросов в сутки НА КАЖДУЮ МОДЕЛЬ, и модели делятся
- * на независимые пулы: когда кончилась квота у gemini-3.6-flash, у
- * gemini-3.5-flash-lite она ещё есть. Поэтому:
+ * Квота Free Tier у моделей разная: у flash — 20 запросов в сутки, у flash-lite —
+ * 500. Плюс модели делятся на независимые пулы: когда кончилась квота у
+ * gemini-3.6-flash, у gemini-3.5-flash-lite она ещё есть. Поэтому:
  *
- *  - простая задача (краткое резюме) идёт на lite — он дешевле и быстрее;
+ *  - простая задача (краткое резюме) идёт на lite — у неё и запас больше;
  *  - сложная задача (пояснения по проектам) идёт на полный flash;
  *  - при 429 «quota exceeded» или 503 запрос переносится на следующую модель
  *    в цепочке, пока не кончится список.
  *
+ * Цепочка зависит от типа задачи: у простой задачи сначала модели lite
+ * (большая квота), у сложной — flash (лучше качество JSON по схеме).
+ *
  * Модели переопределяются через .env: GEMINI_MODEL (сложные задачи),
  * GEMINI_MODEL_LITE (простые), GEMINI_MODEL_FALLBACKS (цепочка резервных).
  */
+
+/** Тип задачи: от него зависит, какая квотная «корзина» используется первой. */
+export type GeminiTaskType = 'summary' | 'reasons'
 
 /** Модель для сложных задач: пояснения по проектам, структурированный JSON. */
 export const MODEL_MAIN = process.env.GEMINI_MODEL || 'gemini-3.6-flash'
@@ -32,7 +38,7 @@ export const MODEL_LITE = process.env.GEMINI_MODEL_LITE || 'gemini-3.5-flash-lit
  */
 export const MODEL_FALLBACKS: string[] = (
   process.env.GEMINI_MODEL_FALLBACKS ||
-  'gemini-3.5-flash-lite,gemini-3.1-flash-lite-preview,gemini-3-flash-preview'
+  'gemini-3.8-flash,gemini-3-flash,gemini-3.5-flash-lite,gemini-3.1-flash-lite'
 )
   .split(',')
   .map(name => name.trim())
@@ -86,12 +92,21 @@ function isExhausted(model: string): boolean {
 /**
  * Модели, которые стоит попробовать для задачи, в порядке убывания приоритета.
  *
- * Для простой задачи lite-модель идёт первой, для сложной — основная.
- * Дальше — цепочка резервных, без повторов.
+ * Для простой задачи первыми идут модели lite: у них квота 500 запросов в
+ * сутки против 20 у flash. Для сложной — основная flash-модель, а lite идёт
+ * в конец: JSON по схеме она отдаёт хуже.
+ *
+ * Внутри каждой группы порядок берётся из GEMINI_MODEL_FALLBACKS, повторов нет.
  */
-export function modelChain(simple: boolean): string[] {
-  const first = simple ? MODEL_LITE : MODEL_MAIN
-  const chain = [first, ...MODEL_FALLBACKS]
+export function modelChain(task: GeminiTaskType): string[] {
+  // Разделение по имени: у flash-lite своя квотная «корзина»
+  const flash = MODEL_FALLBACKS.filter(model => !model.includes('lite'))
+  const lite = MODEL_FALLBACKS.filter(model => model.includes('lite'))
+
+  const chain = task === 'summary'
+    ? [MODEL_LITE, ...lite, MODEL_MAIN, ...flash]
+    : [MODEL_MAIN, ...flash, ...lite]
+
   return chain.filter((model, index) => chain.indexOf(model) === index)
 }
 
@@ -108,14 +123,14 @@ function getClient(): GoogleGenerativeAI | null {
  * недоступна.
  */
 export async function generateWithFallback<T>(
-  simple: boolean,
+  task: GeminiTaskType,
   buildRequest: (model: GenerativeModel) => T,
   send: (request: T) => Promise<string>
 ): Promise<{ text: string; model: string } | null> {
   const client = getClient()
   if (!client) return null
 
-  for (const modelName of modelChain(simple)) {
+  for (const modelName of modelChain(task)) {
     if (isExhausted(modelName)) continue
 
     try {
