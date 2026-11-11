@@ -3,6 +3,7 @@ import * as XLSX from 'xlsx'
 import { UserRole } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { requireApiRole } from '@/lib/auth'
+import { formatDate, formatDateTime } from '@/lib/datetime'
 import { PUBLISHED_ONLY } from '@/lib/publication'
 import { translations } from '@/lib/i18n'
 import { getClientIp, rateLimit } from '@/lib/rate-limit'
@@ -56,7 +57,7 @@ export async function GET(request: NextRequest) {
       { 'Показатель': 'К тиражированию', 'Значение': projects.filter(p => p.isScalable).length },
       { 'Показатель': 'Участников команд (сумма)', 'Значение': projects.reduce((s, p) => s + (p.teamSize || 0), 0) },
       { 'Показатель': 'Вузов с проектами', 'Значение': new Set(projects.map(p => p.universityId)).size },
-      { 'Показатель': 'Дата выгрузки', 'Значение': new Date().toLocaleString('ru-RU') },
+      { 'Показатель': 'Дата выгрузки', 'Значение': formatDateTime(new Date()) },
     ]
 
     // ── Лист «Проекты» (реестр) ────────────────────────────────
@@ -69,7 +70,7 @@ export async function GET(request: NextRequest) {
       'Технологии': p.technologies.map(t => t.name).join(', '),
       'Руководитель': p.leadName || '',
       'Команда, чел.': p.teamSize ?? '',
-      'Дата запуска': p.launchDate ? p.launchDate.toLocaleDateString('ru-RU') : '',
+      'Дата запуска': p.launchDate ? formatDate(p.launchDate) : '',
       'Лучшая практика': p.isBestPractice ? 'Да' : '',
       'К тиражированию': p.isScalable ? 'Да' : '',
       'Просмотров': p.viewCount,

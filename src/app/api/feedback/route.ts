@@ -4,11 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { requireApiRole } from '@/lib/auth'
 import { getClientIp, rateLimit } from '@/lib/rate-limit'
 import { audit } from '@/lib/audit'
-
-const TOPICS = new Set<string>(Object.values(FeedbackTopic))
-const STATUSES = new Set<string>(Object.values(FeedbackStatus))
-
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
+import { feedbackSchema, feedbackStatusSchema, parseBody } from '@/lib/schemas'
 
 /** Приём обращения с публичной страницы «Контакты». */
 export async function POST(request: NextRequest) {
@@ -22,7 +18,12 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const data = await request.json().catch(() => ({}))
+    const body = await request.json().catch(() => ({}))
+    const parsed = parseBody(feedbackSchema, body)
+    if (!parsed.success) {
+      return NextResponse.json({ error: parsed.error }, { status: 400 })
+    }
+    const data = parsed.data
 
     // Honeypot: поле скрыто от людей, боты его заполняют.
     // Отвечаем успехом, чтобы бот не подбирал обход.
@@ -30,21 +31,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: true })
     }
 
-    const name = String(data.name || '').trim().slice(0, 120)
-    const email = String(data.email || '').trim().toLowerCase().slice(0, 160)
-    const message = String(data.message || '').trim().slice(0, 4000)
-    const organization = String(data.organization || '').trim().slice(0, 200) || null
-    const topic = TOPICS.has(String(data.topic)) ? (data.topic as FeedbackTopic) : FeedbackTopic.QUESTION
-
-    if (!name || !email || !message) {
-      return NextResponse.json({ error: 'Заполните имя, email и текст обращения' }, { status: 400 })
-    }
-    if (!EMAIL_RE.test(email)) {
-      return NextResponse.json({ error: 'Проверьте адрес электронной почты' }, { status: 400 })
-    }
-    if (message.length < 10) {
-      return NextResponse.json({ error: 'Опишите обращение подробнее (минимум 10 символов)' }, { status: 400 })
-    }
+    const name = data.name
+    const email = data.email.toLowerCase()
+    const message = data.message
+    const organization = data.organization
+    const topic = data.topic ?? FeedbackTopic.QUESTION
 
     // Лимит на сохранённые обращения считаем только после проверки формы,
     // чтобы опечатки в почте не съедали квоту добросовестного пользователя.
@@ -74,18 +65,17 @@ export async function PATCH(request: NextRequest) {
     const { user, response } = await requireApiRole(request, [UserRole.ADMIN, UserRole.EDITOR])
     if (response) return response
 
-    const data = await request.json().catch(() => ({}))
-    const id = String(data.id || '')
-    const status = String(data.status || '')
-
-    if (!id || !STATUSES.has(status)) {
-      return NextResponse.json({ error: 'Нужны id и корректный статус' }, { status: 400 })
+    const body = await request.json().catch(() => ({}))
+    const parsed = parseBody(feedbackStatusSchema, body)
+    if (!parsed.success) {
+      return NextResponse.json({ error: parsed.error }, { status: 400 })
     }
+    const { id, status } = parsed.data
 
     const feedback = await prisma.feedback.update({
       where: { id },
       data: {
-        status: status as FeedbackStatus,
+        status,
         handledAt: status === FeedbackStatus.DONE ? new Date() : null,
       },
       select: { id: true, status: true },

@@ -3,6 +3,7 @@ import { PUBLISHED_ONLY } from '@/lib/publication'
 import { PageLayout } from '@/components/layout/PageLayout'
 import Link from 'next/link'
 import { Building2, FolderKanban, MapPin, ExternalLink, Plus } from 'lucide-react'
+import { requireUser } from '@/lib/auth'
 
 async function getUniversities(q?: string, region?: string) {
   return prisma.university.findMany({
@@ -28,6 +29,8 @@ export default async function UniversitiesPage({
 }: {
   searchParams: Promise<{ region?: string; q?: string }>
 }) {
+  // Настоящая проверка сессии: middleware смотрит только наличие cookie
+  await requireUser('/')
   const { region, q } = await searchParams
   const [universities, regions] = await Promise.all([
     getUniversities(q, region),

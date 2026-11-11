@@ -16,7 +16,7 @@
 
 import { classifyProject, type ClassifiableProject, type TopicMatch } from './classify'
 import { parseQuery, type ParsedQuery } from './query'
-import { fuzzyMatches, normalize, tokenize } from './text'
+import { fuzzyMatches, hasAllWords, normalize, tokenize } from './text'
 import type { TopicId } from './taxonomy'
 
 /** Поля, по которым идёт лексический поиск, и их вклад в оценку. */
@@ -188,36 +188,19 @@ function scoreProject(indexed: IndexedProject, query: ParsedQuery): SearchHit | 
     }
   }
 
-  // Расширение запроса признаками найденных направлений: запрос
-  // «производство» должен находить проект со словом «сварка».
-  // Вес маленький — расширение подсказывает, а не перетягивает выдачу:
-  // основной вес остаётся за прямыми совпадениями и смысловым сигналом.
-  for (const token of query.expanded) {
-    if (query.tokens.includes(token)) continue
-    for (const field of Object.keys(SEARCH_FIELDS) as SearchField[]) {
-      const { tokens } = indexed.fields[field]
-      if (!tokens.length) continue
-
-      const hit = tokens.some(word => fuzzyMatches(word, token))
-      if (!hit) continue
-
-      const weight = SEARCH_FIELDS[field] * 0.25
-      lexicalPoints += weight
-
-      const entry = matchedFields.get(field) ?? { terms: new Set<string>(), points: 0 }
-      entry.terms.add(token)
-      entry.points += weight
-      matchedFields.set(field, entry)
-    }
-  }
-
   // Точная фраза запроса в названии или описании — сильный сигнал.
   // Фразу собираем из значимых слов запроса: со стоп-словами («на», «для»)
   // она в тексте не встречается никогда и бонус не срабатывал.
-  const phrase = query.tokens.join(' ')
-  if (phrase.length > 3) {
-    if (indexed.fields.title.text.includes(phrase)) lexicalPoints += 8
-    else if (indexed.fields.description.text.includes(phrase)) lexicalPoints += 4
+  // Порядок слов не важен: «контроль качества» должно засчитываться и когда
+  // в тексте «качество контроля».
+  //
+  // Расширение запроса признаками направлений (query.expanded) намеренно
+  // НЕ применяется: смысловой сигнал выше уже находит проект по запросу
+  // «производство» → «сварка», а перебор расширенных слов по всем полям
+  // замедлял поиск в 20 раз (21 мс → 544 мс на 1000 проектов).
+  if (query.tokens.length > 1) {
+    if (hasAllWords(indexed.fields.title.text, query.tokens)) lexicalPoints += 8
+    else if (hasAllWords(indexed.fields.description.text, query.tokens)) lexicalPoints += 4
   }
 
   const coverage = query.tokens.length ? foundQueryTokens.size / query.tokens.length : 0

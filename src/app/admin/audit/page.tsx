@@ -5,6 +5,7 @@ import { UserRole } from '@prisma/client'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { prisma } from '@/lib/prisma'
 import { requireRole } from '@/lib/auth'
+import { formatDateTime } from '@/lib/datetime'
 
 const PAGE_SIZE = 50
 
@@ -63,10 +64,7 @@ export default async function AuditLogPage({ searchParams }: { searchParams: Pro
             {logs.map(log => (
               <tr key={log.id} className="border-b border-slate-50 hover:bg-slate-50/50">
                 <td className="px-4 py-2.5 text-slate-500 whitespace-nowrap tabular-nums">
-                  {log.createdAt.toLocaleString('ru-RU', {
-                    day: '2-digit', month: '2-digit', year: '2-digit',
-                    hour: '2-digit', minute: '2-digit',
-                  })}
+                  {formatDateTime(log.createdAt)}
                 </td>
                 <td className="px-4 py-2.5 text-slate-700">{log.userEmail}</td>
                 <td className="px-4 py-2.5">

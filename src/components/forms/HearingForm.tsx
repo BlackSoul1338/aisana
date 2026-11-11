@@ -1,6 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
+import { formatDateInput } from '@/lib/datetime'
 import { useState } from 'react'
 import { Plus, X } from 'lucide-react'
 
@@ -39,8 +40,7 @@ export function HearingForm({ projects, hearing, defaultProjectId }: Props) {
   const isEdit = !!hearing?.id
 
   function formatDateForInput(d?: Date | string | null) {
-    if (!d) return new Date().toISOString().split('T')[0]
-    return new Date(d).toISOString().split('T')[0]
+    return formatDateInput(d)
   }
 
   function addMember() { setCommission(prev => [...prev, '']) }

@@ -129,10 +129,11 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     await prisma.project.delete({ where: { id } })
 
     // Чистим локально загруженные файлы проекта с диска,
-    // чтобы они не оставались сиротами в volume загрузок
-    await deleteUpload(existing.agentPassportPdf)
+    // чтобы они не оставались сиротами в volume загрузок.
+    // Файлы, привязанные к другим проектам, останутся на диске.
+    await deleteUpload(existing.agentPassportPdf, { exceptProjectId: id })
     for (const file of existing.files) {
-      await deleteUpload(file.url)
+      await deleteUpload(file.url, { exceptProjectId: id })
     }
 
     invalidateSearchIndex()

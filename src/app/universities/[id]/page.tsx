@@ -30,8 +30,11 @@ import { ProjectCard } from '@/components/ui/project-card'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { MapPin, Mail, Globe, User, FolderKanban, ArrowLeft, Pencil } from 'lucide-react'
+import { requireUser } from '@/lib/auth'
 
 export default async function UniversityPage({ params }: { params: Promise<{ id: string }> }) {
+  // Настоящая проверка сессии: middleware смотрит только наличие cookie
+  await requireUser('/')
   const { id } = await params
   const university = await prisma.university.findUnique({
     where: { id },

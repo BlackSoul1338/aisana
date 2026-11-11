@@ -30,8 +30,11 @@ import { PageLayout } from '@/components/layout/PageLayout'
 import Link from 'next/link'
 import { ArrowLeft, Building2, FolderKanban, CheckCircle } from 'lucide-react'
 import { ProjectCard } from '@/components/ui/project-card'
+import { requireUser } from '@/lib/auth'
 
 export default async function RegionPage({ params }: { params: Promise<{ code: string }> }) {
+  // Настоящая проверка сессии: middleware смотрит только наличие cookie
+  await requireUser('/')
   const { code } = await params
   const region = await prisma.region.findFirst({
     where: { code: code.toUpperCase() },

@@ -9,6 +9,7 @@ import { Mic, Plus, Calendar, CheckCircle, XCircle, Clock, AlertCircle, Trending
 import { formatDateLong } from '@/lib/utils'
 import { HearingDecision } from '@prisma/client'
 import { HEARING_DECISION_LABELS } from '@/types'
+import { requireUser } from '@/lib/auth'
 
 const DECISION_ICONS: Record<HearingDecision, React.ElementType> = {
   PENDING: Clock,
@@ -27,6 +28,8 @@ const DECISION_COLORS: Record<HearingDecision, string> = {
 }
 
 export default async function HearingsPage() {
+  // Настоящая проверка сессии: middleware смотрит только наличие cookie
+  await requireUser('/')
   const hearings = await cached('hearings-list', 60_000, () => prisma.hearing.findMany({
     include: {
       project: {

@@ -7,6 +7,7 @@ import { cached } from '@/lib/data-cache'
 import { PageLayout } from '@/components/layout/PageLayout'
 import { DashboardCharts } from '@/components/charts/DashboardCharts'
 import { DashboardKPI } from '@/components/charts/DashboardKPI'
+import { requireUser } from '@/lib/auth'
 
 // Минимальное количество проектов на вуз (KPI)
 const UNIVERSITY_KPI_TARGET = 13
@@ -103,6 +104,8 @@ async function getDashboardData() {
 }
 
 export default async function DashboardPage() {
+  // Настоящая проверка сессии: middleware смотрит только наличие cookie
+  await requireUser('/')
   const data = await cached('dashboard', 60_000, getDashboardData)
 
   return (

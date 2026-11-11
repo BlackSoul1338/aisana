@@ -1,5 +1,7 @@
 import { z } from 'zod'
-import { ProjectCategory, ProjectStatus, PublicationStatus, UniversityType } from '@prisma/client'
+import {
+  FeedbackStatus, FeedbackTopic, ProjectCategory, ProjectStatus, PublicationStatus, UniversityType,
+} from '@prisma/client'
 
 /**
  * Схемы тел запросов.
@@ -32,9 +34,14 @@ export const feedbackSchema = z.object({
   email: z.string().trim().email().max(160),
   message: z.string().trim().min(10).max(4000),
   organization: shortText(200),
-  topic: z.enum(['ACCESS', 'SUGGESTION', 'ERROR', 'QUESTION']).optional(),
+  topic: z.nativeEnum(FeedbackTopic).optional(),
   // Honeypot: поле скрыто от людей, боты его заполняют
   website: z.string().optional(),
+})
+
+export const feedbackStatusSchema = z.object({
+  id: z.string().trim().min(1).max(64),
+  status: z.nativeEnum(FeedbackStatus),
 })
 
 export const projectSchema = z.object({
@@ -73,6 +80,14 @@ export const universitySchema = z.object({
   description: shortText(5_000),
   type: z.nativeEnum(UniversityType).optional(),
 })
+
+/**
+ * Правка вуза: все поля необязательные.
+ *
+ * PUT пишет только то, что реально пришло, — иначе запрос без nameKz
+ * обнулял бы его в базе (молчаливая потеря данных).
+ */
+export const universityUpdateSchema = universitySchema.partial()
 
 export const hearingSchema = z.object({
   projectId: z.string().trim().min(1).max(64),

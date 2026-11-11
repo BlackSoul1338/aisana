@@ -103,6 +103,19 @@ function hasPhrase(normalizedText: string, phrase: string, lenient = false): boo
 }
 
 /**
+ * Есть ли в тексте все слова фразы — в любом порядке и не обязательно рядом.
+ *
+ * Для бонуса за «точную фразу» в ранжировании: запрос «контроль качества
+ * сварки» должен засчитываться и когда в тексте проекта слова идут
+ * «качество сварки контроль» — порядок в разных предложениях не важен.
+ */
+export function hasAllWords(text: string, words: string[]): boolean {
+  if (words.length === 0) return false
+  const textWords = new Set(normalize(text).split(' ').filter(Boolean))
+  return words.every(word => textWords.has(word))
+}
+
+/**
  * Мягкое сопоставление ДЛЯ ЗАПРОСА: совпадение в обе стороны.
  *
  * В словаре лежит основа «mining», пользователь пишет «mine» — слово короче

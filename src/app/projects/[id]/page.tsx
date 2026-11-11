@@ -34,6 +34,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 import { PageLayout } from '@/components/layout/PageLayout'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
+import { requireUser } from '@/lib/auth'
 import {
   ArrowLeft, Building2, User, Users, Calendar,
   Star, TrendingUp, Pencil, Mic, FileText
@@ -73,6 +74,9 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
       topics: { orderBy: { score: 'desc' } },
     },
   })
+
+  // Настоящая проверка сессии: middleware смотрит только наличие cookie
+  await requireUser('/')
 
   // Неопубликованные проекты доступны только в админ-панели:
   // просмотр и редактирование — на /admin/projects/[id]/edit

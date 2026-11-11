@@ -6,6 +6,7 @@ import { deleteUpload } from '@/lib/uploads'
 import { invalidateSearchIndex } from '@/lib/search/store'
 import { PUBLISHED_PROJECTS_RELATION } from '@/lib/publication'
 import { audit } from '@/lib/audit'
+import { parseBody, universityUpdateSchema } from '@/lib/schemas'
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -40,22 +41,32 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     if (response) return response
 
     const { id } = await params
-    const data = await request.json()
+    const body = await request.json().catch(() => ({}))
+    const parsed = parseBody(universityUpdateSchema, body)
+    if (!parsed.success) {
+      return NextResponse.json({ error: parsed.error }, { status: 400 })
+    }
+    const data = parsed.data
+
+    // Пишем только те поля, что реально пришли в теле. Раньше все поля
+    // писались через «|| null», и запрос без nameKz обнулял его в базе —
+    // молчаливая потеря данных.
+    const update: Record<string, unknown> = {}
+    if (data.name !== undefined) update.name = data.name
+    if (data.nameKz !== undefined) update.nameKz = data.nameKz
+    if (data.shortName !== undefined) update.shortName = data.shortName
+    if (data.regionId !== undefined) update.regionId = data.regionId
+    if (data.address !== undefined) update.address = data.address
+    if (data.website !== undefined) update.website = data.website
+    if (data.email !== undefined) update.email = data.email
+    if (data.phone !== undefined) update.phone = data.phone
+    if (data.rector !== undefined) update.rector = data.rector
+    if (data.description !== undefined) update.description = data.description
+    if (data.type !== undefined) update.type = data.type
+
     const university = await prisma.university.update({
       where: { id },
-      data: {
-        name: data.name,
-        nameKz: data.nameKz || null,
-        shortName: data.shortName || null,
-        regionId: data.regionId,
-        address: data.address || null,
-        website: data.website || null,
-        email: data.email || null,
-        phone: data.phone || null,
-        rector: data.rector || null,
-        description: data.description || null,
-        type: data.type || 'STATE',
-      },
+      data: update,
     })
     // Название, краткое имя и регион вуза индексируются поиском —
     // без сброса кэша переименование видно только через минуту
@@ -78,15 +89,15 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     // Собираем локальные файлы проектов вуза ДО удаления, чтобы почистить диск
     const projects = await prisma.project.findMany({
       where: { universityId: id },
-      select: { agentPassportPdf: true, files: { select: { url: true } } },
+      select: { id: true, agentPassportPdf: true, files: { select: { url: true } } },
     })
 
     await prisma.project.deleteMany({ where: { universityId: id } })
     await prisma.university.delete({ where: { id } })
 
     for (const p of projects) {
-      await deleteUpload(p.agentPassportPdf)
-      for (const f of p.files) await deleteUpload(f.url)
+      await deleteUpload(p.agentPassportPdf, { exceptProjectId: p.id })
+      for (const f of p.files) await deleteUpload(f.url, { exceptProjectId: p.id })
     }
 
     // Проекты вуза исчезли из выдачи — индекс поиска надо пересобрать

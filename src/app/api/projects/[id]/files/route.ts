@@ -105,8 +105,9 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
 
     await prisma.projectFile.delete({ where: { id: fileId } })
 
-    // Если файл был загружен локально (/uploads/...) — удаляем и с диска
-    await deleteUpload(file.url)
+    // Если файл был загружен локально (/uploads/...) — удаляем и с диска.
+    // Если тот же файл привязан к другому проекту, он останется на диске.
+    await deleteUpload(file.url, { exceptProjectId: id })
 
     await audit(user, 'DELETE', 'project_file', fileId, file.label)
 

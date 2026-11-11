@@ -8,6 +8,7 @@ import Link from 'next/link'
 import { FolderKanban, Plus } from 'lucide-react'
 import { ProjectCategory, ProjectStatus } from '@prisma/client'
 import { CATEGORY_LABELS, STATUS_LABELS } from '@/types'
+import { requireUser } from '@/lib/auth'
 
 async function getProjects(params: {
   q?: string; status?: string; category?: string; tech?: string; region?: string; topic?: string
@@ -58,6 +59,9 @@ export default async function ProjectsPage({
 }: {
   searchParams: Promise<{ q?: string; status?: string; category?: string; tech?: string; region?: string; topic?: string }>
 }) {
+  // Настоящая проверка сессии: middleware смотрит только наличие cookie
+  await requireUser('/')
+
   const sp = await searchParams
   const [projects, { technologies, regions }] = await Promise.all([
     getProjects(sp),

@@ -1,6 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
+import { formatDateInput } from '@/lib/datetime'
 import { useState, useRef } from 'react'
 import { SaveToast } from '@/components/ui/SaveToast'
 import { FileText, AlertCircle } from 'lucide-react'
@@ -83,7 +84,7 @@ export function ProjectForm({ universities, technologies, project, defaultUniver
 
   function formatDateForInput(d?: Date | string | null) {
     if (!d) return ''
-    return new Date(d).toISOString().split('T')[0]
+    return formatDateInput(d)
   }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {

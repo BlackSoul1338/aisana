@@ -1,28 +1,13 @@
 import { type ClassValue, clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 import { ProjectStatus, ProjectCategory } from '@prisma/client'
+import { formatDate, formatDateLong } from '@/lib/datetime'
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export function formatDate(date: Date | string | null | undefined): string {
-  if (!date) return '—'
-  return new Date(date).toLocaleDateString('ru-RU', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  })
-}
-
-export function formatDateLong(date: Date | string | null | undefined): string {
-  if (!date) return '—'
-  return new Date(date).toLocaleDateString('ru-RU', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  })
-}
+export { formatDate, formatDateLong }
 
 export const STATUS_CONFIG: Record<ProjectStatus, { label: string; color: string; bg: string; border: string }> = {
   IDEA: { label: 'Идея', color: 'text-slate-600', bg: 'bg-slate-100', border: 'border-slate-200' },
