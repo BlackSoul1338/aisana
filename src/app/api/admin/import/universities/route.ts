@@ -5,7 +5,7 @@ import { requireApiRole } from '@/lib/auth'
 import { audit } from '@/lib/audit'
 import { invalidateSearchIndex } from '@/lib/search/store'
 import { parseUniversityWorkbook, importUniversitiesFromRows } from '@/lib/university-import'
-import { checkImportRows, checkImportSize } from '@/lib/import-limits'
+import { IMPORT_SHEET_ROWS, checkImportRequestSize, checkImportRows, checkImportSize } from '@/lib/import-limits'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -15,6 +15,12 @@ export async function POST(request: NextRequest) {
     const { user, response } = await requireApiRole(request, [UserRole.ADMIN, UserRole.EDITOR])
     if (response) return response
 
+    // Объявленный размер — до formData(): тот читает тело в память целиком
+    const bodyError = checkImportRequestSize(request.headers.get('content-length'))
+    if (bodyError) {
+      return NextResponse.json({ error: bodyError }, { status: 400 })
+    }
+
     const formData = await request.formData()
     const file = formData.get('file') as File | null
     const dryRun = formData.get('dryRun') !== 'false'
@@ -23,20 +29,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Файл не передан' }, { status: 400 })
     }
 
-    // Проверяем размер ДО чтения в память: arrayBuffer() съедает весь файл
+    // Точный размер файла — до разбора: книга раздувается в памяти во много раз
     const sizeError = checkImportSize(file.size)
     if (sizeError) {
       return NextResponse.json({ error: sizeError }, { status: 400 })
     }
 
     const buffer = Buffer.from(await file.arrayBuffer())
-    const rows = parseUniversityWorkbook(buffer)
+    const rows = parseUniversityWorkbook(buffer, IMPORT_SHEET_ROWS)
 
     if (rows.length === 0) {
       return NextResponse.json({ error: 'Файл пустой или не читается' }, { status: 400 })
     }
 
-    // Большой импорт упирается в память и транзакции БД
+    // Строки пишутся в базу по одной: большой импорт держал бы запрос минутами
     const rowsError = checkImportRows(rows.length)
     if (rowsError) {
       return NextResponse.json({ error: rowsError }, { status: 400 })

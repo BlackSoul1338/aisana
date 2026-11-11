@@ -168,14 +168,16 @@ function isEmptyRow(row: RawRow) {
   return Object.values(row).every(value => String(value ?? '').trim() === '')
 }
 
-export function parseProjectWorkbook(buffer: Buffer) {
+export function parseProjectWorkbook(buffer: Buffer, maxRows = 0) {
   // CSV: срезаем UTF-8 BOM (иначе он приклеивается к первому заголовку)
   // и читаем в UTF-8 (codepage 65001). Без этого кириллические заголовки
   // CSV без BOM декодировались неверно и все строки молча пропускались.
   const clean = buffer.length >= 3 && buffer[0] === 0xef && buffer[1] === 0xbb && buffer[2] === 0xbf
     ? buffer.subarray(3)
     : buffer
-  const workbook = XLSX.read(clean, { type: 'buffer', cellDates: true, codepage: 65001 })
+  // maxRows (sheetRows) останавливает разбор на заданной строке: лист
+  // в сотни тысяч строк не разворачивается в память целиком. 0 — без предела.
+  const workbook = XLSX.read(clean, { type: 'buffer', cellDates: true, codepage: 65001, sheetRows: maxRows })
   const firstSheetName = workbook.SheetNames[0]
   if (!firstSheetName) return []
 
