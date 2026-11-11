@@ -57,9 +57,15 @@ export function cacheKey(kind: CacheKind, model: string, prompt: string, payload
 
 /**
  * Читает ответ из кэша. Возвращает null, если записи нет или она просрочена.
+ *
+ * Ошибку чтения не поднимаем, как и в writeCache: недоступная таблица кэша
+ * превратилась бы в 500 для всего поиска вместо простого промаха.
  */
 export async function readCache<T>(key: string): Promise<T | null> {
-  const record = await prisma.llmCache.findUnique({ where: { cacheKey: key } })
+  const record = await prisma.llmCache.findUnique({ where: { cacheKey: key } }).catch(error => {
+    console.error('Failed to read LLM cache entry', error)
+    return null
+  })
   if (!record) {
     counters.misses++
     return null

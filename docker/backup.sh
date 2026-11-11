@@ -26,9 +26,13 @@ do_backup() {
 
 # Чистка кэша ответов ИИ: просроченные записи больше не нужны.
 # Таблица маленькая, но без чистки она растёт бесконечно.
+#
+# Число удалённых строк считает сам запрос: у «DELETE ... RETURNING» psql
+# печатает ещё и строку «DELETE N», и подсчёт строк вывода врал на единицу.
 purge_llm_cache() {
   count=$(psql -h db -U postgres -d ai_map_kz -tAc \
-    "DELETE FROM llm_cache WHERE \"expires_at\" <= now() RETURNING 1" 2>/dev/null | wc -l)
+    "WITH deleted AS (DELETE FROM llm_cache WHERE \"expires_at\" <= now() RETURNING 1) SELECT count(*) FROM deleted") \
+    || return 1
   echo "[$(date '+%F %T')] кэш ИИ: удалено просроченных записей — $count"
 }
 
