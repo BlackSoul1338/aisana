@@ -65,7 +65,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     // Старый локальный PDF больше не нужен — удаляем с диска, чтобы
     // volume с загрузками не рос бесконечно при каждой замене.
     if (existing.agentPassportPdf && existing.agentPassportPdf !== (url || null)) {
-      await deleteUpload(existing.agentPassportPdf, { exceptProjectId: id })
+      await deleteUpload(existing.agentPassportPdf)
     }
 
     await audit(user, 'UPDATE', 'passport', id, url ? 'установлен' : 'очищен')

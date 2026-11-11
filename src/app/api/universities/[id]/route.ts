@@ -89,15 +89,15 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     // Собираем локальные файлы проектов вуза ДО удаления, чтобы почистить диск
     const projects = await prisma.project.findMany({
       where: { universityId: id },
-      select: { id: true, agentPassportPdf: true, files: { select: { url: true } } },
+      select: { agentPassportPdf: true, files: { select: { url: true } } },
     })
 
     await prisma.project.deleteMany({ where: { universityId: id } })
     await prisma.university.delete({ where: { id } })
 
     for (const p of projects) {
-      await deleteUpload(p.agentPassportPdf, { exceptProjectId: p.id })
-      for (const f of p.files) await deleteUpload(f.url, { exceptProjectId: p.id })
+      await deleteUpload(p.agentPassportPdf)
+      for (const f of p.files) await deleteUpload(f.url)
     }
 
     // Проекты вуза исчезли из выдачи — индекс поиска надо пересобрать

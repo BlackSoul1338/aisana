@@ -111,7 +111,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
 
     // Если файл был загружен локально (/uploads/...) — удаляем и с диска.
     // Если тот же файл привязан к другому проекту, он останется на диске.
-    await deleteUpload(file.url, { exceptProjectId: id })
+    await deleteUpload(file.url)
 
     await audit(user, 'DELETE', 'project_file', fileId, file.label)
 
