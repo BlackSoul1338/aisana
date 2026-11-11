@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { NextRequest, NextResponse } from 'next/server'
 import { UserRole } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
+import { canModerate } from '@/lib/publication'
 
 export const SESSION_COOKIE = 'ai_map_kz_session'
 export const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 30
@@ -11,7 +12,6 @@ export type AuthUser = NonNullable<Awaited<ReturnType<typeof getCurrentUser>>>
 type ApiAuthResult = { user: AuthUser; response: null } | { user: null; response: NextResponse }
 
 const WRITE_ROLES: UserRole[] = [UserRole.ADMIN, UserRole.EDITOR, UserRole.UNIVERSITY_REP]
-const GLOBAL_CONTENT_ROLES: UserRole[] = [UserRole.ADMIN, UserRole.EDITOR]
 
 function isExpired(expires: Date) {
   return expires.getTime() <= Date.now()
@@ -68,16 +68,12 @@ export function canManageUsers(user: { role: UserRole }) {
   return user.role === UserRole.ADMIN
 }
 
-export function canManageAllContent(user: { role: UserRole }) {
-  return GLOBAL_CONTENT_ROLES.includes(user.role)
-}
-
 export function canWriteContent(user: { role: UserRole }) {
   return WRITE_ROLES.includes(user.role)
 }
 
 export function canAccessUniversity(user: { role: UserRole; universityId?: string | null }, universityId: string) {
-  if (canManageAllContent(user)) return true
+  if (canModerate(user)) return true
   return user.role === UserRole.UNIVERSITY_REP && user.universityId === universityId
 }
 

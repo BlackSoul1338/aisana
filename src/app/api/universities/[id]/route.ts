@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { UserRole } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
-import { requireApiRole, requireApiUser } from '@/lib/auth'
+import { canAccessUniversity, requireApiRole, requireApiUser } from '@/lib/auth'
 import { deleteUpload } from '@/lib/uploads'
 import { invalidateSearchIndex } from '@/lib/search/store'
 import { PUBLISHED_PROJECTS_RELATION } from '@/lib/publication'
@@ -15,9 +15,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     if (response) return response
 
     const { id } = await params
-    const moderator = user.role === UserRole.ADMIN || user.role === UserRole.EDITOR
     // Черновики видны модераторам и представителю СВОЕГО вуза
-    const canSeeDrafts = moderator || (user.role === UserRole.UNIVERSITY_REP && user.universityId === id)
+    const canSeeDrafts = canAccessUniversity(user, id)
 
     const university = await prisma.university.findUnique({
       where: { id },

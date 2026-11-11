@@ -5,7 +5,7 @@ import { requireApiRole } from '@/lib/auth'
 import { audit } from '@/lib/audit'
 import { invalidateSearchIndex } from '@/lib/search/store'
 import { parseUniversityWorkbook, importUniversitiesFromRows } from '@/lib/university-import'
-import { MAX_IMPORT_BYTES, MAX_IMPORT_ROWS } from '@/lib/import-limits'
+import { checkImportRows, checkImportSize } from '@/lib/import-limits'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -24,9 +24,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Проверяем размер ДО чтения в память: arrayBuffer() съедает весь файл
-    if (file.size > MAX_IMPORT_BYTES) {
-      const limitMb = Math.round(MAX_IMPORT_BYTES / 1024 / 1024)
-      return NextResponse.json({ error: `Файл больше ${limitMb} МБ` }, { status: 400 })
+    const sizeError = checkImportSize(file.size)
+    if (sizeError) {
+      return NextResponse.json({ error: sizeError }, { status: 400 })
     }
 
     const buffer = Buffer.from(await file.arrayBuffer())
@@ -37,11 +37,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Большой импорт упирается в память и транзакции БД
-    if (rows.length > MAX_IMPORT_ROWS) {
-      return NextResponse.json(
-        { error: `В файле больше ${MAX_IMPORT_ROWS} строк — разбейте его на части` },
-        { status: 400 }
-      )
+    const rowsError = checkImportRows(rows.length)
+    if (rowsError) {
+      return NextResponse.json({ error: rowsError }, { status: 400 })
     }
 
     const summary = await importUniversitiesFromRows(prisma, rows, dryRun)

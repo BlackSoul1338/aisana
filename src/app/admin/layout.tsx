@@ -11,7 +11,8 @@ import {
   ScrollText, MessageSquare } from 'lucide-react'
 import { UserRole } from '@prisma/client'
 import { LogoutButton } from '@/components/auth/LogoutButton'
-import { canManageAllContent, canManageUsers, requireUser } from '@/lib/auth'
+import { canManageUsers, requireUser } from '@/lib/auth'
+import { canModerate } from '@/lib/publication'
 
 const ROLE_LABELS: Record<UserRole, string> = {
   ADMIN: 'Администратор',
@@ -25,11 +26,11 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   const adminLinks = [
     { href: '/admin', label: 'Обзор', icon: LayoutDashboard, show: true },
-    { href: '/admin/universities', label: 'Вузы', icon: Building2, show: canManageAllContent(user) },
+    { href: '/admin/universities', label: 'Вузы', icon: Building2, show: canModerate(user) },
     { href: '/admin/projects', label: 'Проекты', icon: FolderKanban, show: user.role !== UserRole.VIEWER },
     { href: '/admin/import', label: 'Импорт', icon: Upload, show: user.role !== UserRole.VIEWER },
-    { href: '/admin/hearings', label: 'Заслушивания', icon: Mic, show: canManageAllContent(user) },
-    { href: '/admin/feedback', label: 'Обращения', icon: MessageSquare, show: canManageAllContent(user) },
+    { href: '/admin/hearings', label: 'Заслушивания', icon: Mic, show: canModerate(user) },
+    { href: '/admin/feedback', label: 'Обращения', icon: MessageSquare, show: canModerate(user) },
     { href: '/admin/users', label: 'Пользователи', icon: Users, show: canManageUsers(user) },
     { href: '/admin/audit', label: 'Журнал действий', icon: ScrollText, show: user.role === UserRole.ADMIN },
   ].filter(link => link.show)

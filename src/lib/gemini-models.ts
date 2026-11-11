@@ -90,6 +90,29 @@ function isExhausted(model: string): boolean {
 }
 
 /**
+ * Модели flash-lite: у них отдельная квотная «корзина».
+ *
+ * Перечислены явно, а не распознаются по подстроке в имени: корзина
+ * определяет порядок цепочки, и ошибочная классификация молча переставила
+ * бы модели. Модель, которой здесь нет, считается flash — её корзина
+ * больше (20 запросов в сутки против 500 у lite).
+ */
+const LITE_POOL = new Set([
+  'gemini-3.5-flash-lite',
+  'gemini-3.1-flash-lite',
+])
+
+/**
+ * Квотная корзина модели.
+ *
+ * 'lite' — запас в 500 запросов в сутки, 'flash' — 20. Корзины независимы:
+ * кончилась квота у flash-модели, у lite она ещё есть.
+ */
+export function quotaPool(model: string): 'flash' | 'lite' {
+  return LITE_POOL.has(model) ? 'lite' : 'flash'
+}
+
+/**
  * Модели, которые стоит попробовать для задачи, в порядке убывания приоритета.
  *
  * Для простой задачи первыми идут модели lite: у них квота 500 запросов в
@@ -99,9 +122,8 @@ function isExhausted(model: string): boolean {
  * Внутри каждой группы порядок берётся из GEMINI_MODEL_FALLBACKS, повторов нет.
  */
 export function modelChain(task: GeminiTaskType): string[] {
-  // Разделение по имени: у flash-lite своя квотная «корзина»
-  const flash = MODEL_FALLBACKS.filter(model => !model.includes('lite'))
-  const lite = MODEL_FALLBACKS.filter(model => model.includes('lite'))
+  const flash = MODEL_FALLBACKS.filter(model => quotaPool(model) === 'flash')
+  const lite = MODEL_FALLBACKS.filter(model => quotaPool(model) === 'lite')
 
   const chain = task === 'summary'
     ? [MODEL_LITE, ...lite, MODEL_MAIN, ...flash]

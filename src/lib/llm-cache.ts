@@ -26,7 +26,12 @@ export type CacheKind = 'summary' | 'reasons'
  */
 const counters = { hits: 0, misses: 0 }
 
-/** Статистика кэша: попадания, промахи и доля попаданий. */
+/**
+ * Статистика кэша: попадания, промахи и доля попаданий.
+ *
+ * Диагностика для логов сервера и админ-панели, а не часть ответа API:
+ * пользователю статистика кэша ничего не даёт.
+ */
 export function getLlmCacheStats(): { hits: number; misses: number; hitRate: number } {
   const total = counters.hits + counters.misses
   return {

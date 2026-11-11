@@ -4,22 +4,24 @@ import { PublicationStatus, UserRole } from '@prisma/client'
 import Link from 'next/link'
 import { ArrowRight, Building2, ClipboardCheck, FolderKanban, Mic, Plus } from 'lucide-react'
 import { prisma } from '@/lib/prisma'
-import { canManageAllContent, requireUser } from '@/lib/auth'
-import { canModerate } from '@/lib/publication'
+import { requireUser } from '@/lib/auth'
+import { canModerate, PUBLISHED_ONLY } from '@/lib/publication'
 import { ReindexButton } from '@/components/admin/ReindexButton'
 import { formatDate } from '@/lib/utils'
 
 export default async function AdminPage() {
   const user = await requireUser('/admin')
+  // VIEWER не имеет права видеть черновики чужих вузов: показываем ему
+  // только опубликованное. Представитель вуза — проекты своего вуза.
   const projectWhere = user.role === UserRole.UNIVERSITY_REP
     ? { universityId: user.universityId || '__none__' }
-    : {}
+    : canModerate(user) ? {} : PUBLISHED_ONLY
   const hearingWhere = user.role === UserRole.UNIVERSITY_REP
     ? { project: { universityId: user.universityId || '__none__' } }
-    : {}
+    : canModerate(user) ? {} : { project: PUBLISHED_ONLY }
 
   const [universities, projects, hearings, awaitingReview] = await Promise.all([
-    canManageAllContent(user) ? prisma.university.count() : Promise.resolve(user.universityId ? 1 : 0),
+    canModerate(user) ? prisma.university.count() : Promise.resolve(user.universityId ? 1 : 0),
     prisma.project.count({ where: projectWhere }),
     prisma.hearing.count({ where: hearingWhere }),
     // Очередь модерации: сколько проектов ждёт проверки
@@ -41,7 +43,7 @@ export default async function AdminPage() {
   })
 
   const quickActions = [
-    canManageAllContent(user)
+    canModerate(user)
       ? { href: '/admin/universities/new', label: 'Добавить вуз' }
       : null,
     user.role !== UserRole.VIEWER
@@ -50,7 +52,7 @@ export default async function AdminPage() {
     user.role !== UserRole.VIEWER
       ? { href: '/admin/import', label: 'Импорт из Excel' }
       : null,
-    canManageAllContent(user)
+    canModerate(user)
       ? { href: '/admin/hearings/new', label: 'Добавить заслушивание' }
       : null,
   ].filter(Boolean) as { href: string; label: string }[]
@@ -83,9 +85,9 @@ export default async function AdminPage() {
 
       <div className="grid grid-cols-3 gap-4 mb-8">
         {[
-          { label: 'Вузов', value: universities, icon: Building2, href: '/admin/universities', color: 'text-blue-600 bg-blue-50', show: canManageAllContent(user) },
+          { label: 'Вузов', value: universities, icon: Building2, href: '/admin/universities', color: 'text-blue-600 bg-blue-50', show: canModerate(user) },
           { label: 'Проектов', value: projects, icon: FolderKanban, href: '/admin/projects', color: 'text-violet-600 bg-violet-50', show: true },
-          { label: 'Заслушиваний', value: hearings, icon: Mic, href: '/admin/hearings', color: 'text-emerald-600 bg-emerald-50', show: canManageAllContent(user) },
+          { label: 'Заслушиваний', value: hearings, icon: Mic, href: '/admin/hearings', color: 'text-emerald-600 bg-emerald-50', show: canModerate(user) },
         ].filter(item => item.show).map(item => (
           <Link key={item.label} href={item.href}>
             <div className="bg-white border border-slate-200 rounded-xl p-5 hover:border-slate-300 transition-all">
@@ -138,7 +140,7 @@ export default async function AdminPage() {
           </div>
         </div>
 
-        {canManageAllContent(user) && (
+        {canModerate(user) && (
           <div className="bg-white border border-slate-200 rounded-xl p-5">
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-semibold text-slate-700">Последние заслушивания</h2>

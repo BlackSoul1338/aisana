@@ -3,7 +3,8 @@ export const dynamic = 'force-dynamic'
 
 import { PageLayout } from '@/components/layout/PageLayout'
 import { AISearchWidget } from '@/components/search/AISearchWidget'
-import { canManageAllContent, getCurrentUser } from '@/lib/auth'
+import { getCurrentUser } from '@/lib/auth'
+import { canModerate } from '@/lib/publication'
 import { AccessDenied } from '@/components/layout/AccessDenied'
 
 export default async function AISearchPage() {
@@ -22,7 +23,7 @@ export default async function AISearchPage() {
     )
   }
 
-  if (!canManageAllContent(user)) {
+  if (!canModerate(user)) {
     return (
       <AccessDenied description="ИИ-поиск доступен только администраторам и редакторам портала. Обычный поиск по проектам — в разделе «Проекты»." />
     )

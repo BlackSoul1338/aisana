@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { PublicationStatus, UserRole } from '@prisma/client'
+import { UserRole } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { requireApiRole, requireApiUser } from '@/lib/auth'
-import { canModerate } from '@/lib/publication'
+import { visibleProjectsWhere } from '@/lib/publication'
 import { audit } from '@/lib/audit'
 import { parseBody, hearingSchema } from '@/lib/schemas'
 
@@ -47,16 +47,7 @@ export async function GET(request: NextRequest) {
     // Слушания черновиков не показываем посторонним: модераторы видят всё,
     // представитель вуза — проекты своего вуза, остальные — только опубликованные
     const hearings = await prisma.hearing.findMany({
-      where: canModerate(user)
-        ? undefined
-        : {
-            OR: [
-              { project: { publication: PublicationStatus.PUBLISHED } },
-              ...(user.universityId
-                ? [{ project: { universityId: user.universityId } }]
-                : []),
-            ],
-          },
+      where: { project: visibleProjectsWhere(user) },
       include: { project: { include: { university: true } } },
       orderBy: { date: 'desc' },
     })

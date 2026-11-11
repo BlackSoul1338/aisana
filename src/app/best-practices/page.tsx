@@ -2,11 +2,11 @@
 export const dynamic = 'force-dynamic'
 
 import { prisma } from '@/lib/prisma'
-import { PUBLISHED_ONLY } from '@/lib/publication'
+import { PUBLISHED_ONLY, canModerate } from '@/lib/publication'
 import { PageLayout } from '@/components/layout/PageLayout'
 import { ProjectCard } from '@/components/ui/project-card'
 import { Star, TrendingUp } from 'lucide-react'
-import { canManageAllContent, getCurrentUser } from '@/lib/auth'
+import { getCurrentUser } from '@/lib/auth'
 import { AccessDenied } from '@/components/layout/AccessDenied'
 
 export default async function BestPracticesPage() {
@@ -25,7 +25,7 @@ export default async function BestPracticesPage() {
     )
   }
 
-  if (!canManageAllContent(user)) {
+  if (!canModerate(user)) {
     return (
       <AccessDenied description="Раздел «Лучшие проекты» доступен только администраторам и редакторам портала." />
     )

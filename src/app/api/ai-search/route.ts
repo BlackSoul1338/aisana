@@ -113,6 +113,10 @@ export async function POST(request: NextRequest) {
       })),
     ])
 
+    // Эффективность кэша — в лог сервера, а не в ответ: клиенту она
+    // ничего не даёт, а лишние поля в JSON — лишняя утечка деталей.
+    console.info('LLM cache', getLlmCacheStats())
+
     return NextResponse.json({
       query,
       count: results.length,
@@ -122,7 +126,7 @@ export async function POST(request: NextRequest) {
       // Пользователь должен видеть, что ИИ-часть недоступна, а не пустоту
       aiAvailable: summary.available && reasons.available,
       topics: parsed.topics,
-      ...(debug ? { debug: { parsedQuery: parsed, indexSize: index.length, llmCache: getLlmCacheStats() } } : {}),
+      ...(debug ? { debug: { parsedQuery: parsed, indexSize: index.length } } : {}),
     })
   } catch (error) {
     console.error('Search error:', error)
