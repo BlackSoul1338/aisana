@@ -8,6 +8,7 @@ import { Building2, FolderKanban, MapPin, ExternalLink, Plus } from 'lucide-reac
 import { Prisma, UniversityType } from '@prisma/client'
 import { plural } from '@/lib/plural'
 import { requireUser } from '@/lib/auth'
+import { canModerate } from '@/lib/publication'
 
 const PAGE_SIZE = 24
 
@@ -45,7 +46,7 @@ function shortNameClass(text: string): string {
 
 export default async function UniversitiesPage({ searchParams }: { searchParams: Promise<Params> }) {
   // Настоящая проверка сессии: middleware смотрит только наличие cookie
-  await requireUser('/')
+  const user = await requireUser('/')
   const sp = await searchParams
   const page = Math.max(1, parseInt(sp.page || '1', 10) || 1)
   const where = buildWhere(sp)
@@ -82,9 +83,11 @@ export default async function UniversitiesPage({ searchParams }: { searchParams:
               : <>{totalAll} {plural(totalAll, 'вуз', 'вуза', 'вузов')}, с проектами: {withProjects}</>}
           </p>
         </div>
-        <Link href="/admin/universities/new" className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-          <Plus size={16} /> Добавить вуз
-        </Link>
+        {canModerate(user) && (
+          <Link href="/admin/universities/new" className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+            <Plus size={16} /> Добавить вуз
+          </Link>
+        )}
       </div>
 
       <AutoSubmitForm className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">

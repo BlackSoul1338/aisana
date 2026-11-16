@@ -34,7 +34,8 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 import { PageLayout } from '@/components/layout/PageLayout'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { requireUser } from '@/lib/auth'
+import { canAccessUniversity, requireUser } from '@/lib/auth'
+import { canModerate, canSeeLeadContacts } from '@/lib/publication'
 import {
   ArrowLeft, Building2, User, Users, Calendar,
   Star, TrendingUp, Pencil, Mic, FileText, Layers, MapPin
@@ -77,7 +78,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
   })
 
   // Настоящая проверка сессии: middleware смотрит только наличие cookie
-  await requireUser('/')
+  const user = await requireUser('/')
 
   // Неопубликованные проекты доступны только в админ-панели:
   // просмотр и редактирование — на /admin/projects/[id]/edit
@@ -124,10 +125,12 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
             <Mic size={16} className="text-slate-400" />
             Заслушивания ({project.hearings.length})
           </h2>
-          <Link href={`/admin/hearings/new?projectId=${project.id}`}
-            className="text-sm text-blue-600 hover:text-blue-700 font-medium">
-            + Добавить
-          </Link>
+          {canModerate(user) && (
+            <Link href={`/admin/hearings/new?projectId=${project.id}`}
+              className="text-sm text-blue-600 hover:text-blue-700 font-medium">
+              + Добавить
+            </Link>
+          )}
         </div>
         {project.hearings.length > 0 ? (
           <div className="space-y-3">
@@ -245,10 +248,12 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 <ShareButton title={project.title} />
-                <Link href={`/admin/projects/${project.id}/edit`}
-                  className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-blue-600 transition-colors border border-slate-200 px-3 py-1.5 rounded-lg hover:border-blue-300">
-                  <Pencil size={13} /> Редактировать
-                </Link>
+                {canAccessUniversity(user, project.universityId) && (
+                  <Link href={`/admin/projects/${project.id}/edit`}
+                    className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-blue-600 transition-colors border border-slate-200 px-3 py-1.5 rounded-lg hover:border-blue-300">
+                    <Pencil size={13} /> Редактировать
+                  </Link>
+                )}
               </div>
             </div>
 
@@ -290,7 +295,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
                   <div>
                     <p className="text-xs text-slate-400">Руководитель</p>
                     <p className="font-medium text-slate-700">{project.leadName}</p>
-                    {project.leadEmail && <p className="text-xs text-slate-400">{project.leadEmail}</p>}
+                    {project.leadEmail && canSeeLeadContacts(user) && <p className="text-xs text-slate-400">{project.leadEmail}</p>}
                   </div>
                 </div>
               )}

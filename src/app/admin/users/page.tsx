@@ -17,6 +17,7 @@ const ROLE_LABELS: Record<UserRole, string> = {
   EDITOR: 'Редактор',
   UNIVERSITY_REP: 'Представитель вуза',
   VIEWER: 'Просмотр',
+  BUSINESS_REP: 'Представитель бизнеса',
 }
 
 const ROLE_COLORS: Record<UserRole, string> = {
@@ -24,6 +25,7 @@ const ROLE_COLORS: Record<UserRole, string> = {
   EDITOR: 'bg-blue-100 text-blue-700',
   UNIVERSITY_REP: 'bg-violet-100 text-violet-700',
   VIEWER: 'bg-slate-100 text-slate-600',
+  BUSINESS_REP: 'bg-emerald-100 text-emerald-700',
 }
 
 const SORTS: Record<string, Prisma.UserOrderByWithRelationInput> = {
@@ -59,6 +61,7 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
             { email: { contains: params.q, mode: 'insensitive' } },
             { university: { name: { contains: params.q, mode: 'insensitive' } } },
             { university: { shortName: { contains: params.q, mode: 'insensitive' } } },
+            { organization: { contains: params.q, mode: 'insensitive' } },
           ],
         }
       : {}),
@@ -94,7 +97,7 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
           Пользователи ({hasFilters ? `${total} из ${totalAll}` : totalAll})
         </h1>
         <p className="mt-1 text-sm text-slate-500">
-          Аккаунты для администраторов, редакторов и представителей вузов.
+          Аккаунты для администраторов, редакторов, представителей вузов и компаний.
           {neverCount > 0 && <> Без входов: <span className="font-medium text-slate-700">{neverCount}</span>.</>}
         </p>
         <p className="mt-1 text-xs text-slate-400">
@@ -118,7 +121,7 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
       <ListFilters
         basePath="/admin/users"
         values={params as Record<string, string | undefined>}
-        searchPlaceholder="Имя, почта или вуз…"
+        searchPlaceholder="Имя, почта, вуз или компания…"
         filters={[
           {
             name: 'role',
@@ -152,7 +155,7 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
             <tr>
               <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500">Пользователь</th>
               <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500">Роль</th>
-              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500">Вуз</th>
+              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500">Вуз / компания</th>
               <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500">Последний вход</th>
               <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-slate-500">Действия</th>
             </tr>
@@ -179,6 +182,8 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
                       <p className="text-slate-600">{user.university.shortName || user.university.name}</p>
                       <p className="text-slate-400">проектов: {user.university._count.projects}</p>
                     </>
+                  ) : user.organization ? (
+                    <p className="text-slate-600">{user.organization}</p>
                   ) : <span className="text-slate-400">—</span>}
                 </td>
                 <td className="px-4 py-3 text-xs whitespace-nowrap">
@@ -188,7 +193,7 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
                 </td>
                 <td className="px-4 py-3 text-right">
                   <UserEditControls
-                    user={{ id: user.id, name: user.name, email: user.email, role: user.role, universityId: user.universityId }}
+                    user={{ id: user.id, name: user.name, email: user.email, role: user.role, universityId: user.universityId, organization: user.organization }}
                     universities={universities}
                     isSelf={user.id === currentUser.id}
                     isLastAdmin={user.role === UserRole.ADMIN && adminCount <= 1}

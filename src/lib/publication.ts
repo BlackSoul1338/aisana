@@ -85,6 +85,25 @@ export function visibilityScope(user: { role: UserRole; universityId?: string | 
   return ownUniversity ? `university:${ownUniversity}` : 'published'
 }
 
+/**
+ * Видит ли пользователь почту руководителя проекта.
+ *
+ * Представитель бизнеса связывается с разработчиком через запрос оператору
+ * AiSana, а не напрямую. Остальным ролям проект отдаётся как раньше: ответы
+ * API читают внешние клиенты, их форма не меняется.
+ */
+export function canSeeLeadContacts(user: { role: UserRole }): boolean {
+  return user.role !== UserRole.BUSINESS_REP
+}
+
+/** Проект без почты руководителя для тех, кому она не положена. */
+export function withoutLeadContacts<T extends { leadEmail: string | null }>(
+  user: { role: UserRole },
+  project: T,
+): T {
+  return canSeeLeadContacts(user) ? project : { ...project, leadEmail: null }
+}
+
 export const PUBLICATION_LABELS: Record<PublicationStatus, string> = {
   DRAFT: 'Черновик',
   REVIEW: 'На проверке',

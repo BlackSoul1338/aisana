@@ -7,7 +7,7 @@ import { deleteUpload } from '@/lib/uploads'
 import { invalidateSearchIndex, reclassifyProject } from '@/lib/search/store'
 import { audit } from '@/lib/audit'
 import { parseBody, projectSchema } from '@/lib/schemas'
-import { canModerate } from '@/lib/publication'
+import { canModerate, withoutLeadContacts } from '@/lib/publication'
 import { publicationBlocker } from '@/lib/project-completeness'
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -29,7 +29,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ error: 'Не найдено' }, { status: 404 })
     }
 
-    return NextResponse.json(project)
+    return NextResponse.json(withoutLeadContacts(user, project))
   } catch {
     return NextResponse.json({ error: 'Ошибка' }, { status: 500 })
   }

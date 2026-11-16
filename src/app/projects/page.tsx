@@ -12,7 +12,7 @@ import { Prisma, ProjectCategory, ProjectIndustry, ProjectStatus } from '@prisma
 import { CATEGORY_LABELS, STATUS_LABELS } from '@/types'
 import { INDUSTRIES } from '@/lib/industries'
 import { plural } from '@/lib/plural'
-import { requireUser } from '@/lib/auth'
+import { canWriteContent, requireUser } from '@/lib/auth'
 
 const PAGE_SIZE = 24
 
@@ -116,7 +116,7 @@ async function getFilterOptions() {
 
 export default async function ProjectsPage({ searchParams }: { searchParams: Promise<Params> }) {
   // Настоящая проверка сессии: middleware смотрит только наличие cookie
-  await requireUser('/')
+  const user = await requireUser('/')
 
   const sp = await searchParams
   const page = Math.max(1, parseInt(sp.page || '1', 10) || 1)
@@ -139,13 +139,15 @@ export default async function ProjectsPage({ searchParams }: { searchParams: Pro
             {sp.q?.trim() ? <> по запросу «{sp.q.trim()}»</> : null}
           </p>
         </div>
-        <Link
-          href="/admin/projects/new"
-          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-        >
-          <Plus size={16} />
-          Добавить проект
-        </Link>
+        {canWriteContent(user) && (
+          <Link
+            href="/admin/projects/new"
+            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+          >
+            <Plus size={16} />
+            Добавить проект
+          </Link>
+        )}
       </div>
 
       <AutoSubmitForm className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mb-6">

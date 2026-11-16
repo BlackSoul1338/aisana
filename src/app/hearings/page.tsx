@@ -10,7 +10,7 @@ import { formatDateLong } from '@/lib/utils'
 import { HearingDecision } from '@prisma/client'
 import { HEARING_DECISION_LABELS } from '@/types'
 import { requireUser } from '@/lib/auth'
-import { visibleProjectsWhere, visibilityScope } from '@/lib/publication'
+import { canModerate, visibleProjectsWhere, visibilityScope } from '@/lib/publication'
 
 const DECISION_ICONS: Record<HearingDecision, React.ElementType> = {
   PENDING: Clock,
@@ -52,13 +52,15 @@ export default async function HearingsPage() {
           <h1 className="text-2xl font-bold text-slate-800">Заслушивания</h1>
           <p className="text-slate-500 mt-1">{hearings.length} протоколов</p>
         </div>
-        <Link
-          href="/admin/hearings/new"
-          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-        >
-          <Plus size={16} />
-          Добавить
-        </Link>
+        {canModerate(user) && (
+          <Link
+            href="/admin/hearings/new"
+            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+          >
+            <Plus size={16} />
+            Добавить
+          </Link>
+        )}
       </div>
 
       {hearings.length > 0 ? (
@@ -101,14 +103,16 @@ export default async function HearingsPage() {
                       </p>
                     )}
                   </div>
-                  <div className="flex gap-2 shrink-0">
-                    <Link
-                      href={`/admin/hearings/${hearing.id}/edit`}
-                      className="text-xs text-slate-400 hover:text-blue-600 border border-slate-200 hover:border-blue-300 px-3 py-1.5 rounded-lg transition-colors"
-                    >
-                      Изменить
-                    </Link>
-                  </div>
+                  {canModerate(user) && (
+                    <div className="flex gap-2 shrink-0">
+                      <Link
+                        href={`/admin/hearings/${hearing.id}/edit`}
+                        className="text-xs text-slate-400 hover:text-blue-600 border border-slate-200 hover:border-blue-300 px-3 py-1.5 rounded-lg transition-colors"
+                      >
+                        Изменить
+                      </Link>
+                    </div>
+                  )}
                 </div>
               </div>
             )

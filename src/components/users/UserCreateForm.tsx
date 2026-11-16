@@ -19,6 +19,7 @@ const ROLES: { value: UserRole; label: string }[] = [
   { value: 'EDITOR', label: 'Редактор' },
   { value: 'UNIVERSITY_REP', label: 'Представитель вуза' },
   { value: 'VIEWER', label: 'Просмотр' },
+  { value: 'BUSINESS_REP', label: 'Представитель бизнеса' },
 ]
 
 export function UserCreateForm({ universities }: Props) {
@@ -38,7 +39,8 @@ export function UserCreateForm({ universities }: Props) {
       email: (form.elements.namedItem('email') as HTMLInputElement).value,
       password: (form.elements.namedItem('password') as HTMLInputElement).value,
       role,
-      universityId: (form.elements.namedItem('universityId') as HTMLSelectElement).value || null,
+      universityId: (form.elements.namedItem('universityId') as HTMLSelectElement | null)?.value || null,
+      organization: (form.elements.namedItem('organization') as HTMLInputElement | null)?.value || null,
     }
 
     try {
@@ -100,17 +102,24 @@ export function UserCreateForm({ universities }: Props) {
             ))}
           </select>
         </div>
-        <div className="md:col-span-2">
-          <label className={labelClass}>Вуз</label>
-          <select name="universityId" required={role === 'UNIVERSITY_REP'} className={inputClass}>
-            <option value="">Не привязан</option>
-            {universities.map(university => (
-              <option key={university.id} value={university.id}>
-                {university.shortName ? `${university.shortName} - ` : ''}{university.name}
-              </option>
-            ))}
-          </select>
-        </div>
+        {role === 'BUSINESS_REP' ? (
+          <div className="md:col-span-2">
+            <label className={labelClass}>Компания</label>
+            <input name="organization" required maxLength={200} className={inputClass} placeholder="Название компании" />
+          </div>
+        ) : (
+          <div className="md:col-span-2">
+            <label className={labelClass}>Вуз</label>
+            <select name="universityId" required={role === 'UNIVERSITY_REP'} className={inputClass}>
+              <option value="">Не привязан</option>
+              {universities.map(university => (
+                <option key={university.id} value={university.id}>
+                  {university.shortName ? `${university.shortName} - ` : ''}{university.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
 
       <button

@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { PublicationStatus, UserRole } from '@prisma/client'
-import { canViewProjectContent, visibleProjectsWhere, visibilityScope } from '@/lib/publication'
+import {
+  canViewProjectContent, visibleProjectsWhere, visibilityScope, withoutLeadContacts,
+} from '@/lib/publication'
 
 const OWN_UNIVERSITY = 'uni-1'
 const OTHER_UNIVERSITY = 'uni-2'
@@ -12,6 +14,7 @@ const otherRep = { role: UserRole.UNIVERSITY_REP, universityId: OTHER_UNIVERSITY
 const viewer = { role: UserRole.VIEWER, universityId: null }
 // VIEWER с привязанным вузом: роль не даёт ему доступа к черновикам
 const viewerWithUniversity = { role: UserRole.VIEWER, universityId: OWN_UNIVERSITY }
+const business = { role: UserRole.BUSINESS_REP, universityId: null }
 
 describe('видимость содержимого проекта', () => {
   it('опубликованный проект виден всем', () => {
@@ -95,5 +98,25 @@ describe('область видимости для кэша', () => {
   it('у представителей вузов область своя', () => {
     expect(visibilityScope(rep)).toBe(`university:${OWN_UNIVERSITY}`)
     expect(visibilityScope(otherRep)).toBe(`university:${OTHER_UNIVERSITY}`)
+  })
+})
+
+describe('почта руководителя проекта', () => {
+  const project = { id: 'p-1', leadName: 'Иванов', leadEmail: 'lead@uni.kz' }
+
+  it('бизнесу не отдаётся: связь через оператора', () => {
+    expect(withoutLeadContacts(business, project)).toEqual({ ...project, leadEmail: null })
+  })
+
+  it('остальным ролям проект отдаётся без изменений', () => {
+    for (const user of [moderator, editor, rep, viewer]) {
+      expect(withoutLeadContacts(user, project)).toBe(project)
+    }
+  })
+
+  it('бизнес видит только опубликованные проекты, как посторонний', () => {
+    expect(visibleProjectsWhere(business).OR).toEqual([{ publication: PublicationStatus.PUBLISHED }])
+    expect(canViewProjectContent(business, { universityId: OWN_UNIVERSITY, publication: PublicationStatus.DRAFT })).toBe(false)
+    expect(visibilityScope(business)).toBe('published')
   })
 })

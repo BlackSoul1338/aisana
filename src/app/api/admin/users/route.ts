@@ -24,6 +24,9 @@ export async function POST(request: NextRequest) {
     if (role === UserRole.UNIVERSITY_REP && !data.universityId) {
       return NextResponse.json({ error: 'Для представителя вуза нужно выбрать вуз' }, { status: 400 })
     }
+    if (role === UserRole.BUSINESS_REP && !data.organization) {
+      return NextResponse.json({ error: 'Для представителя бизнеса нужно указать компанию' }, { status: 400 })
+    }
 
     const hashedPassword = await bcrypt.hash(password, 10)
     const user = await prisma.user.create({
@@ -33,6 +36,7 @@ export async function POST(request: NextRequest) {
         password: hashedPassword,
         role,
         universityId: role === UserRole.UNIVERSITY_REP ? data.universityId : null,
+        organization: role === UserRole.BUSINESS_REP ? data.organization : null,
       },
       select: {
         id: true,
@@ -40,6 +44,7 @@ export async function POST(request: NextRequest) {
         name: true,
         role: true,
         universityId: true,
+        organization: true,
       },
     })
 
@@ -65,7 +70,7 @@ export async function PATCH(request: NextRequest) {
     if (!parsed.success) {
       return NextResponse.json({ error: parsed.error }, { status: 400 })
     }
-    const { id, name, email, password, role, universityId } = parsed.data
+    const { id, name, email, password, role, universityId, organization } = parsed.data
 
     const updateData: Record<string, any> = {}
     if (name !== undefined) updateData.name = name || null
@@ -86,8 +91,12 @@ export async function PATCH(request: NextRequest) {
           }
         }
       }
+      if (role === UserRole.BUSINESS_REP && !organization) {
+        return NextResponse.json({ error: 'Для представителя бизнеса нужно указать компанию' }, { status: 400 })
+      }
       updateData.role = role
       updateData.universityId = role === UserRole.UNIVERSITY_REP ? (universityId || null) : null
+      updateData.organization = role === UserRole.BUSINESS_REP ? organization : null
     }
 
     if (password) {
@@ -97,7 +106,7 @@ export async function PATCH(request: NextRequest) {
     const user = await prisma.user.update({
       where: { id },
       data: updateData,
-      select: { id: true, email: true, name: true, role: true, universityId: true },
+      select: { id: true, email: true, name: true, role: true, universityId: true, organization: true },
     })
 
     // Смена пароля отзывает все сессии пользователя: иначе старая cookie

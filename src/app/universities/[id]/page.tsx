@@ -30,11 +30,12 @@ import { ProjectCard } from '@/components/ui/project-card'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { MapPin, Mail, Globe, User, FolderKanban, ArrowLeft, Pencil } from 'lucide-react'
-import { requireUser } from '@/lib/auth'
+import { canAccessUniversity, requireUser } from '@/lib/auth'
+import { canModerate } from '@/lib/publication'
 
 export default async function UniversityPage({ params }: { params: Promise<{ id: string }> }) {
   // Настоящая проверка сессии: middleware смотрит только наличие cookie
-  await requireUser('/')
+  const user = await requireUser('/')
   const { id } = await params
   const university = await prisma.university.findUnique({
     where: { id },
@@ -75,10 +76,12 @@ export default async function UniversityPage({ params }: { params: Promise<{ id:
               {university.nameKz && <p className="text-slate-400 text-sm mt-1">{university.nameKz}</p>}
             </div>
           </div>
-          <Link href={`/admin/universities/${university.id}/edit`}
-            className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-blue-600 transition-colors border border-slate-200 px-3 py-1.5 rounded-lg hover:border-blue-300">
-            <Pencil size={13} /> Редактировать
-          </Link>
+          {canModerate(user) && (
+            <Link href={`/admin/universities/${university.id}/edit`}
+              className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-blue-600 transition-colors border border-slate-200 px-3 py-1.5 rounded-lg hover:border-blue-300">
+              <Pencil size={13} /> Редактировать
+            </Link>
+          )}
         </div>
 
         {university.description && (
@@ -118,10 +121,12 @@ export default async function UniversityPage({ params }: { params: Promise<{ id:
           <FolderKanban size={18} className="text-blue-500" />
           ИИ-проекты ({university.projects.length})
         </h2>
-        <Link href={`/admin/projects/new?universityId=${university.id}`}
-          className="text-sm text-blue-600 hover:text-blue-700 font-medium">
-          + Добавить проект
-        </Link>
+        {canAccessUniversity(user, university.id) && (
+          <Link href={`/admin/projects/new?universityId=${university.id}`}
+            className="text-sm text-blue-600 hover:text-blue-700 font-medium">
+            + Добавить проект
+          </Link>
+        )}
       </div>
 
       {university.projects.length > 0 ? (

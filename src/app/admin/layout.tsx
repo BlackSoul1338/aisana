@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
 import {
   ArrowLeft,
   Building2,
@@ -19,10 +20,13 @@ const ROLE_LABELS: Record<UserRole, string> = {
   EDITOR: 'Редактор',
   UNIVERSITY_REP: 'Представитель вуза',
   VIEWER: 'Просмотр',
+  BUSINESS_REP: 'Представитель бизнеса',
 }
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const user = await requireUser('/admin')
+  // Админ-панель бизнесу не нужна: после входа и при нехватке прав — в каталог решений
+  if (user.role === UserRole.BUSINESS_REP) redirect('/projects')
 
   const adminLinks = [
     { href: '/admin', label: 'Обзор', icon: LayoutDashboard, show: true },

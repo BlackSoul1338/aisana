@@ -62,6 +62,7 @@ export default function ContactsPage() {
             <h2 className="mb-2 text-sm font-semibold text-slate-800">С чем обращаются чаще всего</h2>
             <ul className="space-y-1.5 text-sm text-slate-600">
               <li>· доступ к админ-панели для сотрудника вуза</li>
+              <li>· доступ к каталогу решений для представителя компании</li>
               <li>· добавить или исправить проект</li>
               <li>· ошибка или неточность на портале</li>
             </ul>

@@ -142,8 +142,9 @@ export const userCreateSchema = z.object({
   email: z.string().trim().email().max(255),
   name: shortText(200),
   password: z.string().min(6).max(200),
-  role: z.enum(['ADMIN', 'EDITOR', 'UNIVERSITY_REP', 'VIEWER']),
+  role: z.enum(['ADMIN', 'EDITOR', 'UNIVERSITY_REP', 'VIEWER', 'BUSINESS_REP']),
   universityId: z.union([z.string().trim().max(64), z.null()]).optional(),
+  organization: shortText(200),
 })
 
 export const userUpdateSchema = z.object({
@@ -151,8 +152,9 @@ export const userUpdateSchema = z.object({
   email: z.union([z.string().trim().email().max(255), z.literal('')]).optional(),
   name: z.union([z.string().trim().max(200), z.null()]).optional(),
   password: z.union([z.string().min(6).max(200), z.literal('')]).optional(),
-  role: z.enum(['ADMIN', 'EDITOR', 'UNIVERSITY_REP', 'VIEWER']).optional(),
+  role: z.enum(['ADMIN', 'EDITOR', 'UNIVERSITY_REP', 'VIEWER', 'BUSINESS_REP']).optional(),
   universityId: z.union([z.string().trim().max(64), z.null()]).optional(),
+  organization: shortText(200),
 })
 
 /** Тело удаления: во всех таких запросах передаётся только id. */

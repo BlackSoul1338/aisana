@@ -12,6 +12,7 @@ interface User {
   email: string
   role: UserRole
   universityId?: string | null
+  organization?: string | null
 }
 
 interface Props {
@@ -26,6 +27,7 @@ const ROLE_OPTIONS = [
   { value: 'EDITOR', label: 'Редактор' },
   { value: 'UNIVERSITY_REP', label: 'Представитель вуза' },
   { value: 'VIEWER', label: 'Просмотр' },
+  { value: 'BUSINESS_REP', label: 'Представитель бизнеса' },
 ]
 
 export function UserEditControls({ user, universities, isSelf = false, isLastAdmin = false }: Props) {
@@ -54,6 +56,7 @@ export function UserEditControls({ user, universities, isSelf = false, isLastAdm
       email: g('email'),
       role: g('role'),
       universityId: g('universityId') || null,
+      organization: g('organization') || null,
     }
     const pw = g('password')
     if (pw) body.password = pw
@@ -240,6 +243,12 @@ export function UserEditControls({ user, universities, isSelf = false, isLastAdm
                       <option key={u.id} value={u.id}>{u.shortName ? `${u.shortName} — ` : ''}{u.name}</option>
                     ))}
                   </select>
+                </div>
+              )}
+              {role === 'BUSINESS_REP' && (
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Компания <span className="text-red-500">*</span></label>
+                  <input name="organization" defaultValue={user.organization || ''} required maxLength={200} className={inputCls} placeholder="Название компании" />
                 </div>
               )}
 

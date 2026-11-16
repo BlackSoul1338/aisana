@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { CheckCircle2, Loader2, Send } from 'lucide-react'
 
 const TOPICS = [
-  { value: 'ACCESS_REQUEST', label: 'Запросить доступ для вуза' },
+  { value: 'ACCESS_REQUEST', label: 'Запросить доступ (вуз или компания)' },
   { value: 'ADD_PROJECT', label: 'Предложить проект' },
   { value: 'BUG', label: 'Сообщить об ошибке' },
   { value: 'QUESTION', label: 'Другой вопрос' },
@@ -90,7 +90,7 @@ export function FeedbackForm() {
 
       <div>
         <label className={label} htmlFor="fb-org">Организация</label>
-        <input id="fb-org" name="organization" maxLength={200} className={input} placeholder="Название вуза" />
+        <input id="fb-org" name="organization" maxLength={200} className={input} placeholder="Вуз или компания" />
       </div>
 
       <div>

@@ -306,19 +306,20 @@ async function main() {
     { email: 'demo-editor@demo.kz', name: 'ДЕМО Редактор', role: UserRole.EDITOR },
     { email: 'demo-rep@demo.kz', name: 'ДЕМО Представитель вуза', role: UserRole.UNIVERSITY_REP, universityId: 'demo_uni_enu' },
     { email: 'demo-viewer@demo.kz', name: 'ДЕМО Наблюдатель', role: UserRole.VIEWER },
+    { email: 'demo-business@demo.kz', name: 'ДЕМО Представитель бизнеса', role: UserRole.BUSINESS_REP, organization: 'ДЕМО Компания' },
   ]
   for (const u of users) {
     await prisma.user.upsert({
       where: { email: u.email },
-      update: { name: u.name, role: u.role, universityId: u.universityId ?? null, password: hashed },
-      create: { email: u.email, name: u.name, role: u.role, universityId: u.universityId ?? null, password: hashed },
+      update: { name: u.name, role: u.role, universityId: u.universityId ?? null, organization: u.organization ?? null, password: hashed },
+      create: { email: u.email, name: u.name, role: u.role, universityId: u.universityId ?? null, organization: u.organization ?? null, password: hashed },
     })
   }
   console.log(`✅ Учётки: ${users.length}`)
 
   console.log('\n🎉 Демо-данные готовы.')
   console.log(`   Пароль всех демо-учёток: ${DEMO_PASSWORD}`)
-  console.log('   Учётки: demo-admin@demo.kz, demo-editor@demo.kz, demo-rep@demo.kz, demo-viewer@demo.kz')
+  console.log('   Учётки: demo-admin@demo.kz, demo-editor@demo.kz, demo-rep@demo.kz, demo-viewer@demo.kz, demo-business@demo.kz')
   console.log('\n   После сида нажмите в админке «Пересчитать направления»,')
   console.log('   чтобы проекты получили тематические направления.')
 }

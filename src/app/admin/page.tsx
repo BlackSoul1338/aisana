@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import { PublicationStatus, UserRole } from '@prisma/client'
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
 import { ArrowRight, Building2, ClipboardCheck, FolderKanban, Mic, Plus } from 'lucide-react'
 import { prisma } from '@/lib/prisma'
 import { requireUser } from '@/lib/auth'
@@ -11,6 +12,8 @@ import { formatDate } from '@/lib/utils'
 
 export default async function AdminPage() {
   const user = await requireUser('/admin')
+  // Сюда ведёт вход по умолчанию; бизнесу нужен каталог решений, а не админ-панель
+  if (user.role === UserRole.BUSINESS_REP) redirect('/projects')
   // VIEWER не имеет права видеть черновики чужих вузов: показываем ему
   // только опубликованное. Представитель вуза — проекты своего вуза.
   const projectWhere = user.role === UserRole.UNIVERSITY_REP
