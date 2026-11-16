@@ -23,6 +23,7 @@ model User {
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
   sessions     Session[]
+  integrationRequests IntegrationRequest[]
   @@index([universityId])
   @@map("users")
 }
@@ -132,6 +133,9 @@ model Project {
   // Тематические направления, вычисленные классификатором (см. lib/search).
   // Пересчитываются при сохранении проекта и командой переиндексации.
   topics           ProjectTopic[]
+
+  // Запросы бизнеса на демонстрацию, консультацию, пилот или внедрение
+  integrationRequests IntegrationRequest[]
 
   // Модерация: на публичной части видны только PUBLISHED.
   // Представитель вуза создаёт черновик и отправляет на проверку,
@@ -331,4 +335,55 @@ enum FeedbackStatus {
   NEW
   IN_PROGRESS
   DONE
+}
+
+// ── Запросы бизнеса по решению ────────────────────────────
+// Представитель компании просит демонстрацию, консультацию, пилот или
+// внедрение. Запрос сначала разбирает оператор портала (ADMIN/EDITOR), потом
+// передаёт его представителю вуза-разработчика. Прямых контактов бизнес не
+// получает: связь идёт через оператора.
+model IntegrationRequest {
+  id             String                   @id @default(cuid())
+  // Проект может быть не выбран (запрос из помощника подбора) или удалён вузом —
+  // тогда оператор привязывает проект сам, прежде чем передать запрос вузу
+  projectId      String?
+  project        Project?                 @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  userId         String?
+  user           User?                    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  // Контакт на момент создания: запрос переживает удаление учётки
+  contactName    String?
+  contactEmail   String
+  organization   String?
+  contactPhone   String?
+  type           IntegrationRequestType
+  message        String                   @db.Text
+  status         IntegrationRequestStatus @default(NEW)
+  operatorNote   String?                  @db.Text // видят только ADMIN/EDITOR
+  universityNote String?                  @db.Text // ответ вуза, видят все участники
+  // Когда оператор передал запрос вузу. Видимость для вуза решается по нему,
+  // а не по статусу: отклонённый оператором до передачи запрос вуз не видит.
+  forwardedAt    DateTime?
+  createdAt      DateTime                 @default(now())
+  updatedAt      DateTime                 @updatedAt
+
+  @@index([status, createdAt])
+  @@index([projectId])
+  @@index([userId])
+  @@map("integration_requests")
+}
+
+enum IntegrationRequestType {
+  DEMO          // демонстрация
+  CONSULTATION  // консультация
+  PILOT         // пилот
+  INTEGRATION   // внедрение
+}
+
+enum IntegrationRequestStatus {
+  NEW                 // создан бизнесом
+  IN_REVIEW           // разбирает оператор
+  SENT_TO_UNIVERSITY  // передан вузу
+  IN_PROGRESS         // вуз и компания на связи
+  DONE                // завершён
+  DECLINED            // отклонён оператором или вузом
 }

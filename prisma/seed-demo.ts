@@ -13,9 +13,13 @@
  *
  *   DELETE FROM projects WHERE id LIKE 'demo_%';
  *   DELETE FROM universities WHERE id LIKE 'demo_%';
+ *   DELETE FROM integration_requests WHERE id LIKE 'demo_%';
  */
 
-import { PrismaClient, ProjectCategory, ProjectStatus, PublicationStatus, UniversityType, UserRole } from '@prisma/client'
+import {
+  IntegrationRequestStatus, IntegrationRequestType, PrismaClient, ProjectCategory, ProjectStatus,
+  PublicationStatus, UniversityType, UserRole,
+} from '@prisma/client'
 import bcrypt from 'bcryptjs'
 
 const prisma = new PrismaClient()
@@ -316,6 +320,26 @@ async function main() {
     })
   }
   console.log(`✅ Учётки: ${users.length}`)
+
+  // ── Запросы бизнеса ─────────────────────────
+  const business = await prisma.user.findUniqueOrThrow({ where: { email: 'demo-business@demo.kz' } })
+
+  const contact = { userId: business.id, contactName: business.name, contactEmail: business.email, organization: business.organization }
+  const requests = [
+    { id: 'demo_req_new', projectId: 'demo_prj_mining', type: IntegrationRequestType.DEMO, status: IntegrationRequestStatus.NEW,
+      message: 'Хотим посмотреть демонстрацию на данных нашего карьера.' },
+    { id: 'demo_req_forwarded', projectId: 'demo_prj_edu_kz', type: IntegrationRequestType.PILOT, status: IntegrationRequestStatus.SENT_TO_UNIVERSITY,
+      message: 'Нужен пилот обучающей платформы на казахском языке для наших сотрудников.', forwardedAt: new Date() },
+    { id: 'demo_req_progress', projectId: 'demo_prj_edu_kz', type: IntegrationRequestType.CONSULTATION, status: IntegrationRequestStatus.IN_PROGRESS,
+      message: 'Консультация по внедрению в корпоративный учебный центр.', forwardedAt: new Date(),
+      universityNote: 'Готовы провести встречу на следующей неделе.' },
+    { id: 'demo_req_declined', projectId: 'demo_prj_hr', type: IntegrationRequestType.INTEGRATION, status: IntegrationRequestStatus.DECLINED,
+      message: 'Тестовый запрос, отклонённый оператором до передачи вузу.', operatorNote: 'Дубль запроса.' },
+  ]
+  for (const { id, ...r } of requests) {
+    await prisma.integrationRequest.upsert({ where: { id }, update: { ...contact, ...r }, create: { id, ...contact, ...r } })
+  }
+  console.log(`✅ Запросы бизнеса: ${requests.length}`)
 
   console.log('\n🎉 Демо-данные готовы.')
   console.log(`   Пароль всех демо-учёток: ${DEMO_PASSWORD}`)

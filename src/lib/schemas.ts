@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import {
-  FeedbackStatus, FeedbackTopic, HearingDecision, ProjectCategory, ProjectFileType,
-  ProjectIndustry, ProjectStatus, PublicationStatus, UniversityType,
+  FeedbackStatus, FeedbackTopic, HearingDecision, IntegrationRequestStatus, IntegrationRequestType,
+  ProjectCategory, ProjectFileType, ProjectIndustry, ProjectStatus, PublicationStatus, UniversityType,
 } from '@prisma/client'
 
 /**
@@ -164,6 +164,27 @@ export const deleteIdSchema = z.object({
 
 export const deleteFileSchema = z.object({
   fileId: z.string().trim().min(1).max(64),
+})
+
+/** Запрос компании по решению: тип, суть задачи и, по желанию, телефон. */
+export const integrationRequestCreateSchema = z.object({
+  projectId: z.string().trim().min(1).max(64),
+  type: z.nativeEnum(IntegrationRequestType),
+  message: z.string().trim().min(10).max(4000),
+  contactPhone: shortText(40),
+})
+
+/**
+ * Правка запроса оператором или вузом. Поле, которого нет в теле, не
+ * меняется; пустая строка в заметке — очистить её.
+ */
+const optionalNote = z.union([z.string().trim().max(4000), z.null()]).optional()
+
+export const integrationRequestUpdateSchema = z.object({
+  status: z.nativeEnum(IntegrationRequestStatus).optional(),
+  projectId: z.string().trim().min(1).max(64).optional(),
+  operatorNote: optionalNote,
+  universityNote: optionalNote,
 })
 
 export const aiSearchSchema = z.object({

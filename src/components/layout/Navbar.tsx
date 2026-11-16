@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Map, FolderKanban, Star, LayoutDashboard, Settings, Building2, Sparkles, Menu, X } from 'lucide-react'
+import { Map, FolderKanban, Star, LayoutDashboard, Settings, Building2, Sparkles, Menu, X, Inbox } from 'lucide-react'
 import { LangSwitcher } from '@/components/ui/LangSwitcher'
 import { useLang } from '@/context/LangContext'
 
@@ -29,6 +29,7 @@ export function Navbar() {
 
   const signedIn = role !== null
   const isStaff = role === 'ADMIN' || role === 'EDITOR'
+  const isBusiness = role === 'BUSINESS_REP'
 
   const navLinks = [
     { href: '/',               label: t('nav', 'map'),          icon: Map,            show: true },
@@ -92,14 +93,24 @@ export function Navbar() {
         {/* Lang switcher */}
         <LangSwitcher />
 
-        {/* Админ-панель для вошедших, иначе — приглашение войти */}
-        <Link
-          href={signedIn ? '/admin' : '/login'}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-all text-sm shrink-0"
-        >
-          <Settings size={14} />
-          <span className="hidden md:block">{t('nav', 'admin')}</span>
-        </Link>
+        {/* Бизнесу — его запросы; остальным вошедшим — админ-панель; гостю — вход */}
+        {isBusiness ? (
+          <Link
+            href="/business/requests"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-all text-sm shrink-0"
+          >
+            <Inbox size={14} />
+            <span className="hidden md:block">{t('nav', 'myRequests')}</span>
+          </Link>
+        ) : (
+          <Link
+            href={signedIn ? '/admin' : '/login'}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-all text-sm shrink-0"
+          >
+            <Settings size={14} />
+            <span className="hidden md:block">{t('nav', 'admin')}</span>
+          </Link>
+        )}
 
         {/* Бургер (мобильные) */}
         <button

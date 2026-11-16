@@ -45,7 +45,7 @@ import { StatusBadge } from '@/components/ui/status-badge'
 import { CategoryBadge } from '@/components/ui/category-badge'
 import { formatDateLong } from '@/lib/utils'
 import { HEARING_DECISION_LABELS } from '@/types'
-import { HearingDecision } from '@prisma/client'
+import { HearingDecision, UserRole } from '@prisma/client'
 import { ProjectTabs } from '@/components/project/ProjectTabs'
 import { AgentPassportViewer } from '@/components/project/AgentPassportViewer'
 import { ProjectFilesManager } from '@/components/project/ProjectFilesManager'
@@ -54,6 +54,8 @@ import { ProjectStatsTab } from '@/components/project/ProjectStatsTab'
 import { ProjectTopics } from '@/components/project/ProjectTopics'
 import { TOPICS } from '@/lib/search/taxonomy'
 import { ShareButton } from '@/components/project/ShareButton'
+import { IntegrationRequestForm } from '@/components/requests/IntegrationRequestForm'
+import { REQUEST_STATUS_BADGE, REQUEST_STATUS_LABELS } from '@/lib/integration-requests'
 
 const HEARING_COLORS: Record<HearingDecision, string> = {
   PENDING:     'bg-slate-100 text-slate-600',
@@ -85,6 +87,16 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
   if (!project || project.publication !== PublicationStatus.PUBLISHED) notFound()
 
   const topicLabels = Object.fromEntries(TOPICS.map(topic => [topic.id, topic.label]))
+
+  // Бизнесу — форма запроса и статус последнего запроса по этому решению
+  const isBusiness = user.role === UserRole.BUSINESS_REP
+  const lastRequest = isBusiness
+    ? await prisma.integrationRequest.findFirst({
+        where: { projectId: project.id, userId: user.id },
+        orderBy: { createdAt: 'desc' },
+        select: { status: true, createdAt: true },
+      })
+    : null
 
   // ── Overview tab ─────────────────────────────────────────
   const overviewContent = (
@@ -337,6 +349,25 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
               )}
             </div>
           </div>
+
+          {isBusiness && (
+            <div className="bg-white border border-slate-200 rounded-xl p-5">
+              <h2 className="font-semibold text-slate-700 mb-1">Интересует решение?</h2>
+              <p className="text-xs text-slate-400 mb-4">
+                Запросите демонстрацию, консультацию, пилот или внедрение — оператор AiSana свяжет вас с вузом.
+              </p>
+              {lastRequest && (
+                <Link href="/business/requests"
+                  className="mb-4 flex items-center justify-between gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600 hover:border-slate-300">
+                  <span>Ваш запрос от {formatDateLong(lastRequest.createdAt)}</span>
+                  <span className={`rounded-full border px-2 py-0.5 font-medium ${REQUEST_STATUS_BADGE[lastRequest.status]}`}>
+                    {REQUEST_STATUS_LABELS[lastRequest.status]}
+                  </span>
+                </Link>
+              )}
+              <IntegrationRequestForm projectId={project.id} />
+            </div>
+          )}
 
           {project.agentPassportPdf && (
             <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">

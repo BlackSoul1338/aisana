@@ -1,14 +1,15 @@
 export const dynamic = 'force-dynamic'
 
-import { PublicationStatus, UserRole } from '@prisma/client'
+import { IntegrationRequestStatus, PublicationStatus, UserRole } from '@prisma/client'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { ArrowRight, Building2, ClipboardCheck, FolderKanban, Mic, Plus } from 'lucide-react'
+import { ArrowRight, Building2, ClipboardCheck, FolderKanban, Inbox, Mic, Plus } from 'lucide-react'
 import { prisma } from '@/lib/prisma'
 import { requireUser } from '@/lib/auth'
 import { canModerate, PUBLISHED_ONLY } from '@/lib/publication'
 import { ReindexButton } from '@/components/admin/ReindexButton'
 import { formatDate } from '@/lib/utils'
+import { visibleRequestsWhere } from '@/lib/integration-requests'
 
 export default async function AdminPage() {
   const user = await requireUser('/admin')
@@ -30,6 +31,14 @@ export default async function AdminPage() {
     // Очередь модерации: сколько проектов ждёт проверки
     prisma.project.count({ where: { ...projectWhere, publication: PublicationStatus.REVIEW } }),
   ])
+
+  // Запросы бизнеса, ждущие действия: оператору — новые, вузу — переданные ему
+  const waitingRequestStatus = canModerate(user)
+    ? IntegrationRequestStatus.NEW
+    : IntegrationRequestStatus.SENT_TO_UNIVERSITY
+  const waitingRequests = canModerate(user) || user.role === UserRole.UNIVERSITY_REP
+    ? await prisma.integrationRequest.count({ where: { ...visibleRequestsWhere(user), status: waitingRequestStatus } })
+    : 0
 
   const recentProjects = await prisma.project.findMany({
     where: projectWhere,
@@ -82,6 +91,27 @@ export default async function AdminPage() {
               </p>
             </div>
             <ArrowRight size={16} className="ml-auto shrink-0 text-amber-600" />
+          </div>
+        </Link>
+      )}
+
+      {waitingRequests > 0 && (
+        <Link href={`/admin/requests?status=${waitingRequestStatus}`}>
+          <div className="mb-6 flex items-center gap-3 rounded-xl border border-blue-200 bg-blue-50 p-4 transition-colors hover:bg-blue-100">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-100 text-blue-700">
+              <Inbox size={18} />
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-blue-900">
+                Запросы бизнеса ждут ответа: {waitingRequests}
+              </p>
+              <p className="text-xs text-blue-700">
+                {canModerate(user)
+                  ? 'Проверьте запросы компаний и передайте их вузам'
+                  : 'Оператор передал вам запросы компаний по проектам вашего вуза'}
+              </p>
+            </div>
+            <ArrowRight size={16} className="ml-auto shrink-0 text-blue-600" />
           </div>
         </Link>
       )}
