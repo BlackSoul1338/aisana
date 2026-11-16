@@ -132,7 +132,7 @@ export default async function AdminUniversitiesPage({ searchParams }: { searchPa
                       <Pencil size={12} />
                       Изменить
                     </Link>
-                    <DeleteUniversityButton id={uni.id} name={uni.shortName || uni.name} />
+                    <DeleteUniversityButton id={uni.id} name={uni.shortName || uni.name} projectCount={uni._count.projects} />
                   </div>
                 </td>
               </tr>

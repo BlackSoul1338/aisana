@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { UserRole } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
+import { PUBLISHED_PROJECTS_RELATION } from '@/lib/publication'
 import { canAccessUniversity, requireApiRole, requireApiUser } from '@/lib/auth'
 import { deleteUpload } from '@/lib/uploads'
 import { invalidateSearchIndex } from '@/lib/search/store'
-import { PUBLISHED_PROJECTS_RELATION } from '@/lib/publication'
 import { audit } from '@/lib/audit'
 import { parseBody, universityUpdateSchema } from '@/lib/schemas'
 
@@ -47,26 +47,9 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ error: parsed.error }, { status: 400 })
     }
     const data = parsed.data
-
-    // Пишем только те поля, что реально пришли в теле. Раньше все поля
-    // писались через «|| null», и запрос без nameKz обнулял его в базе —
-    // молчаливая потеря данных.
-    const update: Record<string, unknown> = {}
-    if (data.name !== undefined) update.name = data.name
-    if (data.nameKz !== undefined) update.nameKz = data.nameKz
-    if (data.shortName !== undefined) update.shortName = data.shortName
-    if (data.regionId !== undefined) update.regionId = data.regionId
-    if (data.address !== undefined) update.address = data.address
-    if (data.website !== undefined) update.website = data.website
-    if (data.email !== undefined) update.email = data.email
-    if (data.phone !== undefined) update.phone = data.phone
-    if (data.rector !== undefined) update.rector = data.rector
-    if (data.description !== undefined) update.description = data.description
-    if (data.type !== undefined) update.type = data.type
-
     const university = await prisma.university.update({
       where: { id },
-      data: update,
+      data: providedFields(data),
     })
     // Название, краткое имя и регион вуза индексируются поиском —
     // без сброса кэша переименование видно только через минуту
@@ -108,4 +91,24 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
   } catch {
     return NextResponse.json({ error: 'Ошибка удаления' }, { status: 500 })
   }
+}
+
+/** Поля вуза, которые можно править через API. */
+const EDITABLE_FIELDS = [
+  'name', 'nameKz', 'shortName', 'regionId', 'address',
+  'website', 'email', 'phone', 'rector', 'description', 'type',
+] as const
+
+/**
+ * Только те поля, что реально пришли в теле запроса.
+ *
+ * Раньше все колонки писались через «|| null», и запрос без nameKz
+ * обнулял его в базе — молчаливая потеря данных.
+ */
+function providedFields(data: Record<string, unknown>): Record<string, unknown> {
+  const update: Record<string, unknown> = {}
+  for (const field of EDITABLE_FIELDS) {
+    if (data[field] !== undefined) update[field] = data[field]
+  }
+  return update
 }

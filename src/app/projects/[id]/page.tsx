@@ -37,8 +37,9 @@ import Link from 'next/link'
 import { requireUser } from '@/lib/auth'
 import {
   ArrowLeft, Building2, User, Users, Calendar,
-  Star, TrendingUp, Pencil, Mic, FileText
+  Star, TrendingUp, Pencil, Mic, FileText, Layers, MapPin
 } from 'lucide-react'
+import { industryLabel } from '@/lib/industries'
 import { StatusBadge } from '@/components/ui/status-badge'
 import { CategoryBadge } from '@/components/ui/category-badge'
 import { formatDateLong } from '@/lib/utils'
@@ -290,6 +291,24 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
                     <p className="text-xs text-slate-400">Руководитель</p>
                     <p className="font-medium text-slate-700">{project.leadName}</p>
                     {project.leadEmail && <p className="text-xs text-slate-400">{project.leadEmail}</p>}
+                  </div>
+                </div>
+              )}
+              {project.industry && (
+                <div className="flex items-start gap-2.5">
+                  <Layers size={15} className="text-slate-400 mt-0.5 shrink-0" />
+                  <div>
+                    <p className="text-xs text-slate-400">Отрасль</p>
+                    <p className="font-medium text-slate-700">{industryLabel(project.industry)}</p>
+                  </div>
+                </div>
+              )}
+              {project.implementedAt && (
+                <div className="flex items-start gap-2.5">
+                  <MapPin size={15} className="text-slate-400 mt-0.5 shrink-0" />
+                  <div>
+                    <p className="text-xs text-slate-400">Где внедрено</p>
+                    <p className="font-medium text-slate-700">{project.implementedAt}</p>
                   </div>
                 </div>
               )}

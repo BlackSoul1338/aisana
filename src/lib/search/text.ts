@@ -156,7 +156,14 @@ export function editDistance(a: string, b: string, max = 2): number {
 
 /** Похожие слова: точное вхождение по началу либо опечатка в 1–2 буквы. */
 export function fuzzyMatches(token: string, queryToken: string): boolean {
-  if (token.startsWith(queryToken) || queryToken.startsWith(token)) return true
-  if (queryToken.length < 5) return false
-  return editDistance(token, queryToken, queryToken.length > 7 ? 2 : 1) <= (queryToken.length > 7 ? 2 : 1)
+  if (token.startsWith(queryToken)) return true
+  // Слово текста короче слова запроса («завод» при запросе «заводы»): засчитываем,
+  // только если отличается окончание. Раньше годилась любая длина, и сокращение
+  // «СВ» в названии находилось по запросу «сварка».
+  if (queryToken.startsWith(token) && token.length >= Math.max(4, queryToken.length - 3)) return true
+  // Опечатки прощаем только в длинных словах: у коротких одна буква — это уже
+  // другое слово («сварка» и «сверка»).
+  if (queryToken.length < 7) return false
+  const allowed = queryToken.length > 9 ? 2 : 1
+  return editDistance(token, queryToken, allowed) <= allowed
 }

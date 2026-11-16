@@ -42,7 +42,7 @@ describe('форматирование дат по казахстанскому 
     expect(formatDateInput('2026-03-05T12:00:00Z')).toMatch(/^\d{4}-\d{2}-\d{2}$/)
   })
 
-  it('пустая дата даёт пустую строку в поле ввода', () => {
+  it('пустая дата даёт текущую дату, а не пустую строку', () => {
     expect(formatDateInput(null)).not.toBe('')
     expect(formatDateInput(undefined)).not.toBe('')
   })

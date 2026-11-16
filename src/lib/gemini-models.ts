@@ -23,7 +23,7 @@ import { GoogleGenerativeAI, type GenerativeModel } from '@google/generative-ai'
 export type GeminiTaskType = 'summary' | 'reasons'
 
 /** Модель для сложных задач: пояснения по проектам, структурированный JSON. */
-export const MODEL_MAIN = process.env.GEMINI_MODEL || 'gemini-3.6-flash'
+export const MODEL_MAIN = process.env.GEMINI_MODEL || 'gemini-3.5-flash'
 
 /** Модель для простых задач: короткое резюме в свободном тексте. */
 export const MODEL_LITE = process.env.GEMINI_MODEL_LITE || 'gemini-3.5-flash-lite'

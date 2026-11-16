@@ -37,12 +37,14 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   // Кто владеет файлом: проекты, в которых он записан как файл или паспорт.
   // Уникальности на url нет — один файл может быть привязан к нескольким проектам.
   const [asFiles, asPassports] = await Promise.all([
+    // По окончанию: часть ссылок записана полным адресом портала
+    // (https://…/uploads/имя.pdf), и точное сравнение их не находило.
     prisma.projectFile.findMany({
-      where: { url },
+      where: { url: { endsWith: url } },
       select: { project: { select: { universityId: true, publication: true } } },
     }),
     prisma.project.findMany({
-      where: { agentPassportPdf: url },
+      where: { agentPassportPdf: { endsWith: url } },
       select: { universityId: true, publication: true },
     }),
   ])

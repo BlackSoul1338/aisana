@@ -20,16 +20,17 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json().catch(() => ({}))
     const parsed = parseBody(feedbackSchema, body)
+
+    // Honeypot: поле скрыто от людей, боты его заполняют.
+    // Отвечаем успехом, чтобы бот не подбирал обход.
+    if (typeof body.website === 'string' && body.website.trim() !== '') {
+      return NextResponse.json({ ok: true })
+    }
+
     if (!parsed.success) {
       return NextResponse.json({ error: parsed.error }, { status: 400 })
     }
     const data = parsed.data
-
-    // Honeypot: поле скрыто от людей, боты его заполняют.
-    // Отвечаем успехом, чтобы бот не подбирал обход.
-    if (typeof data.website === 'string' && data.website.trim() !== '') {
-      return NextResponse.json({ ok: true })
-    }
 
     const name = data.name
     const email = data.email.toLowerCase()

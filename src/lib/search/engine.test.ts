@@ -130,3 +130,77 @@ describe('indexProject', () => {
     expect(item.fields.region.text).toBe('алматы')
   })
 })
+
+/**
+ * Отбор: поиск не должен возвращать полпортала. Индекс из 30 проектов,
+ * почти все отнесены к образованию — как на настоящем портале.
+ */
+describe('searchIndex — точность отбора', () => {
+  const filler = Array.from({ length: 26 }, (_, i) => ({
+    id: `p_edu_${i}`,
+    title: `Учебный помощник ${i}`,
+    description: 'Платформа для студентов и преподавателей: обучение, курсы, учебные материалы, оценка знаний, образование.',
+    tags: ['обучение', 'студенты'],
+    category: 'EDUCATION',
+    status: 'PILOT',
+    university: { name: 'Казахский национальный университет', shortName: 'КазНУ', region: { name: 'Алматы' } },
+  }))
+  const applicant = {
+    id: 'p_applicant',
+    title: 'Чат-бот для абитуриентов',
+    description: 'Отвечает абитуриентам на вопросы о поступлении, грантах и подготовке к ЕНТ, обучение и образование.',
+    tags: ['абитуриент'],
+    category: 'EDUCATION',
+    status: 'IMPLEMENTED',
+    university: { name: 'Университет нефти и газа', shortName: 'АУНГ', region: { name: 'Атырау' } },
+  }
+  const abbreviation = {
+    id: 'p_abbr',
+    title: 'Помощник по СВ и подготовка отчётов',
+    description: 'Формирует отчёты по студенческому взаимодействию, обучение и образование.',
+    tags: ['отчёты'],
+    category: 'EDUCATION',
+    status: 'PILOT',
+    university: { name: 'ENU', shortName: 'ENU', region: { name: 'Астана' } },
+  }
+  const language = {
+    id: 'p_lang',
+    title: 'Тренажёр по казахскому языку',
+    description: 'Помогает изучать казахский язык: упражнения, проверка произношения, обучение и образование.',
+    tags: ['казахский язык'],
+    category: 'EDUCATION',
+    status: 'PILOT',
+    university: { name: 'ENU', shortName: 'ENU', region: { name: 'Астана' } },
+  }
+  const big = [...filler, applicant, abbreviation, language, industrial, health].map(p => indexProject(p as any))
+  const ids = (q: string) => searchIndex(big, q, { limit: 1000 }).hits.map(hit => hit.id)
+
+  it('широкое направление само по себе не приводит проект в выдачу', () => {
+    expect(ids('абитуриент')).toEqual(['p_applicant'])
+  })
+
+  it('многословный запрос требует большинства слов', () => {
+    expect(ids('подготовка к ЕНТ')).toEqual(['p_applicant'])
+  })
+
+  it('слово из названия вуза не считается совпадением', () => {
+    expect(ids('казахский язык')).toEqual(['p_lang'])
+  })
+
+  it('короткое сокращение не совпадает с длинным словом запроса', () => {
+    expect(ids('сварка')).not.toContain('p_abbr')
+  })
+
+  it('узкое направление по-прежнему находит проекты по смыслу', () => {
+    expect(ids('промышленность')).toContain('p_industrial')
+    expect(ids('сварка')).toContain('p_industrial')
+  })
+
+  it('сокращение вуза находит его проекты', () => {
+    expect(ids('АУНГ')).toEqual(['p_applicant'])
+  })
+
+  it('если строгий отбор пуст, показывает частичные совпадения', () => {
+    expect(ids('Атырау')).toEqual(['p_applicant'])
+  })
+})

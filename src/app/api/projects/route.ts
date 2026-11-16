@@ -6,8 +6,9 @@ import { PUBLISHED_ONLY, canModerate } from '@/lib/publication'
 import { invalidateSearchIndex, loadSearchIndex, reclassifyProject } from '@/lib/search/store'
 import { searchIndex } from '@/lib/search/engine'
 import { canAccessUniversity, requireApiRole, requireApiUser } from '@/lib/auth'
-import { parseBody, projectSchema } from '@/lib/schemas'
 import { audit } from '@/lib/audit'
+import { parseBody, projectSchema } from '@/lib/schemas'
+import { publicationBlocker } from '@/lib/project-completeness'
 
 export async function POST(request: NextRequest) {
   try {
@@ -22,7 +23,7 @@ export async function POST(request: NextRequest) {
     const data = parsed.data
     const universityId = user.role === UserRole.UNIVERSITY_REP ? user.universityId : data.universityId
 
-    if (!universityId) {
+    if (!data.title || !data.description || !universityId) {
       return NextResponse.json({ error: 'Название, описание и вуз обязательны' }, { status: 400 })
     }
 
@@ -33,6 +34,13 @@ export async function POST(request: NextRequest) {
     // Модерация: представитель вуза создаёт черновик — на портал проект
     // попадёт только после проверки. Администратор и редактор публикуют сразу.
     const publication = canModerate(user) ? PublicationStatus.PUBLISHED : PublicationStatus.DRAFT
+
+    // Модератор публикует сразу, поэтому пустую карточку останавливаем здесь.
+    // Черновик вуза может быть неполным: его проверят при отправке на проверку.
+    if (publication === PublicationStatus.PUBLISHED) {
+      const blocker = publicationBlocker(data, { requireImplementedAt: false })
+      if (blocker) return NextResponse.json({ error: blocker }, { status: 400 })
+    }
 
     // Бейджи «лучшая практика» и «к тиражированию» видны публично,
     // поэтому выдавать их может только модератор — представитель вуза
@@ -52,6 +60,8 @@ export async function POST(request: NextRequest) {
         launchDate: data.launchDate ? new Date(data.launchDate) : null,
         category: data.category || 'EDUCATION',
         status: data.status || 'IDEA',
+        industry: data.industry || null,
+        implementedAt: data.implementedAt || null,
         isBestPractice: maySetBadges ? data.isBestPractice || false : false,
         isScalable: maySetBadges ? data.isScalable || false : false,
         impact: data.impact || null,

@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
     // корзине: пять чужих неверных паролей не блокируют вход владельцу
     // с его устройства (см. trusted-devices.ts).
     const ip = getClientIp(request)
-    const normalizedEmail = email.trim().toLowerCase()
+    const normalizedEmail = String(email).trim().toLowerCase()
     const deviceToken = request.cookies.get(DEVICE_COOKIE)?.value
     const accountKey = isTrustedDevice(deviceToken, normalizedEmail)
       ? `login:acc:${normalizedEmail}:device:${deviceToken}`
@@ -72,6 +72,11 @@ export async function POST(request: NextRequest) {
         expires,
       },
     })
+
+    // Отметка о входе: по ней в админке видно, кто из вузов ни разу не заходил.
+    // Не критично для входа — ошибка записи не должна его ломать.
+    await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } })
+      .catch(error => console.error('Failed to store last login', error))
 
     const response = NextResponse.json({ ok: true })
     response.cookies.set(SESSION_COOKIE, sessionToken, {

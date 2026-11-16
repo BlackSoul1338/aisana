@@ -24,20 +24,6 @@ export const MAX_UPLOAD_BYTES = 4 * 1024 * 1024
 export const BLOB_PREFIX = 'uploads'
 
 /**
- * Допустимая ссылка на файл проекта.
- *
- * url рендерится как <a href> на публичной странице проекта, поэтому
- * javascript:-ссылка (и прочий мусор) в базе быть не должен. Проверка
- * одинаковая для ручного добавления и для импорта из Excel — иначе
- * импорт был бы обходом проверки.
- */
-export function isAllowedFileUrl(url: unknown): boolean {
-  const value = String(url ?? '').trim()
-  if (!value) return false
-  return /^https?:\/\//i.test(value) || value.startsWith('/uploads/')
-}
-
-/**
  * Каталог для локального хранения PDF, когда Vercel Blob недоступен.
  *
  * Держим файлы ВНЕ public/: каталог public отдаётся статикой Next.js
@@ -61,7 +47,7 @@ function safeName(filename: string): string {
 
 /**
  * Сохраняет PDF. В Blob или на диск — в зависимости от наличия токена.
- * Возвращает публичный адрес файла (/uploads/имя.pdf).
+ * Возвращает адрес файла (/uploads/имя.pdf).
  */
 export async function saveUpload(filename: string, buffer: Buffer): Promise<string> {
   const name = safeName(filename)
@@ -138,10 +124,13 @@ export async function deleteUpload(url: string | null | undefined): Promise<void
 
   // На файл ещё есть ссылка — не удаляем. Проверяем и вкладку
   // «Файлы и ссылки», и паспорт проекта: ссылка может жить в обоих.
+  // Сравниваем по окончанию: часть ссылок записана полным адресом портала
+  // (https://…/uploads/имя.pdf), а не относительным.
+  const suffix = `/uploads/${filename}`
   try {
     const [asFile, asPassport] = await Promise.all([
-      prisma.projectFile.count({ where: { url } }),
-      prisma.project.count({ where: { agentPassportPdf: url } }),
+      prisma.projectFile.count({ where: { url: { endsWith: suffix } } }),
+      prisma.project.count({ where: { agentPassportPdf: { endsWith: suffix } } }),
     ])
     if (asFile > 0 || asPassport > 0) return
   } catch (error) {

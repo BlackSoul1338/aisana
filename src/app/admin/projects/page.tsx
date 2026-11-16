@@ -1,31 +1,27 @@
 export const dynamic = 'force-dynamic'
 
 import Link from 'next/link'
-import { ExternalLink, Pencil, Plus } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import { Prisma, ProjectStatus, PublicationStatus, UserRole } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { requireRole } from '@/lib/auth'
 import { canModerate } from '@/lib/publication'
-import { PublicationBadge, PublicationControl } from '@/components/admin/PublicationControl'
 import { STATUS_LABELS } from '@/types'
-import { DeleteProjectButton } from '../universities/DeleteButton'
+import { ProjectsTable, type ProjectRow } from '@/components/admin/ProjectsTable'
+import { DESCRIPTION_PLACEHOLDER, MIN_DESCRIPTION_LENGTH, isDescriptionEmpty } from '@/lib/project-completeness'
+import { formatDate } from '@/lib/datetime'
 import { ListFilters } from '@/components/admin/ListFilters'
 import { Pagination } from '@/components/admin/Pagination'
 
-const PAGE_SIZE = 25
-
-const STATUS_COLORS: Record<ProjectStatus, string> = {
-  IDEA: 'bg-slate-100 text-slate-600',
-  PROTOTYPE: 'bg-amber-100 text-amber-700',
-  PILOT: 'bg-blue-100 text-blue-700',
-  IMPLEMENTED: 'bg-emerald-100 text-emerald-700',
-  SCALED: 'bg-violet-100 text-violet-700',
-}
+const DEFAULT_PAGE_SIZE = 25
+const PAGE_SIZES = [50, 100]
 
 const SORTS: Record<string, Prisma.ProjectOrderByWithRelationInput> = {
   newest: { createdAt: 'desc' },
   oldest: { createdAt: 'asc' },
   title: { title: 'asc' },
+  // Очередь модерации: кто дольше ждёт, тот выше. Не отправлявшиеся — в конце.
+  submitted: { submittedAt: { sort: 'asc', nulls: 'last' } },
 }
 
 interface SearchParams {
@@ -34,6 +30,8 @@ interface SearchParams {
   regionId?: string
   status?: string
   publication?: string
+  issue?: string
+  size?: string
   sort?: string
   page?: string
 }
@@ -43,6 +41,7 @@ export default async function AdminProjectsPage({ searchParams }: { searchParams
   const params = await searchParams
 
   const page = Math.max(1, parseInt(params.page || '1', 10) || 1)
+  const PAGE_SIZE = PAGE_SIZES.includes(Number(params.size)) ? Number(params.size) : DEFAULT_PAGE_SIZE
   const isRep = user.role === UserRole.UNIVERSITY_REP
 
   // ── where из фильтров ──────────────────────────────────────
@@ -67,6 +66,27 @@ export default async function AdminProjectsPage({ searchParams }: { searchParams
     where.publication = params.publication as PublicationStatus
   }
 
+  // Фильтр «что не так с карточкой». Пустое описание — это длина и заглушка
+  // импорта (lib/project-completeness), в where Prisma так не выразить,
+  // поэтому сначала берём id сырым запросом.
+  if (params.issue === 'nodesc') {
+    const empty = await prisma.$queryRaw<{ id: string }[]>`
+      SELECT id FROM projects
+      WHERE length(btrim(regexp_replace(description, '\\s+', ' ', 'g'))) < ${MIN_DESCRIPTION_LENGTH}
+         OR btrim(description) ILIKE ${DESCRIPTION_PLACEHOLDER + '%'}`
+    where.id = { in: empty.map(row => row.id) }
+  } else if (params.issue === 'nofiles') {
+    where.files = { none: {} }
+    where.agentPassportPdf = null
+  } else if (params.issue === 'noindustry') {
+    where.industry = null
+  } else if (params.issue === 'noplace') {
+    where.status = { in: ['IMPLEMENTED', 'SCALED'] }
+    where.implementedAt = null
+  }
+
+  const hasFilters = Boolean(params.q || params.universityId || params.regionId || params.status || params.publication || params.issue)
+
   const orderBy = SORTS[params.sort || 'newest'] || SORTS.newest
 
   const [projects, total, universities, regions] = await Promise.all([
@@ -75,6 +95,7 @@ export default async function AdminProjectsPage({ searchParams }: { searchParams
       include: {
         university: { select: { name: true, shortName: true } },
         technologies: { select: { name: true } },
+        _count: { select: { files: true } },
       },
       orderBy,
       skip: (page - 1) * PAGE_SIZE,
@@ -87,6 +108,22 @@ export default async function AdminProjectsPage({ searchParams }: { searchParams
     prisma.region.findMany({ select: { id: true, name: true }, orderBy: { name: 'asc' } }),
   ])
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
+
+  const rows: ProjectRow[] = projects.map(project => ({
+    id: project.id,
+    title: project.title,
+    snippet: project.description.replace(/\s+/g, ' ').trim().slice(0, 220),
+    university: project.university.shortName || project.university.name,
+    status: project.status,
+    statusLabel: STATUS_LABELS[project.status],
+    publication: project.publication,
+    technologies: project.technologies.map(t => t.name).join(', '),
+    noDescription: isDescriptionEmpty(project.description),
+    noFiles: project._count.files === 0 && !project.agentPassportPdf,
+    dateLabel: project.publication === 'REVIEW' && project.submittedAt
+      ? `На проверке с ${formatDate(project.submittedAt)}`
+      : `Создан ${formatDate(project.createdAt)}`,
+  }))
 
   const filters = [
     ...(!isRep
@@ -115,6 +152,21 @@ export default async function AdminProjectsPage({ searchParams }: { searchParams
         { value: 'PUBLISHED', label: 'Опубликованные' },
       ],
     },
+    {
+      name: 'issue',
+      label: 'Любая заполненность',
+      options: [
+        { value: 'nodesc', label: 'Без описания' },
+        { value: 'nofiles', label: 'Без файлов и ссылок' },
+        { value: 'noindustry', label: 'Отрасль не указана' },
+        { value: 'noplace', label: 'Внедрено, но не указано где' },
+      ],
+    },
+    {
+      name: 'size',
+      label: `По ${DEFAULT_PAGE_SIZE} на странице`,
+      options: PAGE_SIZES.map(size => ({ value: String(size), label: `По ${size} на странице` })),
+    },
   ]
 
   return (
@@ -139,82 +191,16 @@ export default async function AdminProjectsPage({ searchParams }: { searchParams
           { value: 'newest', label: 'Сначала новые' },
           { value: 'oldest', label: 'Сначала старые' },
           { value: 'title', label: 'По названию А-Я' },
+          { value: 'submitted', label: 'Дольше всех на проверке' },
         ]}
       />
 
-      <div className="bg-white border border-slate-200 rounded-xl overflow-x-auto">
-        <table className="w-full min-w-[640px] text-sm">
-          <thead className="bg-slate-50 border-b border-slate-200">
-            <tr>
-              <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">Проект</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">Вуз</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">Статус</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">Публикация</th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wide">Действия</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {projects.map(project => (
-              <tr key={project.id} className="hover:bg-slate-50 transition-colors">
-                <td className="px-4 py-3">
-                  <div>
-                    <p className="font-medium text-slate-800 line-clamp-1">{project.title}</p>
-                    <p className="text-xs text-slate-400 mt-0.5">
-                      {project.technologies.map(t => t.name).join(', ') || '-'}
-                    </p>
-                  </div>
-                </td>
-                <td className="px-4 py-3 text-slate-500 text-xs">
-                  {project.university.shortName || project.university.name}
-                </td>
-                <td className="px-4 py-3">
-                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[project.status]}`}>
-                    {STATUS_LABELS[project.status]}
-                  </span>
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex flex-col items-start gap-1.5">
-                    <PublicationBadge publication={project.publication} />
-                    <PublicationControl
-                      projectId={project.id}
-                      publication={project.publication}
-                      canModerate={canModerate(user)}
-                      compact
-                    />
-                  </div>
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex items-center justify-end gap-2">
-                    <a
-                      href={`/projects/${project.id}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      title="Открыть на сайте"
-                      className="text-slate-400 hover:text-blue-600 p-1.5 rounded-lg hover:bg-blue-50 transition-colors"
-                    >
-                      <ExternalLink size={14} />
-                    </a>
-                    <Link
-                      href={`/admin/projects/${project.id}/edit`}
-                      className="flex items-center gap-1 text-xs text-slate-500 hover:text-blue-600 border border-slate-200 hover:border-blue-300 px-2.5 py-1.5 rounded-lg transition-colors"
-                    >
-                      <Pencil size={12} /> Изменить
-                    </Link>
-                    <DeleteProjectButton id={project.id} name={project.title} />
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {projects.length === 0 && (
-          <div className="text-center py-12 text-slate-400">
-            {total === 0 && !params.q && !params.universityId && !params.regionId && !params.status
-              ? 'Нет проектов'
-              : 'Ничего не найдено по заданным фильтрам'}
-          </div>
-        )}
-      </div>
+      <ProjectsTable rows={rows} canModerate={canModerate(user)} />
+      {projects.length === 0 && (
+        <div className="text-center py-12 text-slate-400 bg-white border border-slate-200 rounded-xl mt-3">
+          {total === 0 && !hasFilters ? 'Нет проектов' : 'Ничего не найдено по заданным фильтрам'}
+        </div>
+      )}
 
       <Pagination
         page={page}

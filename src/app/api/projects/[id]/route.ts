@@ -7,6 +7,8 @@ import { deleteUpload } from '@/lib/uploads'
 import { invalidateSearchIndex, reclassifyProject } from '@/lib/search/store'
 import { audit } from '@/lib/audit'
 import { parseBody, projectSchema } from '@/lib/schemas'
+import { canModerate } from '@/lib/publication'
+import { publicationBlocker } from '@/lib/project-completeness'
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -41,7 +43,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const { id } = await params
     const existing = await prisma.project.findUnique({
       where: { id },
-      select: { universityId: true, isBestPractice: true, isScalable: true },
+      select: { universityId: true, isBestPractice: true, isScalable: true, publication: true },
     })
     if (!existing) return NextResponse.json({ error: 'Не найдено' }, { status: 404 })
     if (!canAccessUniversity(user, existing.universityId)) {
@@ -62,6 +64,14 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ error: 'Недостаточно прав для этого вуза' }, { status: 403 })
     }
 
+    // Карточка уже на проверке или опубликована — вуз не может сохранить её
+    // пустой или «внедрённой» без места внедрения. Черновик сохраняется как есть.
+    // Модератора не блокируем: ему нужно править и карточки, поданные до этого правила.
+    if (!canModerate(user) && existing.publication !== 'DRAFT') {
+      const blocker = publicationBlocker(data, { requireImplementedAt: true })
+      if (blocker) return NextResponse.json({ error: blocker }, { status: 400 })
+    }
+
     // Бейджи видны публично — выдавать их может только модератор
     const maySetBadges = user.role === UserRole.ADMIN || user.role === UserRole.EDITOR
 
@@ -77,8 +87,11 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         launchDate: data.launchDate ? new Date(data.launchDate) : null,
         category: data.category,
         status: data.status,
-        isBestPractice: maySetBadges ? data.isBestPractice || false : existing.isBestPractice,
-        isScalable: maySetBadges ? data.isScalable || false : existing.isScalable,
+        // Отрасль не затираем, если поле не прислали вовсе
+        industry: data.industry === undefined ? undefined : (data.industry || null),
+        implementedAt: data.implementedAt || null,
+        isBestPractice: maySetBadges ? (data.isBestPractice ?? existing.isBestPractice) : existing.isBestPractice,
+        isScalable: maySetBadges ? (data.isScalable ?? existing.isScalable) : existing.isScalable,
         impact: data.impact || null,
         results: data.results || null,
         presentationPdf: data.presentationPdf || null,

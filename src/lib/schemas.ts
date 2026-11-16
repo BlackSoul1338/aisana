@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import {
-  FeedbackStatus, FeedbackTopic, ProjectCategory, ProjectStatus, PublicationStatus, UniversityType,
+  FeedbackStatus, FeedbackTopic, HearingDecision, ProjectCategory, ProjectFileType,
+  ProjectIndustry, ProjectStatus, PublicationStatus, UniversityType,
 } from '@prisma/client'
 
 /**
@@ -31,7 +32,7 @@ const tagsList = z
   .optional()
 
 /** Идентификаторы технологий. */
-const technologyIds = z.array(z.string().min(1).max(64)).max(20).optional()
+const technologyIds = z.array(z.string().min(1).max(64)).max(100).optional()
 
 // Формат почты при входе не проверяем: учётки заводились без проверки
 // формата, и строгий .email() (требует домен верхнего уровня) закрыл бы
@@ -66,6 +67,9 @@ export const projectSchema = z.object({
   launchDate: z.union([z.string().trim().max(40), z.null()]).optional(),
   category: z.nativeEnum(ProjectCategory).optional(),
   status: z.nativeEnum(ProjectStatus).optional(),
+  // Пустая строка из <select> — «не выбрано»
+  industry: z.union([z.nativeEnum(ProjectIndustry), z.literal(''), z.null()]).optional(),
+  implementedAt: shortText(2_000),
   isBestPractice: z.boolean().optional(),
   isScalable: z.boolean().optional(),
   impact: shortText(EXCEL_CELL_MAX),
@@ -107,14 +111,14 @@ export const hearingSchema = z.object({
   commission: z.array(z.string().trim().min(1).max(200)).max(50).optional(),
   remarks: shortText(5_000),
   recommendations: shortText(5_000),
-  decision: z.enum(['PENDING', 'APPROVED', 'REJECTED', 'REVISION', 'RECOMMENDED']).optional(),
+  decision: z.nativeEnum(HearingDecision).optional(),
   decisionText: shortText(5_000),
 })
 
 export const projectFileSchema = z.object({
   label: z.string().trim().min(1).max(300),
   url: z.string().trim().min(1).max(2_000),
-  type: z.enum(['ACT', 'PRESENTATION', 'DOCUMENTATION', 'VIDEO', 'ZOOM', 'LINK', 'OTHER']),
+  type: z.nativeEnum(ProjectFileType),
   size: z.coerce.number().int().min(0).max(100_000_000).nullish(),
 })
 
@@ -127,9 +131,16 @@ export const publicationSchema = z.object({
   note: z.string().trim().max(1000).optional(),
 })
 
+/** Массовая смена статуса: не больше страницы списка за раз. */
+export const bulkPublicationSchema = z.object({
+  ids: z.array(z.string().trim().min(1).max(64)).min(1).max(100),
+  publication: z.nativeEnum(PublicationStatus),
+  note: z.string().trim().max(1000).optional(),
+})
+
 export const userCreateSchema = z.object({
   email: z.string().trim().email().max(255),
-  name: z.string().trim().min(1).max(200),
+  name: shortText(200),
   password: z.string().min(6).max(200),
   role: z.enum(['ADMIN', 'EDITOR', 'UNIVERSITY_REP', 'VIEWER']),
   universityId: z.union([z.string().trim().max(64), z.null()]).optional(),
@@ -144,6 +155,11 @@ export const userUpdateSchema = z.object({
   universityId: z.union([z.string().trim().max(64), z.null()]).optional(),
 })
 
+/** Тело удаления: во всех таких запросах передаётся только id. */
+export const deleteIdSchema = z.object({
+  id: z.string().trim().min(1).max(64),
+})
+
 export const deleteFileSchema = z.object({
   fileId: z.string().trim().min(1).max(64),
 })
@@ -153,6 +169,35 @@ export const aiSearchSchema = z.object({
   debug: z.boolean().optional(),
   limit: z.coerce.number().int().min(1).max(100).optional(),
 })
+
+/**
+ * Тексты ошибок на русском.
+ *
+ * Zod по умолчанию отвечает по-английски, а портал русский: сообщение об
+ * ошибке показывается пользователю прямо в форме, и «Invalid email» там
+ * смотрится чужим.
+ */
+function issueMessage(issue: z.ZodIssue): string {
+  switch (issue.code) {
+    case 'invalid_type':
+      return issue.received === 'undefined' ? 'поле обязательно' : 'неверный тип значения'
+    case 'invalid_enum_value':
+      return `допустимые значения: ${issue.options.join(', ')}`
+    case 'too_small':
+      if (issue.type === 'string') {
+        return issue.minimum === 1 ? 'значение не может быть пустым' : `минимум ${issue.minimum} символов`
+      }
+      return `минимум ${issue.minimum}`
+    case 'too_big':
+      if (issue.type === 'string') return `максимум ${issue.maximum} символов`
+      if (issue.type === 'array') return `максимум ${issue.maximum} элементов`
+      return `максимум ${issue.maximum}`
+    case 'invalid_string':
+      return issue.validation === 'email' ? 'некорректный адрес почты' : 'некорректное значение'
+    default:
+      return 'некорректное значение'
+  }
+}
 
 /**
  * Разбирает тело запроса по схеме.
@@ -171,6 +216,6 @@ export function parseBody<T extends z.ZodTypeAny>(schema: T, body: unknown): Par
 
   const issue = result.error.issues[0]
   const field = issue.path.join('.')
-  const message = field ? `Поле «${field}»: ${issue.message}` : issue.message
+  const message = field ? `Поле «${field}»: ${issueMessage(issue)}` : issueMessage(issue)
   return { success: false, error: message }
 }

@@ -7,6 +7,7 @@ import {
 import { Eye, Sparkles, CheckCircle2, XCircle } from 'lucide-react'
 import { ProjectStatus, ProjectCategory } from '@prisma/client'
 import { useLang } from '@/context/LangContext'
+import { industryLabel } from '@/lib/industries'
 
 const STATUS_ORDER: ProjectStatus[] = ['IDEA', 'PROTOTYPE', 'PILOT', 'IMPLEMENTED', 'SCALED']
 const STATUS_COLORS: Record<ProjectStatus, string> = {
@@ -24,10 +25,13 @@ interface Props {
     met: number
     notMet: number
     failing: { name: string; shortName: string; count: number; missing: number }[]
+    withoutProjects: string[]
   }
   byRegion: { name: string; nameKz: string | null; count: number }[]
   byStatus: { status: string; count: number }[]
   byCategory: { category: string; count: number }[]
+  stages: { status: string; total: number; confirmed: number; noDescription: number }[]
+  byIndustry: { industry: string; count: number }[]
   technologies: { name: string; count: number }[]
   topViewed: { id: string; title: string; viewCount: number }[]
   topSearched: { id: string; title: string; searchHitCount: number }[]
@@ -74,10 +78,10 @@ function TopProjectsList({ items, valueKey, icon: Icon, emptyText }: {
 }
 
 export function DashboardCharts({
-  universityKpi, byRegion, byStatus, byCategory,
+  universityKpi, byRegion, byStatus, byCategory, stages, byIndustry,
   technologies, topViewed, topSearched, topUniversities,
 }: Props) {
-  const { t } = useLang()
+  const { t, lang } = useLang()
 
   const statusMap = Object.fromEntries(byStatus.map(s => [s.status, s.count]))
   const totalProjects = byStatus.reduce((s, x) => s + x.count, 0)
@@ -88,6 +92,34 @@ export function DashboardCharts({
     color: STATUS_COLORS[status],
   }))
   const funnelMax = Math.max(...funnel.map(f => f.count), 1)
+
+  // Стадии: таблица с подтверждением. Порядок — как в воронке.
+  const stageRows = STATUS_ORDER.map(status => {
+    const found = stages.find(s => s.status === status)
+    return {
+      status,
+      name: t('projects', status),
+      color: STATUS_COLORS[status],
+      total: found?.total ?? 0,
+      confirmed: found?.confirmed ?? 0,
+      noDescription: found?.noDescription ?? 0,
+    }
+  })
+  const stageTotal = stageRows.reduce((sum, row) => sum + row.total, 0)
+  const deployedRows = stageRows.filter(row => row.status === 'IMPLEMENTED' || row.status === 'SCALED')
+  const deployed = deployedRows.reduce((sum, row) => sum + row.total, 0)
+  const deployedConfirmed = deployedRows.reduce((sum, row) => sum + row.confirmed, 0)
+  const share = (part: number, whole: number) => (whole > 0 ? `${Math.round((part / whole) * 100)}%` : '—')
+
+  // Отрасли: сначала заполненные по убыванию, «не указано» — последней строкой
+  const industryRows = byIndustry
+    .map(row => ({
+      key: row.industry,
+      name: row.industry === 'NONE' ? t('dashboard', 'industryNone') : industryLabel(row.industry, lang),
+      count: row.count,
+    }))
+    .sort((a, b) => Number(a.key === 'NONE') - Number(b.key === 'NONE') || b.count - a.count)
+  const industryMax = Math.max(...industryRows.filter(row => row.key !== 'NONE').map(row => row.count), 1)
 
   const categoryData = byCategory.map(c => ({
     name: t('projects', c.category),
@@ -111,7 +143,7 @@ export function DashboardCharts({
             <div className="text-xs text-slate-500 mt-0.5 font-medium">{t('dashboard', 'kpiNotMet')}</div>
           </div>
         </div>
-        {universityKpi.failing.length === 0 ? (
+        {universityKpi.failing.length === 0 && universityKpi.withoutProjects.length === 0 ? (
           <p className="text-emerald-600 text-sm py-4 flex items-center gap-1.5">
             <CheckCircle2 size={15} />{t('dashboard', 'kpiAllMet')}
           </p>
@@ -134,6 +166,14 @@ export function DashboardCharts({
                 </div>
               </div>
             ))}
+            {universityKpi.withoutProjects.length > 0 && (
+              <details className="pt-1">
+                <summary className="cursor-pointer text-xs text-slate-500 hover:text-slate-700">
+                  {t('dashboard', 'kpiNoProjects')}: <span className="font-semibold text-red-600">{universityKpi.withoutProjects.length}</span>
+                </summary>
+                <p className="mt-1.5 text-[11px] leading-relaxed text-slate-500">{universityKpi.withoutProjects.join(', ')}</p>
+              </details>
+            )}
           </div>
         )}
       </ChartCard>
@@ -157,6 +197,63 @@ export function DashboardCharts({
                   </span>
                 </div>
               </div>
+            </div>
+          ))}
+        </div>
+      </ChartCard>
+
+      {/* Стадии с подтверждением */}
+      <ChartCard title={t('dashboard', 'stages')} hint={t('dashboard', 'stagesHint')}>
+        <table className="w-full text-sm mt-2">
+          <thead>
+            <tr className="text-xs text-slate-400 border-b border-slate-100">
+              <th className="text-left font-medium py-2">{t('dashboard', 'stageCol')}</th>
+              <th className="text-right font-medium py-2">{t('dashboard', 'stageTotal')}</th>
+              <th className="text-right font-medium py-2">{t('dashboard', 'stageShare')}</th>
+              <th className="text-right font-medium py-2">{t('dashboard', 'stageConfirmed')}</th>
+              <th className="text-right font-medium py-2">{t('dashboard', 'stageNoDescription')}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {stageRows.map(row => (
+              <tr key={row.status} className="border-b border-slate-50">
+                <td className="py-2 text-slate-700">
+                  <span className="inline-block w-2.5 h-2.5 rounded-sm mr-2 align-middle" style={{ backgroundColor: row.color }} />
+                  <Link href={`/projects?status=${row.status}`} className="hover:text-blue-600 hover:underline">{row.name}</Link>
+                </td>
+                <td className="py-2 text-right font-semibold text-slate-800 tabular-nums">{row.total}</td>
+                <td className="py-2 text-right text-slate-500 tabular-nums">{share(row.total, stageTotal)}</td>
+                <td className="py-2 text-right text-slate-700 tabular-nums">{row.confirmed}</td>
+                <td className={`py-2 text-right tabular-nums ${row.noDescription > 0 ? 'text-red-600 font-medium' : 'text-slate-400'}`}>{row.noDescription}</td>
+              </tr>
+            ))}
+            <tr className="font-semibold text-slate-800">
+              <td className="py-2">{t('dashboard', 'stageSum')}</td>
+              <td className="py-2 text-right tabular-nums">{stageTotal}</td>
+              <td className="py-2 text-right tabular-nums">{stageTotal > 0 ? '100%' : '—'}</td>
+              <td className="py-2 text-right tabular-nums">{stageRows.reduce((sum, row) => sum + row.confirmed, 0)}</td>
+              <td className="py-2 text-right tabular-nums">{stageRows.reduce((sum, row) => sum + row.noDescription, 0)}</td>
+            </tr>
+          </tbody>
+        </table>
+        <p className="text-xs text-slate-500 mt-3">
+          {t('dashboard', 'deployedLine')}: <span className="font-semibold text-slate-700">{deployed}</span>,{' '}
+          {t('dashboard', 'deployedConfirmed')}: <span className="font-semibold text-slate-700">{deployedConfirmed}</span>
+        </p>
+      </ChartCard>
+
+      {/* Отрасли применения */}
+      <ChartCard title={t('dashboard', 'byIndustry')} hint={t('dashboard', 'byIndustryHint')}>
+        <div className="space-y-2 pt-2">
+          {industryRows.map(row => (
+            <div key={row.key} className="flex items-center gap-3">
+              <Link href={`/projects?industry=${row.key}`} className={`text-xs w-56 shrink-0 text-right hover:text-blue-600 hover:underline ${row.key === 'NONE' ? 'text-slate-400 italic' : 'text-slate-600'}`}>{row.name}</Link>
+              <div className="flex-1 h-5 bg-slate-50 rounded overflow-hidden">
+                {row.key !== 'NONE' && (
+                  <div className="h-full bg-blue-500 rounded" style={{ width: `${(row.count / industryMax) * 100}%` }} />
+                )}
+              </div>
+              <span className="text-xs font-semibold text-slate-700 w-10 tabular-nums">{row.count}</span>
             </div>
           ))}
         </div>

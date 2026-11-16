@@ -5,9 +5,9 @@ import { requireApiRole } from '@/lib/auth'
 import { getClientIp, rateLimit } from '@/lib/rate-limit'
 import { loadSearchIndex } from '@/lib/search/store'
 import { searchIndex } from '@/lib/search/engine'
+import { aiSearchSchema, parseBody } from '@/lib/schemas'
 import { generateMatchReasons, generateSearchSummary } from '@/lib/geminiSummary'
 import { getLlmCacheStats } from '@/lib/llm-cache'
-import { aiSearchSchema, parseBody } from '@/lib/schemas'
 
 export const dynamic = 'force-dynamic'
 

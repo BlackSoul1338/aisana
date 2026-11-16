@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { modelChain, MODEL_MAIN, MODEL_LITE, MODEL_FALLBACKS, isRetryableModelError } from '@/lib/gemini-models'
+import { modelChain, quotaPool, MODEL_MAIN, MODEL_LITE, MODEL_FALLBACKS, isRetryableModelError } from '@/lib/gemini-models'
 
 // Модели lite — отдельная квотная «корзина» с запасом в 500 запросов в сутки
-const liteFallbacks = MODEL_FALLBACKS.filter(model => model.includes('lite'))
+const liteFallbacks = MODEL_FALLBACKS.filter(model => quotaPool(model) === 'lite')
 
 describe('выбор модели', () => {
   it('простая задача идёт на lite-модель первой', () => {

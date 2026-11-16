@@ -7,6 +7,8 @@ import { SaveToast } from '@/components/ui/SaveToast'
 import { FileText, AlertCircle } from 'lucide-react'
 import { AgentPassportViewer } from '@/components/project/AgentPassportViewer'
 import { ProjectFilesManager } from '@/components/project/ProjectFilesManager'
+import { INDUSTRIES } from '@/lib/industries'
+import { MIN_DESCRIPTION_LENGTH } from '@/lib/project-completeness'
 
 interface University { id: string; name: string; shortName?: string | null }
 interface Technology { id: string; name: string; slug: string }
@@ -23,6 +25,8 @@ interface Project {
   launchDate?: Date | string | null
   category?: string
   status?: string
+  industry?: string | null
+  implementedAt?: string | null
   isBestPractice?: boolean
   isScalable?: boolean
   impact?: string | null
@@ -77,6 +81,9 @@ export function ProjectForm({ universities, technologies, project, defaultUniver
     project?.technologies?.map(t => t.id) || []
   )
   const isEdit = !!project?.id
+  // Место внедрения показываем обязательным, когда выбрана стадия «внедрено» или «масштабировано»
+  const [status, setStatus] = useState(project?.status || 'IDEA')
+  const deployed = status === 'IMPLEMENTED' || status === 'SCALED'
 
   function toggleTech(id: string) {
     setSelectedTechs(prev => prev.includes(id) ? prev.filter(t => t !== id) : [...prev, id])
@@ -106,6 +113,8 @@ export function ProjectForm({ universities, technologies, project, defaultUniver
       launchDate: g('launchDate') || null,
       category: g('category'),
       status: g('status'),
+      industry: g('industry') || null,
+      implementedAt: g('implementedAt') || null,
       isBestPractice: (form.elements.namedItem('isBestPractice') as HTMLInputElement)?.checked,
       isScalable: (form.elements.namedItem('isScalable') as HTMLInputElement)?.checked,
       impact: g('impact') || null,
@@ -186,7 +195,9 @@ export function ProjectForm({ universities, technologies, project, defaultUniver
 
             <div className="md:col-span-2">
               <label className={labelCls}>Описание <span className="text-red-500">*</span></label>
-              <textarea name="description" defaultValue={project?.description || ''} required rows={4} className={`${inputCls} resize-none`} />
+              <textarea name="description" defaultValue={project?.description || ''} required rows={4} className={`${inputCls} resize-none`}
+                placeholder="Что делает решение, для кого и какую задачу решает" />
+              <p className="text-xs text-slate-400 mt-1">Не короче {MIN_DESCRIPTION_LENGTH} символов. Карточку без описания нельзя отправить на проверку.</p>
             </div>
 
             <div>
@@ -233,9 +244,25 @@ export function ProjectForm({ universities, technologies, project, defaultUniver
 
             <div>
               <label className={labelCls}>Статус <span className="text-red-500">*</span></label>
-              <select name="status" defaultValue={project?.status || 'IDEA'} required className={inputCls}>
+              <select name="status" value={status} onChange={e => setStatus(e.target.value)} required className={inputCls}>
                 {STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
               </select>
+            </div>
+
+            <div>
+              <label className={labelCls}>Отрасль применения</label>
+              <select name="industry" defaultValue={project?.industry || ''} className={inputCls}>
+                <option value="">— Не выбрано —</option>
+                {INDUSTRIES.map(i => <option key={i.value} value={i.value}>{i.ru}</option>)}
+              </select>
+              <p className="text-xs text-slate-400 mt-1">Сфера, где решение работает. Категория выше — это тип технологии.</p>
+            </div>
+
+            <div>
+              <label className={labelCls}>Где внедрено {deployed && <span className="text-red-500">*</span>}</label>
+              <input name="implementedAt" defaultValue={project?.implementedAt || ''} maxLength={2000} className={inputCls}
+                placeholder="Организация или подразделение, где решение работает" />
+              <p className="text-xs text-slate-400 mt-1">Обязательно для стадий «Внедрено» и «Масштабировано».</p>
             </div>
           </div>
 

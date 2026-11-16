@@ -12,6 +12,11 @@
  *
  * Каждый результат несёт разбор: сколько дал каждый сигнал, какие поля
  * сработали и почему проект попал в выдачу (режим отладки).
+ *
+ * Отдельно от оценки решается, попадает ли проект в выдачу вообще
+ * (см. «Отбор» в scoreProject). Раньше хватало любого ненулевого сигнала,
+ * и запрос «абитуриент» возвращал три четверти портала: слово относится
+ * к направлению «Образование», а к нему отнесено большинство проектов.
  */
 
 import { classifyProject, type ClassifiableProject, type TopicMatch } from './classify'
@@ -35,6 +40,25 @@ const SEARCH_FIELDS = {
 } as const
 
 type SearchField = keyof typeof SEARCH_FIELDS
+
+/**
+ * Поля с содержанием проекта. Остальные — служебные (вуз, регион, стадия,
+ * категория, руководитель): совпадение только в них не делает проект
+ * ответом на запрос. «Казахский язык» иначе находил все проекты вузов,
+ * в названии которых есть слово «Казахский».
+ */
+const CONTENT_FIELDS: ReadonlySet<SearchField> = new Set<SearchField>([
+  'title', 'tags', 'technologies', 'description', 'impact', 'results',
+])
+
+/** Направление шире этой доли портала запрос не сужает и само в выдачу не приводит. */
+const BROAD_TOPIC_SHARE = 0.3
+/** Проект приходит в выдачу по одному направлению, только если уверенно к нему отнесён. */
+const MIN_TOPIC_SCORE = 40
+/** …и только если запрос прямо называет направление, а не задевает его одним словом. */
+const MIN_TOPIC_INTENT = 0.9
+/** Какая доля слов многословного запроса должна найтись в проекте. */
+const MIN_COVERAGE = 0.6
 
 const FIELD_LABELS: Record<SearchField, string> = {
   title: 'название',
@@ -63,6 +87,8 @@ export interface IndexedProject {
   topics: TopicMatch[]
   topicScore: Map<TopicId, number>
   fields: Record<SearchField, { text: string; tokens: string[] }>
+  /** Сокращение вуза («КБТУ», «AITU») — по нему ищут все проекты вуза */
+  universityShort: string[]
   isBestPractice: boolean
 }
 
@@ -140,20 +166,37 @@ export function indexProject(project: IndexableProject): IndexedProject {
     topics,
     topicScore: new Map(topics.map(t => [t.topic, t.score])),
     fields,
+    universityShort: tokenize(normalize(project.university?.shortName ?? '')),
     isBestPractice: Boolean(project.isBestPractice),
   }
 }
 
+interface ScoreContext {
+  /** Направления, к которым отнесена слишком большая доля портала */
+  broadTopics: ReadonlySet<TopicId>
+  /**
+   * Строгий отбор. Нестрогий включается, когда строгий ничего не нашёл:
+   * лучше показать частичные совпадения, чем пустую страницу.
+   */
+  strict: boolean
+}
+
 /** Оценивает один проиндексированный проект по разобранному запросу. */
-function scoreProject(indexed: IndexedProject, query: ParsedQuery): SearchHit | null {
+function scoreProject(indexed: IndexedProject, query: ParsedQuery, context: ScoreContext): SearchHit | null {
   // ── Смысловой сигнал ──────────────────────────────────────
   let topicPoints = 0
+  // Хватает ли одного направления, чтобы показать проект без совпадения слов
+  let topicQualifies = false
   const matchedTopics: SearchHit['debug']['matchedTopics'] = []
 
   for (const intent of query.topics) {
     const projectScore = indexed.topicScore.get(intent.topic)
     if (!projectScore) continue
-    const points = intent.weight * (projectScore / 100) * 70
+    // Широкое направление почти ничего не говорит о проекте: к «Образованию»
+    // отнесено большинство. Оно лишь слегка поднимает проект среди найденных.
+    const broad = context.broadTopics.has(intent.topic)
+    const points = intent.weight * (projectScore / 100) * 70 * (broad ? 0.15 : 1)
+    if (!broad && intent.weight >= MIN_TOPIC_INTENT && projectScore >= MIN_TOPIC_SCORE) topicQualifies = true
     topicPoints += points
     matchedTopics.push({
       topic: intent.topic,
@@ -206,6 +249,19 @@ function scoreProject(indexed: IndexedProject, query: ParsedQuery): SearchHit | 
   }
 
   const coverage = query.tokens.length ? foundQueryTokens.size / query.tokens.length : 0
+
+  // ── Отбор: попадает ли проект в выдачу ─────────────────────
+  if (context.strict) {
+    const contentMatch = [...matchedFields.keys()].some(field => CONTENT_FIELDS.has(field))
+    // Многословный запрос: одного слова из двух мало. «Подготовка к ЕНТ»
+    // иначе находил всё, где есть слово «подготовка».
+    const required = Math.ceil(query.tokens.length * MIN_COVERAGE)
+    const lexicalQualifies = contentMatch && foundQueryTokens.size >= required
+    // Запрос — сокращение вуза: показываем его проекты, хотя в тексте его нет
+    const universityQualifies = query.tokens.length > 0
+      && query.tokens.every(token => indexed.universityShort.includes(token))
+    if (!lexicalQualifies && !topicQualifies && !universityQualifies) return null
+  }
 
   // Полное покрытие запроса словами проекта — заметная надбавка,
   // иначе длинные запросы теряются среди частичных совпадений
@@ -267,6 +323,31 @@ function buildReason(
   return parts.length ? parts.join('; ') : 'слабое совпадение по тексту'
 }
 
+/**
+ * Направления, к которым отнесена слишком большая доля проектов индекса.
+ * Считается один раз на индекс: он кэшируется и пересобирается раз в минуту.
+ */
+const broadTopicsCache = new WeakMap<IndexedProject[], ReadonlySet<TopicId>>()
+
+function broadTopicsOf(index: IndexedProject[]): ReadonlySet<TopicId> {
+  const cached = broadTopicsCache.get(index)
+  if (cached) return cached
+
+  const counts = new Map<TopicId, number>()
+  for (const item of index) {
+    for (const topic of item.topicScore.keys()) counts.set(topic, (counts.get(topic) ?? 0) + 1)
+  }
+  const broad = new Set<TopicId>()
+  // На маленьком индексе доля ничего не значит: два проекта из пяти — не «широкое»
+  if (index.length >= 20) {
+    for (const [topic, count] of counts) {
+      if (count / index.length > BROAD_TOPIC_SHARE) broad.add(topic)
+    }
+  }
+  broadTopicsCache.set(index, broad)
+  return broad
+}
+
 export interface SearchOptions {
   limit?: number
   /** Порог оценки: ниже него результаты не показываются */
@@ -283,9 +364,16 @@ export function searchIndex(
   const minScore = options.minScore ?? 0
   const limit = options.limit ?? 100
 
-  const hits = index
-    .map(item => scoreProject(item, query))
+  const broadTopics = broadTopicsOf(index)
+  const run = (strict: boolean) => index
+    .map(item => scoreProject(item, query, { broadTopics, strict }))
     .filter((hit): hit is SearchHit => hit !== null && hit.score >= minScore)
+
+  let found = run(true)
+  // Строгий отбор ничего не дал — показываем частичные совпадения
+  if (found.length === 0) found = run(false)
+
+  const hits = found
     // Сортируем по необработанному баллу: score срезан 100, и при срезе
     // порядок «новые выше» не отражает релевантность.
     .sort((a, b) => b.rank - a.rank)

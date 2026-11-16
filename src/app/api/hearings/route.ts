@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
     const { user, response } = await requireApiUser(request)
     if (response) return response
 
-    // Слушания черновиков не показываем посторонним: модераторы видят всё,
+    // Слушания черновиков посторонним не показываем: модераторы видят всё,
     // представитель вуза — проекты своего вуза, остальные — только опубликованные
     const hearings = await prisma.hearing.findMany({
       where: { project: visibleProjectsWhere(user) },

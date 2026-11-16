@@ -4,7 +4,7 @@ import { UserRole } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { requireApiRole } from '@/lib/auth'
 import { audit } from '@/lib/audit'
-import { parseBody, userCreateSchema, userUpdateSchema } from '@/lib/schemas'
+import { deleteIdSchema, parseBody, userCreateSchema, userUpdateSchema } from '@/lib/schemas'
 
 export async function POST(request: NextRequest) {
   try {
@@ -69,7 +69,7 @@ export async function PATCH(request: NextRequest) {
 
     const updateData: Record<string, any> = {}
     if (name !== undefined) updateData.name = name || null
-    if (email) updateData.email = String(email).trim().toLowerCase()
+    if (email) updateData.email = email.trim().toLowerCase()
 
     // Роль уже проверена схемой userUpdateSchema — enum из ролей
     if (role) {
@@ -91,9 +91,6 @@ export async function PATCH(request: NextRequest) {
     }
 
     if (password) {
-      if (password.length < 6) {
-        return NextResponse.json({ error: 'Пароль должен быть не короче 6 символов' }, { status: 400 })
-      }
       updateData.password = await bcrypt.hash(password, 10)
     }
 
@@ -106,7 +103,7 @@ export async function PATCH(request: NextRequest) {
     // Смена пароля отзывает все сессии пользователя: иначе старая cookie
     // продолжает работать и украденный пароль не даёт никакого эффекта.
     if (password) {
-      await prisma.session.deleteMany({ where: { userId: user.id } })
+      await prisma.session.deleteMany({ where: { userId: id } })
     }
 
     await audit(currentUser, 'UPDATE', 'user', user.id, `${user.email} (${user.role})`)
@@ -125,8 +122,12 @@ export async function DELETE(request: NextRequest) {
     const { user, response } = await requireApiRole(request, [UserRole.ADMIN])
     if (response) return response
 
-    const { id } = await request.json()
-    if (!id) return NextResponse.json({ error: 'ID обязателен' }, { status: 400 })
+    const body = await request.json().catch(() => ({}))
+    const parsed = parseBody(deleteIdSchema, body)
+    if (!parsed.success) {
+      return NextResponse.json({ error: parsed.error }, { status: 400 })
+    }
+    const { id } = parsed.data
 
     if (id === user.id) {
       return NextResponse.json({ error: 'Нельзя удалить собственный аккаунт' }, { status: 400 })

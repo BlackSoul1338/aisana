@@ -3,7 +3,8 @@ import { PrismaClient, ProjectCategory, ProjectFileType, ProjectStatus, Publicat
 import type { AuthUser } from '@/lib/auth'
 import { canAccessUniversity } from '@/lib/auth'
 import { canModerate } from '@/lib/publication'
-import { isAllowedFileUrl } from '@/lib/uploads'
+import { DESCRIPTION_PLACEHOLDER, isDescriptionEmpty } from '@/lib/project-completeness'
+import { isAllowedFileUrl } from '@/lib/file-url'
 
 type RawRow = Record<string, unknown>
 
@@ -331,7 +332,7 @@ export async function importProjectsFromRows(
       continue
     }
 
-    const description = text(getField(rowIndex, 'description')) || 'Описание не указано'
+    const description = text(getField(rowIndex, 'description')) || DESCRIPTION_PLACEHOLDER
     const technologyIds = await technologyConnect(splitList(getField(rowIndex, 'technologies')))
     const key = `${universityId}:${normalize(title)}`
     const existingProjectId = projectIndex.get(key)
@@ -401,8 +402,10 @@ export async function importProjectsFromRows(
           ...data,
           // Импорт от представителя вуза попадает в черновики — как и ручное
           // добавление: на портал проект выходит после проверки модератором
-          publication: importerCanPublish ? PublicationStatus.PUBLISHED : PublicationStatus.DRAFT,
-          publishedAt: importerCanPublish ? new Date() : null,
+          // Строка без описания остаётся черновиком даже у модератора: карточка
+          // из одного названия на портал не выходит, пока её не заполнят
+          publication: importerCanPublish && !isDescriptionEmpty(description) ? PublicationStatus.PUBLISHED : PublicationStatus.DRAFT,
+          publishedAt: importerCanPublish && !isDescriptionEmpty(description) ? new Date() : null,
           technologies: technologyIds.length ? { connect: technologyIds } : undefined,
         },
         select: { id: true },
