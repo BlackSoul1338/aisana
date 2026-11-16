@@ -14,13 +14,15 @@
  *   DELETE FROM projects WHERE id LIKE 'demo_%';
  *   DELETE FROM universities WHERE id LIKE 'demo_%';
  *   DELETE FROM integration_requests WHERE id LIKE 'demo_%';
+ *   DELETE FROM business_needs WHERE id LIKE 'demo_%';
  */
 
 import {
-  IntegrationRequestStatus, IntegrationRequestType, PrismaClient, ProjectCategory, ProjectStatus,
+  BusinessNeedStatus, IntegrationRequestStatus, IntegrationRequestType, PrismaClient, ProjectCategory, ProjectStatus,
   PublicationStatus, UniversityType, UserRole,
 } from '@prisma/client'
 import bcrypt from 'bcryptjs'
+import { scoreFields } from '../src/lib/need-builder/readiness'
 
 const prisma = new PrismaClient()
 
@@ -321,8 +323,27 @@ async function main() {
   }
   console.log(`✅ Учётки: ${users.length}`)
 
-  // ── Запросы бизнеса ─────────────────────────
+  // ── Потребность и запросы бизнеса ─────────────────────────
   const business = await prisma.user.findUniqueOrThrow({ where: { email: 'demo-business@demo.kz' } })
+  const needText = 'Мы горнодобывающая компания. Хотим заранее узнавать о поломках конвейеров, сейчас простои из-за внезапных отказов обходятся очень дорого. С датчиков вибрации пишем данные в SCADA уже 2 года.'
+  const { readiness, fields } = scoreFields([
+    { key: 'task', status: 'ok', value: 'Прогноз поломок конвейеров', quote: 'заранее узнавать о поломках конвейеров', quoteVerified: true },
+    { key: 'problem', status: 'ok', value: 'Дорогие простои из-за внезапных отказов', quote: 'простои из-за внезапных отказов', quoteVerified: true },
+    { key: 'data', status: 'weak', value: 'Данные датчиков вибрации в SCADA за 2 года', quote: 'С датчиков вибрации пишем данные в SCADA', quoteVerified: true },
+  ])
+  const need = {
+    userId: business.id,
+    status: BusinessNeedStatus.COLLECTING,
+    turnCount: 1,
+    readiness,
+    messages: [
+      { role: 'user', text: needText },
+      { role: 'assistant', text: 'Чтобы подобрать решение точнее, уточните, пожалуйста:\n1. [Ожидаемый результат] Как вы поймёте, что решение работает?' },
+    ],
+    fields,
+    snapshots: [{ turn: 1, readiness }],
+  }
+  await prisma.businessNeed.upsert({ where: { id: 'demo_need_mining' }, update: need, create: { id: 'demo_need_mining', ...need } })
 
   const contact = { userId: business.id, contactName: business.name, contactEmail: business.email, organization: business.organization }
   const requests = [
@@ -339,7 +360,7 @@ async function main() {
   for (const { id, ...r } of requests) {
     await prisma.integrationRequest.upsert({ where: { id }, update: { ...contact, ...r }, create: { id, ...contact, ...r } })
   }
-  console.log(`✅ Запросы бизнеса: ${requests.length}`)
+  console.log(`✅ Запросы бизнеса: ${requests.length}, потребность: 1`)
 
   console.log('\n🎉 Демо-данные готовы.')
   console.log(`   Пароль всех демо-учёток: ${DEMO_PASSWORD}`)

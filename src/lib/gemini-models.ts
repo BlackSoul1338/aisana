@@ -19,8 +19,11 @@ import { GoogleGenerativeAI, type GenerativeModel } from '@google/generative-ai'
  * GEMINI_MODEL_LITE (простые), GEMINI_MODEL_FALLBACKS (цепочка резервных).
  */
 
-/** Тип задачи: от него зависит, какая квотная «корзина» используется первой. */
-export type GeminiTaskType = 'summary' | 'reasons'
+/**
+ * Тип задачи: от него зависит, какая квотная «корзина» используется первой.
+ * 'need' — разбор диалога помощника подбора: JSON по схеме, как у 'reasons'.
+ */
+export type GeminiTaskType = 'summary' | 'reasons' | 'need'
 
 /** Модель для сложных задач: пояснения по проектам, структурированный JSON. */
 export const MODEL_MAIN = process.env.GEMINI_MODEL || 'gemini-3.5-flash'
@@ -38,7 +41,7 @@ export const MODEL_LITE = process.env.GEMINI_MODEL_LITE || 'gemini-3.5-flash-lit
  */
 export const MODEL_FALLBACKS: string[] = (
   process.env.GEMINI_MODEL_FALLBACKS ||
-  'gemini-3.8-flash,gemini-3-flash,gemini-3.5-flash-lite,gemini-3.1-flash-lite'
+  'gemini-3.8-flash,gemini-3-flash-preview,gemini-3.5-flash-lite,gemini-3.1-flash-lite'
 )
   .split(',')
   .map(name => name.trim())
@@ -147,16 +150,26 @@ function getClient(): GoogleGenerativeAI | null {
 export async function generateWithFallback<T>(
   task: GeminiTaskType,
   buildRequest: (model: GenerativeModel) => T,
-  send: (request: T) => Promise<string>
+  send: (request: T) => Promise<string>,
+  // Предел ожидания одной модели: зависшая модель не должна съедать всё
+  // время запроса — по таймауту цепочка переходит к следующей.
+  // deadline (Date.now()-метка) ограничивает всю цепочку: после него новые модели не пробуются
+  options: { timeoutMs?: number; deadline?: number } = {},
 ): Promise<{ text: string; model: string } | null> {
   const client = getClient()
   if (!client) return null
 
   for (const modelName of modelChain(task)) {
     if (isExhausted(modelName)) continue
+    const left = options.deadline ? options.deadline - Date.now() : Infinity
+    if (left < 1000) break
+    const timeout = Math.min(options.timeoutMs ?? Infinity, left)
 
     try {
-      const model = client.getGenerativeModel({ model: modelName })
+      const model = client.getGenerativeModel(
+        { model: modelName },
+        Number.isFinite(timeout) ? { timeout } : undefined,
+      )
       const text = await send(buildRequest(model))
       return { text, model: modelName }
     } catch (error) {

@@ -187,6 +187,18 @@ export const integrationRequestUpdateSchema = z.object({
   universityNote: optionalNote,
 })
 
+/** Сообщение компании в помощнике подбора. */
+export const needMessageSchema = z.object({
+  text: z.string().trim().min(2).max(2000),
+})
+
+/** Отправка потребности оператору: проект из подборки необязателен. */
+export const needSendSchema = z.object({
+  projectId: z.string().trim().min(1).max(64).optional(),
+  comment: z.string().trim().max(2000).optional(),
+  contactPhone: shortText(40),
+})
+
 export const aiSearchSchema = z.object({
   query: z.string().trim().min(2).max(500),
   debug: z.boolean().optional(),

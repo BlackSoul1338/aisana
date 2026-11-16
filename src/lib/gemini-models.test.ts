@@ -16,7 +16,7 @@ describe('выбор модели', () => {
   })
 
   it('в цепочке нет повторов', () => {
-    for (const chain of [modelChain('summary'), modelChain('reasons')]) {
+    for (const chain of [modelChain('summary'), modelChain('reasons'), modelChain('need')]) {
       expect(new Set(chain).size).toBe(chain.length)
     }
   })
@@ -41,6 +41,10 @@ describe('выбор модели', () => {
     }
   })
 
+  it('разбор диалога помощника идёт как сложная задача: основная модель первой, lite в конце', () => {
+    expect(modelChain('need')).toEqual(modelChain('reasons'))
+  })
+
   it('в сложной задаче lite-модели идут в конец цепочки', () => {
     const chain = modelChain('reasons')
     const mainIndex = chain.indexOf(MODEL_MAIN)
@@ -50,7 +54,7 @@ describe('выбор модели', () => {
   })
 
   it('в цепочку попадают все резервные модели', () => {
-    for (const chain of [modelChain('summary'), modelChain('reasons')]) {
+    for (const chain of [modelChain('summary'), modelChain('reasons'), modelChain('need')]) {
       for (const model of MODEL_FALLBACKS) {
         expect(chain).toContain(model)
       }

@@ -24,6 +24,7 @@ model User {
   updatedAt    DateTime    @updatedAt
   sessions     Session[]
   integrationRequests IntegrationRequest[]
+  businessNeeds       BusinessNeed[]
   @@index([universityId])
   @@map("users")
 }
@@ -363,6 +364,9 @@ model IntegrationRequest {
   // Когда оператор передал запрос вузу. Видимость для вуза решается по нему,
   // а не по статусу: отклонённый оператором до передачи запрос вуз не видит.
   forwardedAt    DateTime?
+  // Потребность из помощника подбора, по которой создан запрос
+  needId         String?
+  need           BusinessNeed?            @relation(fields: [needId], references: [id], onDelete: SetNull)
   createdAt      DateTime                 @default(now())
   updatedAt      DateTime                 @updatedAt
 
@@ -386,4 +390,30 @@ enum IntegrationRequestStatus {
   IN_PROGRESS         // вуз и компания на связи
   DONE                // завершён
   DECLINED            // отклонён оператором или вузом
+}
+
+// Потребность бизнеса, собранная в диалоге с помощником подбора (порт BCB из Sana).
+// Диалог короткий (не больше MAX_TURNS ходов), поэтому всё хранится в одной строке.
+model BusinessNeed {
+  id         String             @id @default(cuid())
+  userId     String
+  user       User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status     BusinessNeedStatus @default(COLLECTING)
+  // Номер последнего хода; по нему же оптимистичная блокировка параллельных ходов
+  turnCount  Int                @default(0)
+  readiness  Int                @default(0)
+  messages   Json               @default("[]") // [{ role, text }]
+  fields     Json               @default("[]") // FieldState[] последнего хода
+  snapshots  Json               @default("[]") // [{ turn, readiness }]
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
+  integrationRequests IntegrationRequest[]
+
+  @@index([userId, updatedAt])
+  @@map("business_needs")
+}
+
+enum BusinessNeedStatus {
+  COLLECTING // диалог идёт
+  SENT       // отправлено оператору запросом
 }
