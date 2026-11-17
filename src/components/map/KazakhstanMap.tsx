@@ -19,12 +19,14 @@ interface RegionStat {
 interface Props { regions: RegionStat[] }
 interface TooltipState { x: number; y: number; region: RegionStat | null }
 
+// Нулевой класс и обводка — из CSS-переменных (зависят от темы),
+// остальные оттенки синего одинаковы в обеих темах.
 function getColor(n: number): string {
-  if (n === 0) return '#1e3a5f'
-  if (n <= 5) return '#1d4ed8'
-  if (n <= 15) return '#2563eb'
-  if (n <= 30) return '#3b82f6'
-  return '#60a5fa'
+  if (n === 0) return 'var(--map-0)'
+  if (n <= 5) return 'var(--map-1)'
+  if (n <= 15) return 'var(--map-2)'
+  if (n <= 30) return 'var(--map-3)'
+  return 'var(--map-4)'
 }
 
 const NAME_TO_CODE: Record<string, string> = {
@@ -103,8 +105,8 @@ export default function KazakhstanMap({ regions }: Props) {
                   <Geography
                     key={geo.rsmKey}
                     geography={geo}
-                    fill={isHovered ? '#f59e0b' : (region ? getColor(region.projectCount) : '#1e3a5f')}
-                    stroke="#0d1b3e"
+                    fill={isHovered ? '#f59e0b' : (region ? getColor(region.projectCount) : 'var(--map-0)')}
+                    stroke="var(--map-stroke)"
                     strokeWidth={0.8}
                     style={{
                       default: { outline: 'none', transition: 'fill 0.2s ease' },
