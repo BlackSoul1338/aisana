@@ -7,15 +7,10 @@ import { requireRole } from '@/lib/auth'
 import { formatDateLong } from '@/lib/utils'
 import { FeedbackStatusControl } from '@/components/admin/FeedbackStatusControl'
 import { Pagination } from '@/components/admin/Pagination'
+import { t } from '@/lib/i18n'
+import { getRequestLang } from '@/lib/i18n-server'
 
 const PAGE_SIZE = 20
-
-const TOPIC_LABELS: Record<FeedbackTopic, string> = {
-  ACCESS_REQUEST: 'Запрос доступа',
-  ADD_PROJECT: 'Предложение проекта',
-  BUG: 'Ошибка на портале',
-  QUESTION: 'Вопрос',
-}
 
 const TOPIC_COLORS: Record<FeedbackTopic, string> = {
   ACCESS_REQUEST: 'bg-blue-100 text-blue-700',
@@ -30,6 +25,7 @@ export default async function AdminFeedbackPage({
   searchParams: Promise<{ status?: string; page?: string }>
 }) {
   await requireRole([UserRole.ADMIN, UserRole.EDITOR], '/admin/feedback')
+  const lang = await getRequestLang()
   const params = await searchParams
   const page = Math.max(1, parseInt(params.page || '1', 10) || 1)
 
@@ -50,16 +46,23 @@ export default async function AdminFeedbackPage({
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
 
+  const TOPIC_LABELS: Record<FeedbackTopic, string> = {
+    ACCESS_REQUEST: t('feedbackAdmin', 'topicAccess', lang),
+    ADD_PROJECT: t('feedbackAdmin', 'topicProject', lang),
+    BUG: t('feedbackAdmin', 'topicBug', lang),
+    QUESTION: t('feedbackAdmin', 'topicQuestion', lang),
+  }
+
   const tabs = [
-    { value: '', label: `Все (${total})` },
-    { value: 'NEW', label: `Новые (${newCount})` },
-    { value: 'IN_PROGRESS', label: 'В работе' },
-    { value: 'DONE', label: 'Обработанные' },
+    { value: '', label: `${t('common', 'all', lang)} (${total})` },
+    { value: 'NEW', label: `${t('feedbackAdmin', 'newTab', lang)} (${newCount})` },
+    { value: 'IN_PROGRESS', label: t('admin', 'fbInProgress', lang) },
+    { value: 'DONE', label: t('admin', 'fbDone', lang) },
   ]
 
   return (
     <div>
-      <h1 className="mb-6 text-xl font-bold text-slate-800">Обращения</h1>
+      <h1 className="mb-6 text-xl font-bold text-slate-800">{t('admin', 'navFeedback', lang)}</h1>
 
       <div className="mb-5 flex flex-wrap gap-2">
         {tabs.map(tab => {
@@ -82,7 +85,7 @@ export default async function AdminFeedbackPage({
 
       {items.length === 0 ? (
         <div className="rounded-xl border border-slate-200 bg-white p-10 text-center text-sm text-slate-400">
-          Обращений пока нет
+          {t('feedbackAdmin', 'noneYet', lang)}
         </div>
       ) : (
         <div className="space-y-3">
@@ -124,6 +127,7 @@ export default async function AdminFeedbackPage({
             totalPages={totalPages}
             totalItems={total}
             searchParams={params as Record<string, string | undefined>}
+            totalLabel={t('common', 'total', lang)}
           />
         </div>
       )}

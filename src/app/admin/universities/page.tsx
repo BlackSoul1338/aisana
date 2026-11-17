@@ -8,14 +8,16 @@ import { requireRole } from '@/lib/auth'
 import { DeleteUniversityButton } from './DeleteButton'
 import { ListFilters } from '@/components/admin/ListFilters'
 import { Pagination } from '@/components/admin/Pagination'
+import { t } from '@/lib/i18n'
+import { getRequestLang } from '@/lib/i18n-server'
 
 const PAGE_SIZE = 25
 
-const TYPE_LABELS: Record<UniversityType, string> = {
-  STATE: 'Государственный',
-  PRIVATE: 'Частный',
-  NATIONAL: 'Национальный',
-  RESEARCH: 'Исследовательский',
+const TYPE_KEYS: Record<UniversityType, string> = {
+  STATE: 'typeState',
+  PRIVATE: 'typePrivate',
+  NATIONAL: 'typeNational',
+  RESEARCH: 'typeResearch',
 }
 
 interface SearchParams {
@@ -28,13 +30,14 @@ interface SearchParams {
 
 export default async function AdminUniversitiesPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
   await requireRole([UserRole.ADMIN, UserRole.EDITOR], '/admin/universities')
+  const lang = await getRequestLang()
   const params = await searchParams
 
   const page = Math.max(1, parseInt(params.page || '1', 10) || 1)
 
   const where: Prisma.UniversityWhereInput = {
     ...(params.regionId ? { regionId: params.regionId } : {}),
-    ...(params.type && params.type in TYPE_LABELS ? { type: params.type as UniversityType } : {}),
+    ...(params.type && params.type in TYPE_KEYS ? { type: params.type as UniversityType } : {}),
     ...(params.q
       ? {
           OR: [
@@ -65,13 +68,13 @@ export default async function AdminUniversitiesPage({ searchParams }: { searchPa
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-bold text-slate-800">Вузы ({total})</h1>
+        <h1 className="text-xl font-bold text-slate-800">{t('universities', 'title', lang)} ({total})</h1>
         <Link
           href="/admin/universities/new"
           className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
         >
           <Plus size={15} />
-          Добавить вуз
+          {t('universities', 'addUni', lang)}
         </Link>
       </div>
 
@@ -79,13 +82,13 @@ export default async function AdminUniversitiesPage({ searchParams }: { searchPa
         basePath="/admin/universities"
         values={params as Record<string, string | undefined>}
         filters={[
-          { name: 'regionId', label: 'Все регионы', options: regions.map(r => ({ value: r.id, label: r.name })) },
-          { name: 'type', label: 'Все типы', options: Object.entries(TYPE_LABELS).map(([value, label]) => ({ value, label })) },
+          { name: 'regionId', label: t('universities', 'allRegions', lang), options: regions.map(r => ({ value: r.id, label: r.name })) },
+          { name: 'type', label: t('universities', 'allTypes', lang), options: Object.entries(TYPE_KEYS).map(([value, key]) => ({ value, label: t('universities', key, lang) })) },
         ]}
-        searchPlaceholder="Поиск по названию…"
+        searchPlaceholder={t('universities', 'searchPlaceholder', lang)}
         sortOptions={[
-          { value: 'name', label: 'По названию А-Я' },
-          { value: 'projects', label: 'По числу проектов' },
+          { value: 'name', label: t('universities', 'sortByName', lang) },
+          { value: 'projects', label: t('universities', 'sortByProjects', lang) },
         ]}
       />
 
@@ -93,11 +96,11 @@ export default async function AdminUniversitiesPage({ searchParams }: { searchPa
         <table className="w-full min-w-[640px] text-sm">
           <thead className="bg-slate-50 border-b border-slate-200">
             <tr>
-              <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">Вуз</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">Регион</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">Тип</th>
-              <th className="px-4 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wide">Проекты</th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wide">Действия</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">{t('project', 'university', lang)}</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">{t('universities', 'regionLabel', lang)}</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">{t('universityForm', 'typeLabel', lang)}</th>
+              <th className="px-4 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wide">{t('admin', 'navProjects', lang)}</th>
+              <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wide">{t('users', 'colActions', lang)}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -110,7 +113,7 @@ export default async function AdminUniversitiesPage({ searchParams }: { searchPa
                   </div>
                 </td>
                 <td className="px-4 py-3 text-slate-500">{uni.region.name}</td>
-                <td className="px-4 py-3 text-slate-500 text-xs">{TYPE_LABELS[uni.type]}</td>
+                <td className="px-4 py-3 text-slate-500 text-xs">{t('universities', TYPE_KEYS[uni.type], lang)}</td>
                 <td className="px-4 py-3 text-center">
                   <span className="font-semibold text-slate-700">{uni._count.projects}</span>
                 </td>
@@ -120,7 +123,7 @@ export default async function AdminUniversitiesPage({ searchParams }: { searchPa
                       href={`/universities/${uni.id}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      title="Открыть на сайте"
+                      title={t('adminProjects', 'openOnSite', lang)}
                       className="text-slate-400 hover:text-blue-600 p-1.5 rounded-lg hover:bg-blue-50 transition-colors"
                     >
                       <ExternalLink size={14} />
@@ -130,7 +133,7 @@ export default async function AdminUniversitiesPage({ searchParams }: { searchPa
                       className="flex items-center gap-1 text-xs text-slate-500 hover:text-blue-600 border border-slate-200 hover:border-blue-300 px-2.5 py-1.5 rounded-lg transition-colors"
                     >
                       <Pencil size={12} />
-                      Изменить
+                      {t('common', 'edit', lang)}
                     </Link>
                     <DeleteUniversityButton id={uni.id} name={uni.shortName || uni.name} projectCount={uni._count.projects} />
                   </div>
@@ -142,8 +145,8 @@ export default async function AdminUniversitiesPage({ searchParams }: { searchPa
         {universities.length === 0 && (
           <div className="text-center py-12 text-slate-400">
             {total === 0 && !params.q && !params.regionId && !params.type
-              ? 'Нет вузов'
-              : 'Ничего не найдено по заданным фильтрам'}
+              ? t('universities', 'empty', lang)
+              : t('adminProjects', 'nothingFound', lang)}
           </div>
         )}
       </div>
@@ -154,6 +157,7 @@ export default async function AdminUniversitiesPage({ searchParams }: { searchPa
         totalItems={total}
         basePath="/admin/universities"
         searchParams={params as Record<string, string | undefined>}
+        totalLabel={t('common', 'total', lang)}
       />
     </div>
   )

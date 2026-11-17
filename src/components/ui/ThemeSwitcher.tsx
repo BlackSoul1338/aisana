@@ -20,7 +20,7 @@ function applyMode(mode: ThemeMode) {
   document.documentElement.classList.toggle('dark', dark)
 }
 
-export function ThemeSwitcher() {
+export function ThemeSwitcher({ variant = 'dark' }: { variant?: 'dark' | 'light' }) {
   const { t } = useLang()
   const [mode, setModeState] = useState<ThemeMode>('system')
 
@@ -40,7 +40,11 @@ export function ThemeSwitcher() {
   }
 
   return (
-    <div className="flex items-center gap-0.5 bg-white/10 rounded-lg p-0.5" role="group" aria-label={t('theme', 'label')}>
+    <div
+      className={`flex items-center gap-0.5 rounded-lg p-0.5 ${variant === 'dark' ? 'bg-white/10' : 'bg-slate-100'}`}
+      role="group"
+      aria-label={t('theme', 'label')}
+    >
       {OPTIONS.map(({ mode: m, icon: Icon, key }) => {
         const active = mode === m
         const label = t('theme', key)
@@ -53,7 +57,9 @@ export function ThemeSwitcher() {
             title={label}
             aria-label={label}
             className={`p-1.5 rounded-md transition-all ${
-              active ? 'bg-white text-blue-700 shadow-sm' : 'text-white/70 hover:text-white'
+              active
+                ? 'bg-white text-blue-700 shadow-sm'
+                : variant === 'dark' ? 'text-white/70 hover:text-white' : 'text-slate-500 hover:text-slate-700'
             }`}
           >
             <Icon size={14} />

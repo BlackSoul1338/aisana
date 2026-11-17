@@ -9,9 +9,11 @@ import { requireRole } from '@/lib/auth'
 import { canModerate } from '@/lib/publication'
 import { formatDateLong } from '@/lib/utils'
 import {
-  REQUEST_STATUS_LABELS, REQUEST_TYPE_LABELS, canChangeStatus, canSetProject, canWriteUniversityNote,
-  visibleRequestsWhere,
+  REQUEST_STATUS_LABELS, canChangeStatus, canSetProject, canWriteUniversityNote,
+  requestStatusLabel, requestTypeLabel, visibleRequestsWhere,
 } from '@/lib/integration-requests'
+import { t } from '@/lib/i18n'
+import { getRequestLang } from '@/lib/i18n-server'
 import { RequestControls } from '@/components/requests/RequestControls'
 import { Pagination } from '@/components/admin/Pagination'
 
@@ -28,6 +30,7 @@ export default async function AdminRequestsPage({
   searchParams: Promise<{ status?: string; page?: string }>
 }) {
   const user = await requireRole([UserRole.ADMIN, UserRole.EDITOR, UserRole.UNIVERSITY_REP], '/admin/requests')
+  const lang = await getRequestLang()
   const params = await searchParams
   const page = Math.max(1, parseInt(params.page || '1', 10) || 1)
   const moderator = canModerate(user)
@@ -56,20 +59,18 @@ export default async function AdminRequestsPage({
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
 
   const tabs = [
-    { value: '', label: `Все (${totalAll})` },
-    { value: waitingStatus, label: `${REQUEST_STATUS_LABELS[waitingStatus]} (${waiting})` },
+    { value: '', label: `${t('common', 'all', lang)} (${totalAll})` },
+    { value: waitingStatus, label: `${requestStatusLabel(waitingStatus, lang)} (${waiting})` },
     ...ALL_STATUSES
       .filter(value => value !== waitingStatus && (moderator || value !== IntegrationRequestStatus.NEW && value !== IntegrationRequestStatus.IN_REVIEW))
-      .map(value => ({ value, label: REQUEST_STATUS_LABELS[value] })),
+      .map(value => ({ value, label: requestStatusLabel(value, lang) })),
   ]
 
   return (
     <div>
-      <h1 className="mb-1 text-xl font-bold text-slate-800">Запросы бизнеса</h1>
+      <h1 className="mb-1 text-xl font-bold text-slate-800">{t('admin', 'navRequests', lang)}</h1>
       <p className="mb-6 text-sm text-slate-500">
-        {moderator
-          ? 'Компании просят демонстрацию, консультацию, пилот или внедрение. Проверьте запрос и передайте его вузу.'
-          : 'Запросы компаний по проектам вашего вуза, переданные оператором AiSana. Свяжитесь с компанией и отметьте результат.'}
+        {moderator ? t('requestsAdmin', 'subtitleModerator', lang) : t('requestsAdmin', 'subtitleUni', lang)}
       </p>
 
       <div className="mb-5 flex flex-wrap gap-2">
@@ -93,7 +94,7 @@ export default async function AdminRequestsPage({
 
       {items.length === 0 ? (
         <div className="rounded-xl border border-slate-200 bg-white p-10 text-center text-sm text-slate-400">
-          Запросов пока нет
+          {t('requestsAdmin', 'noneYet', lang)}
         </div>
       ) : (
         <div className="space-y-3">
@@ -103,11 +104,11 @@ export default async function AdminRequestsPage({
               <div key={item.id} className="rounded-xl border border-slate-200 bg-white p-5">
                 <div className="mb-3 flex flex-wrap items-center gap-2">
                   <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
-                    {REQUEST_TYPE_LABELS[item.type]}
+                    {requestTypeLabel(item.type, lang)}
                   </span>
                   <span className="text-xs text-slate-400">{formatDateLong(item.createdAt)}</span>
                   {item.forwardedAt && (
-                    <span className="text-xs text-slate-400">· передан вузу {formatDateLong(item.forwardedAt)}</span>
+                    <span className="text-xs text-slate-400">{t('requestsAdmin', 'forwardedAt', lang)} {formatDateLong(item.forwardedAt)}</span>
                   )}
                 </div>
 
@@ -120,7 +121,7 @@ export default async function AdminRequestsPage({
                       <span className="text-slate-400"> · {item.project.university.shortName || item.project.university.name}</span>
                     </>
                   ) : (
-                    <span className="text-amber-700">Проект не выбран — привяжите его, чтобы передать запрос вузу</span>
+                    <span className="text-amber-700">{t('requestsAdmin', 'noProject', lang)}</span>
                   )}
                 </p>
 
@@ -165,6 +166,7 @@ export default async function AdminRequestsPage({
             totalPages={totalPages}
             totalItems={total}
             searchParams={params as Record<string, string | undefined>}
+            totalLabel={t('common', 'total', lang)}
           />
         </div>
       )}

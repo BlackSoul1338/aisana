@@ -6,8 +6,8 @@ interface Props {
   totalItems: number
   basePath: string
   searchParams: Record<string, string | undefined>
-  /** Подпись перед числом: на публичных страницах переводится вместе с интерфейсом. */
-  totalLabel?: string
+  /** Подпись перед числом: вызов передаёт локализованную подпись (вызывающая сторона — серверная). */
+  totalLabel: string
 }
 
 /**
@@ -15,7 +15,8 @@ interface Props {
  * страницы с нужными параметрами — как прямой заход по URL.
  * Клиентский роутер Next не участвует. Активные фильтры сохраняются.
  */
-export function Pagination({ page, totalPages, totalItems, basePath, searchParams, totalLabel = 'Всего' }: Props) {
+export function Pagination({ page, totalPages, totalItems, basePath, searchParams, totalLabel }: Props) {
+  const label = totalLabel
   if (totalPages <= 1) return null
 
   const href = (p: number): string => {
@@ -44,7 +45,7 @@ export function Pagination({ page, totalPages, totalItems, basePath, searchParam
 
   return (
     <div className="flex items-center justify-between mt-4">
-      <span className="text-xs text-slate-400">{totalLabel}: {totalItems}</span>
+      <span className="text-xs text-slate-400">{label}: {totalItems}</span>
       <div className="flex items-center gap-1.5">
         <a href={href(page - 1)} className={navCls(page <= 1)}><ChevronLeft size={14} /></a>
         {pages.map((p, i) =>

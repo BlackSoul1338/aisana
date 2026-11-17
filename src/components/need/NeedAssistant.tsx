@@ -4,14 +4,17 @@ import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { AlertCircle, Building2, CheckCircle2, Circle, Loader2, Send, Sparkles } from 'lucide-react'
-import { FIELD_TITLES, MAX_TURNS, READY_THRESHOLD } from '@/lib/need-builder/readiness'
+import { MAX_TURNS, READY_THRESHOLD, type NeedFieldKey } from '@/lib/need-builder/readiness'
+
+const FIELD_TITLES_KEYS: Record<NeedFieldKey, string> = {
+  task: 'fieldTask', problem: 'fieldProblem', goal: 'fieldGoal', data: 'fieldData',
+  environment: 'fieldEnvironment', integrations: 'fieldIntegrations', scale: 'fieldScale',
+}
 import { QUICK_REPLIES } from '@/lib/need-builder/questions'
+import { useLang } from '@/context/LangContext'
 import type { FieldChange } from '@/lib/need-builder/diff'
 import type { NeedMatch } from '@/lib/need-builder/match'
 import type { NeedView, TurnResult } from '@/lib/need-builder/service'
-
-const GREETING =
-  'Опишите своими словами, какую задачу компании вы хотите решить с помощью ИИ: какой процесс, что не устраивает сейчас, какой результат нужен. Я задам уточняющие вопросы и подберу решения университетов из витрины.'
 
 const STATUS_ICON = {
   ok: <CheckCircle2 size={15} className="shrink-0 text-emerald-600" />,
@@ -31,6 +34,7 @@ export function NeedAssistant({ initialNeed, initialMatches, aiEnabled }: {
   /** false — на сервере нет ключа Gemini: диалог недоступен, отправка оператору работает */
   aiEnabled: boolean
 }) {
+  const { t } = useLang()
   const router = useRouter()
   const [need, setNeed] = useState(initialNeed)
   const [matches, setMatches] = useState(initialMatches)
@@ -66,7 +70,7 @@ export function NeedAssistant({ initialNeed, initialMatches, aiEnabled }: {
         body: JSON.stringify({ text: message }),
       })
       const data = await res.json().catch(() => ({}))
-      if (!res.ok) throw new Error(data.error || 'Не удалось отправить сообщение')
+      if (!res.ok) throw new Error(data.error || t('need', 'sendFailed'))
       const result = data as TurnResult
       setNeed(result.need)
       setMatches(result.matches)
@@ -89,12 +93,12 @@ export function NeedAssistant({ initialNeed, initialMatches, aiEnabled }: {
       {/* Диалог */}
       <div className="flex min-h-[560px] flex-col rounded-xl border border-slate-200 bg-white">
         <div className="flex-1 space-y-3 overflow-y-auto p-5" style={{ maxHeight: '65vh' }}>
-          <Bubble role="assistant" text={GREETING} />
+          <Bubble role="assistant" text={t('need', 'greeting')} />
           {need?.messages.map((m, i) => <Bubble key={i} role={m.role} text={m.text} />)}
           {pending && <Bubble role="user" text={pending} />}
           {loading && (
             <div className="flex items-center gap-2 text-sm text-slate-400">
-              <Loader2 size={14} className="animate-spin" /> Разбираю ответ…
+              <Loader2 size={14} className="animate-spin" /> {t('need', 'parsing')}
             </div>
           )}
           <div ref={chatEnd} />
@@ -122,28 +126,28 @@ export function NeedAssistant({ initialNeed, initialMatches, aiEnabled }: {
                 value={text} onChange={e => setText(e.target.value)} rows={3} maxLength={2000}
                 onKeyDown={e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) submit(e) }}
                 className={`${input} resize-none`}
-                placeholder={need ? 'Ответьте на вопросы — можно одним сообщением' : 'Например: мы сеть клиник, хотим по рентгеновским снимкам находить ранние признаки патологий…'}
+                placeholder={need ? t('need', 'answerPlaceholder') : t('need', 'examplePlaceholder')}
               />
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="text-xs text-slate-400">
-                  Текст обрабатывает модель Google Gemini — не указывайте персональные данные.
-                  {need ? ` Осталось сообщений: ${turnsLeft}.` : ''}
+                  {t('need', 'geminiNote')}
+                  {need ? ` ${t('need', 'turnsLeft')} ${turnsLeft}` : ''}
                 </p>
                 <button
                   type="submit" disabled={loading || text.trim().length < 2}
                   className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
                 >
-                  {loading ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />} Отправить
+                  {loading ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />} {t('need', 'send')}
                 </button>
               </div>
             </form>
           ) : (
             <p className="text-sm text-slate-500">
               {!aiEnabled && collecting
-                ? <>Помощник подбора сейчас недоступен. Выберите решение в <Link href="/business/solutions" className="text-blue-600 hover:underline">витрине решений</Link> и отправьте запрос из карточки проекта{need ? ' или отправьте эту потребность оператору' : ''}.</>
+                ? <>{t('need', 'unavailablePre')} <Link href="/business/solutions" className="text-blue-600 hover:underline">{t('need', 'showcaseLink')}</Link> {t('need', 'unavailablePost')}{need ? ` ${t('need', 'unavailableOrTail')}` : ''}.</>
                 : collecting
-                ? `Достигнут предел в ${MAX_TURNS} сообщений — отправьте запрос оператору, он уточнит остальное.`
-                : <>Потребность отправлена оператору. Статус — в разделе <Link href="/business/requests" className="text-blue-600 hover:underline">«Мои запросы»</Link>.</>}
+                ? `${t('need', 'turnLimitPre')} ${MAX_TURNS} ${t('need', 'turnLimitPost')}`
+                : <>{t('need', 'sentToOperator')} <Link href="/business/requests" className="text-blue-600 hover:underline">{t('need', 'myRequests')}</Link></>}
             </p>
           )}
         </div>
@@ -173,19 +177,20 @@ function Bubble({ role, text }: { role: 'user' | 'assistant'; text: string }) {
 }
 
 function NeedCard({ need, changes }: { need: NeedView | null; changes: FieldChange[] }) {
+  const { t } = useLang()
   const readiness = need?.readiness ?? 0
   const ready = readiness >= READY_THRESHOLD
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-5">
       <div className="mb-1 flex items-baseline justify-between">
-        <h2 className="font-semibold text-slate-800">Карточка потребности</h2>
+        <h2 className="font-semibold text-slate-800">{t('need', 'cardTitle')}</h2>
         <span className={`text-sm font-semibold ${ready ? 'text-emerald-600' : 'text-slate-500'}`}>{readiness}%</span>
       </div>
       <div className="mb-1 h-2 overflow-hidden rounded-full bg-slate-100">
         <div className={`h-full rounded-full transition-all ${ready ? 'bg-emerald-500' : 'bg-blue-600'}`} style={{ width: `${readiness}%` }} />
       </div>
       <p className="mb-4 text-xs text-slate-400">
-        {ready ? 'Описания достаточно для запроса оператору.' : `Полнота описания; от ${READY_THRESHOLD}% подбор заметно точнее.`}
+        {ready ? t('need', 'enough') : `${t('need', 'completeness')} ${READY_THRESHOLD}${t('need', 'completenessSuffix')}`}
       </p>
 
       {need?.fields.length ? (
@@ -197,7 +202,7 @@ function NeedCard({ need, changes }: { need: NeedView | null; changes: FieldChan
                 <span className="mt-0.5">{STATUS_ICON[field.status]}</span>
                 <div className="min-w-0 flex-1">
                   <p className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-slate-400">
-                    {FIELD_TITLES[field.key]}
+                    {t('need', FIELD_TITLES_KEYS[field.key as NeedFieldKey])}
                     {change && change.delta > 0 && (
                       <span className="rounded-full bg-emerald-50 px-1.5 text-[10px] font-semibold normal-case text-emerald-600">+{change.delta}</span>
                     )}
@@ -209,17 +214,18 @@ function NeedCard({ need, changes }: { need: NeedView | null; changes: FieldChan
           })}
         </ul>
       ) : (
-        <p className="text-sm text-slate-400">Поля заполнятся после первого сообщения. В карточку попадает только то, что вы написали сами.</p>
+        <p className="text-sm text-slate-400">{t('need', 'fieldsEmpty')}</p>
       )}
     </div>
   )
 }
 
 function Matches({ matches, hasNeed }: { matches: NeedMatch[]; hasNeed: boolean }) {
+  const { t } = useLang()
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-5">
       <h2 className="mb-3 flex items-center gap-2 font-semibold text-slate-800">
-        <Sparkles size={16} className="text-blue-600" /> Подходящие решения
+        <Sparkles size={16} className="text-blue-600" /> {t('need', 'matchesTitle')}
       </h2>
       {matches.length ? (
         <ul className="space-y-3">
@@ -236,31 +242,33 @@ function Matches({ matches, hasNeed }: { matches: NeedMatch[]; hasNeed: boolean 
       ) : (
         <p className="text-sm text-slate-400">
           {hasNeed
-            ? 'Пока ничего близкого в витрине. Уточните задачу или отправьте запрос оператору — он подберёт решение сам.'
-            : 'Подборка появится после первого сообщения.'}
+            ? t('need', 'noMatch')
+            : t('need', 'matchesLater')}
         </p>
       )}
       <Link href="/business/solutions" className="mt-3 inline-block text-xs font-medium text-blue-600 hover:underline">
-        Все решения для бизнеса →
+        {t('need', 'allSolutions')}
       </Link>
     </div>
   )
 }
 
 function SentCard() {
+  const { t } = useLang()
   return (
     <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-5 text-center">
       <CheckCircle2 className="mx-auto mb-2 text-emerald-600" size={24} />
-      <p className="text-sm font-medium text-emerald-900">Запрос отправлен</p>
-      <p className="mt-1 text-xs text-emerald-700">Оператор AiSana проверит его и свяжется с вами по почте.</p>
+      <p className="text-sm font-medium text-emerald-900">{t('requestForm', 'sentTitle')}</p>
+      <p className="mt-1 text-xs text-emerald-700">{t('requestForm', 'sentText')}</p>
       <Link href="/business/requests" className="mt-3 inline-block text-sm text-emerald-700 underline underline-offset-2 hover:text-emerald-900">
-        Мои запросы
+        {t('requestForm', 'myRequests')}
       </Link>
     </div>
   )
 }
 
 function SendPanel({ need, matches, onSent }: { need: NeedView; matches: NeedMatch[]; onSent: () => void }) {
+  const { t } = useLang()
   const [projectId, setProjectId] = useState('')
   const [comment, setComment] = useState('')
   const [phone, setPhone] = useState('')
@@ -277,7 +285,7 @@ function SendPanel({ need, matches, onSent }: { need: NeedView; matches: NeedMat
         body: JSON.stringify({ projectId: projectId || undefined, comment: comment || undefined, contactPhone: phone }),
       })
       const data = await res.json().catch(() => ({}))
-      if (!res.ok) throw new Error(data.error || 'Не удалось отправить запрос')
+      if (!res.ok) throw new Error(data.error || t('need', 'sendRequestFailed'))
       onSent()
     } catch (err: any) {
       setError(err.message)
@@ -288,29 +296,28 @@ function SendPanel({ need, matches, onSent }: { need: NeedView; matches: NeedMat
 
   return (
     <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-5">
-      <h2 className="font-semibold text-slate-800">Запрос оператору</h2>
+      <h2 className="font-semibold text-slate-800">{t('need', 'sendToOperator')}</h2>
       {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
       <div>
-        <label className="mb-1 block text-sm font-medium text-slate-700" htmlFor="need-project">Решение</label>
+        <label className="mb-1 block text-sm font-medium text-slate-700" htmlFor="need-project">{t('need', 'solution')}</label>
         <select id="need-project" value={projectId} onChange={e => setProjectId(e.target.value)} className={input}>
-          <option value="">Подберёт оператор</option>
+          <option value="">{t('need', 'operatorPicks')}</option>
           {matches.map(m => <option key={m.id} value={m.id}>{m.title}</option>)}
         </select>
       </div>
       <textarea
         value={comment} onChange={e => setComment(e.target.value)} rows={2} maxLength={2000}
-        className={`${input} resize-none`} placeholder="Комментарий (необязательно)"
+        className={`${input} resize-none`} placeholder={t('need', 'comment')}
       />
-      <input value={phone} onChange={e => setPhone(e.target.value)} maxLength={40} className={input} placeholder="Телефон (необязательно)" />
+      <input value={phone} onChange={e => setPhone(e.target.value)} maxLength={40} className={input} placeholder={t('need', 'phone')} />
       <button
         type="button" onClick={send} disabled={loading}
         className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
       >
-        {loading ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />} Отправить оператору
+        {loading ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />} {t('need', 'sendToOperatorButton')}
       </button>
       <p className="text-xs text-slate-400">
-        Оператор и вуз увидят сводку карточки (только подтверждённые вами сведения), а не переписку.
-        Контакты из вашей учётной записи передаются вместе с запросом.
+        {t('need', 'sendNote')}
       </p>
     </div>
   )

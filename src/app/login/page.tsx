@@ -4,6 +4,8 @@ import { getCurrentUser } from '@/lib/auth'
 import { t } from '@/lib/i18n'
 import { getRequestLang } from '@/lib/i18n-server'
 import { sanitizeNextPath } from '@/lib/file-url'
+import { LangSwitcher } from '@/components/ui/LangSwitcher'
+import { ThemeSwitcher } from '@/components/ui/ThemeSwitcher'
 
 export default async function LoginPage({
   searchParams,
@@ -19,6 +21,10 @@ export default async function LoginPage({
 
   return (
     <main className="min-h-screen bg-slate-50 px-4 py-12">
+      <div className="mx-auto mb-6 flex w-full max-w-sm items-center justify-end gap-2">
+        <LangSwitcher variant="light" />
+        <ThemeSwitcher variant="light" />
+      </div>
       <div className="mx-auto w-full max-w-sm">
         <div className="mb-6 text-center">
           <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-blue-600 text-sm font-bold text-white">

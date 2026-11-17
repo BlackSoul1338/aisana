@@ -1,6 +1,7 @@
 'use client'
 
 import { Search, X } from 'lucide-react'
+import { useLang } from '@/context/LangContext'
 
 export interface FilterConfig {
   name: string            // имя query-параметра
@@ -24,7 +25,8 @@ interface Props {
  * нечему кэшироваться и ломаться. Смена фильтра сбрасывает страницу
  * на первую автоматически (поле page в форме отсутствует).
  */
-export function ListFilters({ basePath, values, filters, searchPlaceholder = 'Поиск…', sortOptions }: Props) {
+export function ListFilters({ basePath, values, filters, searchPlaceholder, sortOptions }: Props) {
+  const { t } = useLang()
   const submit = (e: { currentTarget: { form: HTMLFormElement | null } }) => {
     e.currentTarget.form?.requestSubmit()
   }
@@ -41,7 +43,7 @@ export function ListFilters({ basePath, values, filters, searchPlaceholder = 'П
           type="text"
           name="q"
           defaultValue={values.q || ''}
-          placeholder={searchPlaceholder}
+          placeholder={searchPlaceholder ?? t('common', 'searchShort')}
           className="pl-8 pr-3 py-2 w-56 text-sm border border-slate-200 rounded-lg bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300"
         />
       </div>
@@ -78,18 +80,18 @@ export function ListFilters({ basePath, values, filters, searchPlaceholder = 'П
           вариант применения фильтров, если JS не отработал */}
       <button
         type="submit"
-        className="px-3.5 py-2 text-sm rounded-lg bg-slate-700 hover:bg-slate-800 text-white transition-colors"
+        className="px-3.5 py-2 text-sm rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-colors"
       >
-        Применить
+        {t('projects', 'apply')}
       </button>
 
       {hasActiveFilters && (
         <a
           href={basePath}
           className="flex items-center gap-1 px-2.5 py-2 text-xs text-slate-400 hover:text-slate-600 transition-colors"
-          title="Сбросить фильтры"
+          title={t('common', 'reset')}
         >
-          <X size={13} /> Сбросить
+          <X size={13} /> {t('common', 'resetShort')}
         </a>
       )}
     </form>

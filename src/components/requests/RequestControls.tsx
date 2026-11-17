@@ -4,7 +4,8 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { IntegrationRequestStatus } from '@prisma/client'
 import { Loader2 } from 'lucide-react'
-import { REQUEST_STATUS_BADGE, REQUEST_STATUS_LABELS } from '@/lib/integration-requests'
+import { REQUEST_STATUS_BADGE, requestStatusLabel } from '@/lib/integration-requests'
+import { useLang } from '@/context/LangContext'
 
 interface Props {
   id: string
@@ -20,6 +21,7 @@ interface Props {
 
 /** Работа с запросом в очереди: статус, заметка оператора, ответ вуза, проект. */
 export function RequestControls(props: Props) {
+  const { t, lang } = useLang()
   const router = useRouter()
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -35,7 +37,7 @@ export function RequestControls(props: Props) {
       })
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
-        throw new Error(data.error || 'Не удалось сохранить')
+        throw new Error(data.error || t('universityForm', 'saveFailed'))
       }
       router.refresh()
     } catch (err: any) {
@@ -58,14 +60,14 @@ export function RequestControls(props: Props) {
             onChange={event => save({ status: event.target.value })}
             className={`rounded-lg border px-2 py-1 text-xs font-medium transition-colors disabled:opacity-50 ${REQUEST_STATUS_BADGE[props.status]}`}
           >
-            <option value={props.status}>{REQUEST_STATUS_LABELS[props.status]}</option>
+            <option value={props.status}>{requestStatusLabel(props.status, lang)}</option>
             {props.nextStatuses.map(value => (
-              <option key={value} value={value}>→ {REQUEST_STATUS_LABELS[value]}</option>
+              <option key={value} value={value}>→ {requestStatusLabel(value, lang)}</option>
             ))}
           </select>
         ) : (
           <span className={`rounded-full border px-2 py-0.5 text-xs font-medium ${REQUEST_STATUS_BADGE[props.status]}`}>
-            {REQUEST_STATUS_LABELS[props.status]}
+            {requestStatusLabel(props.status, lang)}
           </span>
         )}
         {busy && <Loader2 size={13} className="animate-spin text-slate-400" />}
@@ -85,16 +87,16 @@ export function RequestControls(props: Props) {
         >
           <input
             name="project"
-            placeholder="Ссылка на проект или его id"
+            placeholder={t('requestsControls', 'projectLinkPlaceholder')}
             className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
-          <button type="submit" disabled={busy} className={button}>Привязать проект</button>
+          <button type="submit" disabled={busy} className={button}>{t('requestsControls', 'linkProject')}</button>
         </form>
       )}
 
       {props.canEditOperatorNote && (
         <NoteEditor
-          label="Заметка оператора (видна только операторам)"
+          label={t('requestsControls', 'operatorNote')}
           initial={props.operatorNote}
           disabled={busy}
           className={textarea}
@@ -105,7 +107,7 @@ export function RequestControls(props: Props) {
 
       {props.canEditUniversityNote && (
         <NoteEditor
-          label="Ответ вуза (видят компания и оператор)"
+          label={t('requestsControls', 'universityNote')}
           initial={props.universityNote}
           disabled={busy}
           className={textarea}
@@ -125,6 +127,7 @@ function NoteEditor(props: {
   buttonClassName: string
   onSave: (value: string) => void
 }) {
+  const { t } = useLang()
   const [value, setValue] = useState(props.initial || '')
   const changed = value !== (props.initial || '')
 
@@ -145,7 +148,7 @@ function NoteEditor(props: {
           onClick={() => props.onSave(value)}
           className={`mt-1 ${props.buttonClassName}`}
         >
-          Сохранить
+          {t('common', 'save')}
         </button>
       )}
     </div>

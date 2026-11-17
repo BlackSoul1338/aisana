@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { CheckCircle2, CircleSlash, Loader2 } from 'lucide-react'
 import { showToast } from '@/components/ui/toaster'
+import { useLang } from '@/context/LangContext'
 
 interface Props {
   projectId: string
@@ -12,6 +13,7 @@ interface Props {
 
 /** Открывает проект в витрине /business/solutions или убирает из неё. */
 export function IntegrationAvailabilityControl({ projectId, availableForIntegration }: Props) {
+  const { t } = useLang()
   const router = useRouter()
   const [busy, setBusy] = useState(false)
 
@@ -25,10 +27,10 @@ export function IntegrationAvailabilityControl({ projectId, availableForIntegrat
       })
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
-        throw new Error(data.error || 'Не удалось изменить доступность')
+        throw new Error(data.error || t('admin', 'integrationFailed'))
       }
       showToast(
-        availableForIntegration ? 'Проект убран из витрины решений' : 'Проект открыт для интеграции',
+        availableForIntegration ? t('admin', 'integrationRemovedToast') : t('admin', 'integrationOpenedToast'),
         'success',
       )
       router.refresh()
@@ -53,7 +55,7 @@ export function IntegrationAvailabilityControl({ projectId, availableForIntegrat
       {busy
         ? <Loader2 size={12} className="animate-spin" />
         : availableForIntegration ? <CircleSlash size={12} /> : <CheckCircle2 size={12} />}
-      {availableForIntegration ? 'Убрать из витрины' : 'Открыть для интеграции'}
+      {availableForIntegration ? t('admin', 'integrationRemove') : t('admin', 'integrationOpen')}
     </button>
   )
 }

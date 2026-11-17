@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { AlertCircle, CheckCircle2, FileSpreadsheet, Upload } from 'lucide-react'
+import { useLang } from '@/context/LangContext'
 
 interface ImportError {
   row: number
@@ -19,6 +20,7 @@ interface ImportResult {
 }
 
 export function ProjectImportForm() {
+  const { t } = useLang()
   const [dryRun, setDryRun] = useState(true)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -35,7 +37,7 @@ export function ProjectImportForm() {
     const file = fileInput.files?.[0]
 
     if (!file) {
-      setError('Выберите файл для импорта')
+      setError(t('importSection', 'chooseFile'))
       setLoading(false)
       return
     }
@@ -51,7 +53,7 @@ export function ProjectImportForm() {
       })
 
       const data = await response.json()
-      if (!response.ok) throw new Error(data.error || 'Не удалось импортировать файл')
+      if (!response.ok) throw new Error(data.error || t('importSection', 'importFailed'))
 
       setResult(data)
     } catch (err: any) {
@@ -69,9 +71,9 @@ export function ProjectImportForm() {
             <FileSpreadsheet size={18} />
           </div>
           <div>
-            <h2 className="font-semibold text-slate-800">Импорт проектов</h2>
+            <h2 className="font-semibold text-slate-800">{t('importSection', 'importProjectsTitle')}</h2>
             <p className="mt-1 text-sm text-slate-500">
-              Поддерживаются Excel и CSV. Первая строка должна содержать названия колонок.
+              {t('importSection', 'projectsFormat')}
             </p>
           </div>
         </div>
@@ -85,7 +87,7 @@ export function ProjectImportForm() {
 
         <div className="space-y-4">
           <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700">Файл</label>
+            <label className="mb-1 block text-sm font-medium text-slate-700">{t('importSection', 'file')}</label>
             <input
               name="file"
               type="file"
@@ -102,7 +104,7 @@ export function ProjectImportForm() {
               onChange={event => setDryRun(event.target.checked)}
               className="h-4 w-4 rounded border-slate-300 text-blue-600"
             />
-            Проверить файл без записи в базу
+            {t('importSection', 'dryRun')}
           </label>
 
           <button
@@ -111,7 +113,7 @@ export function ProjectImportForm() {
             className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
           >
             <Upload size={15} />
-            {loading ? 'Обработка...' : dryRun ? 'Проверить файл' : 'Импортировать'}
+            {loading ? t('importSection', 'checking') : dryRun ? t('importSection', 'checkFile') : t('importSection', 'import')}
           </button>
         </div>
       </form>
@@ -121,17 +123,17 @@ export function ProjectImportForm() {
           <div className="mb-4 flex items-center gap-2">
             <CheckCircle2 size={18} className="text-emerald-600" />
             <h2 className="font-semibold text-slate-800">
-              {result.dryRun ? 'Проверка завершена' : 'Импорт завершён'}
+              {result.dryRun ? t('importSection', 'checkDone') : t('importSection', 'importDone')}
             </h2>
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
             {[
-              ['Строк', result.totalRows],
-              ['Обработано', result.processed],
-              [result.dryRun ? 'Будет создано' : 'Создано', result.created],
-              [result.dryRun ? 'Будет обновлено' : 'Обновлено', result.updated],
-              ['Пропущено', result.skipped],
+              [t('importSection', 'rows'), result.totalRows],
+              [t('importSection', 'processed'), result.processed],
+              [result.dryRun ? t('importSection', 'willCreate') : t('importSection', 'created'), result.created],
+              [result.dryRun ? t('importSection', 'willUpdate') : t('importSection', 'updated'), result.updated],
+              [t('importSection', 'skippedRows'), result.skipped],
             ].map(([label, value]) => (
               <div key={label} className="rounded-lg bg-slate-50 px-3 py-3">
                 <div className="text-xl font-bold text-slate-800">{value}</div>
@@ -142,13 +144,13 @@ export function ProjectImportForm() {
 
           {result.errors.length > 0 && (
             <div className="mt-5">
-              <h3 className="mb-2 text-sm font-semibold text-slate-700">Первые ошибки</h3>
+              <h3 className="mb-2 text-sm font-semibold text-slate-700">{t('importSection', 'firstErrors')}</h3>
               <div className="max-h-72 overflow-auto rounded-lg border border-slate-200">
                 <table className="w-full text-sm">
                   <thead className="bg-slate-50">
                     <tr>
-                      <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-slate-500">Строка</th>
-                      <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-slate-500">Ошибка</th>
+                      <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-slate-500">{t('importSection', 'row')}</th>
+                      <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-slate-500">{t('importSection', 'errorWord')}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
