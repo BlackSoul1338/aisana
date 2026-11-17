@@ -12,7 +12,7 @@ export function LangSwitcher({ variant = 'dark' }: { variant?: 'dark' | 'light' 
         <button
           key={l.code}
           onClick={() => setLang(l.code)}
-          className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-all ${
+          className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
             lang === l.code
               ? 'bg-white text-blue-700 shadow-sm'
               : variant === 'dark' ? 'text-white/70 hover:text-white' : 'text-slate-500 hover:text-slate-700'

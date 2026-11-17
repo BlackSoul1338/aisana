@@ -132,12 +132,6 @@ export function withoutIntegrationFlag<T extends { availableForIntegration: bool
   return rest
 }
 
-export const PUBLICATION_LABELS: Record<PublicationStatus, string> = {
-  DRAFT: 'Черновик',
-  REVIEW: 'На проверке',
-  PUBLISHED: 'Опубликован',
-}
-
 export const PUBLICATION_BADGE: Record<PublicationStatus, string> = {
   DRAFT: 'bg-slate-100 text-slate-600 border-slate-200',
   REVIEW: 'bg-amber-100 text-amber-700 border-amber-200',

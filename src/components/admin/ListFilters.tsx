@@ -80,7 +80,7 @@ export function ListFilters({ basePath, values, filters, searchPlaceholder, sort
           вариант применения фильтров, если JS не отработал */}
       <button
         type="submit"
-        className="px-3.5 py-2 text-sm rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-colors"
+        className="px-3.5 py-2 text-sm rounded-lg bg-slate-700 hover:bg-slate-800 text-white transition-colors"
       >
         {t('projects', 'apply')}
       </button>
@@ -88,7 +88,7 @@ export function ListFilters({ basePath, values, filters, searchPlaceholder, sort
       {hasActiveFilters && (
         <a
           href={basePath}
-          className="flex items-center gap-1 px-2.5 py-2 text-xs text-slate-400 hover:text-slate-600 transition-colors"
+          className="flex items-center gap-1.5 px-3 py-2 text-xs text-slate-400 hover:text-slate-600 transition-colors"
           title={t('common', 'reset')}
         >
           <X size={13} /> {t('common', 'resetShort')}

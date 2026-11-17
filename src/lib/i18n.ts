@@ -109,6 +109,9 @@ export const translations = {
     entity_project_file: { ru: 'Файл проекта', kz: 'Жоба файлы' },
     entity_projects: { ru: 'Проекты (импорт)', kz: 'Жобалар (импорт)' },
     entity_universities: { ru: 'Вузы (импорт)', kz: 'ЖОО (импорт)' },
+    entity_integration_request: { ru: 'Запрос бизнеса', kz: 'Бизнес сұранысы' },
+    entity_search_index:        { ru: 'Поисковый индекс', kz: 'Іздеу индексі' },
+    entity_feedback:            { ru: 'Обращение', kz: 'Өтініш' },
   },
 
   // ── Need assistant (business) ─────────────────────────────
@@ -858,10 +861,6 @@ export const translations = {
     title:         { ru: 'Заслушивания', kz: 'Тыңдалымдар' },
     protocols:     { ru: 'протоколов', kz: 'хаттама' },
     add:           { ru: 'Добавить', kz: 'Қосу' },
-    and:           { ru: 'и', kz: 'және' },
-    all:           { ru: 'Все', kz: 'Барлығы' },
-    noProjects:    { ru: 'Нет проектов', kz: 'Жобалар жоқ' },
-    changesSaved:  { ru: 'Изменения сохранены', kz: 'Өзгерістер сақталды' },
     commission:    { ru: 'Комиссия', kz: 'Комиссия' },
     remarks:       { ru: 'Замечания', kz: 'Ескертулер' },
     recommendations: { ru: 'Рекомендации', kz: 'Ұсыныстар' },
@@ -981,6 +980,10 @@ export const translations = {
     add:           { ru: 'Добавить', kz: 'Қосу' },
     searchShort:   { ru: 'Поиск…', kz: 'Іздеу…' },
     resetShort:    { ru: 'Сбросить', kz: 'Тазалау' },
+    and:           { ru: 'и', kz: 'және' },
+    all:           { ru: 'Все', kz: 'Барлығы' },
+    noProjects:    { ru: 'Нет проектов', kz: 'Жобалар жоқ' },
+    changesSaved:  { ru: 'Изменения сохранены', kz: 'Өзгерістер сақталды' },
   },
 } as const
 

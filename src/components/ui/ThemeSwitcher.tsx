@@ -56,7 +56,7 @@ export function ThemeSwitcher({ variant = 'dark' }: { variant?: 'dark' | 'light'
             aria-pressed={active}
             title={label}
             aria-label={label}
-            className={`p-1.5 rounded-md transition-all ${
+            className={`p-2 rounded-md transition-all ${
               active
                 ? 'bg-white text-blue-700 shadow-sm'
                 : variant === 'dark' ? 'text-white/70 hover:text-white' : 'text-slate-500 hover:text-slate-700'

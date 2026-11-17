@@ -117,7 +117,7 @@ export default async function UniversitiesPage({ searchParams }: { searchParams:
           <option value="">{t('universities', 'sortByProjects', lang)}</option>
           <option value="name">{t('universities', 'sortByName', lang)}</option>
         </select>
-        <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700 transition-colors">
+        <button type="submit" className="bg-slate-800 text-white px-4 py-2 rounded-lg text-sm hover:bg-slate-700 transition-colors">
           {t('universities', 'find', lang)}
         </button>
         {(hasFilters || sp.sort) && (

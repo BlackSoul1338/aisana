@@ -30,7 +30,7 @@ export function Pagination({ page, totalPages, totalItems, basePath, searchParam
   }
 
   const navCls = (disabled: boolean) =>
-    `flex items-center gap-1 px-3 py-1.5 rounded-lg border text-sm transition-colors ${
+    `flex items-center gap-1 px-3.5 py-2 rounded-lg border text-sm transition-colors ${
       disabled
         ? 'pointer-events-none opacity-40 border-slate-100 text-slate-400'
         : 'border-slate-200 text-slate-600 hover:bg-slate-50'

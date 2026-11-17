@@ -194,7 +194,7 @@ export default async function ProjectsPage({ searchParams }: { searchParams: Pro
         </select>
         {/* Тематическое направление приходит по ссылке с карточки проекта — сохраняем его при смене фильтров */}
         {sp.topic && <input type="hidden" name="topic" value={sp.topic} />}
-        <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700 transition-colors">
+        <button type="submit" className="bg-slate-800 text-white px-4 py-2 rounded-lg text-sm hover:bg-slate-700 transition-colors">
           {t('projects', 'apply', lang)}
         </button>
         {hasFilters && (

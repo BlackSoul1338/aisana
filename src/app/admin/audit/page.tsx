@@ -6,7 +6,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { prisma } from '@/lib/prisma'
 import { requireRole } from '@/lib/auth'
 import { formatDateTime } from '@/lib/datetime'
-import { t } from '@/lib/i18n'
+import { t, translations } from '@/lib/i18n'
 import { getRequestLang } from '@/lib/i18n-server'
 
 const PAGE_SIZE = 50
@@ -17,6 +17,9 @@ const ACTION_STYLES: Record<string, string> = {
   DELETE: 'bg-red-50 text-red-700 border-red-100',
   IMPORT: 'bg-violet-50 text-violet-700 border-violet-100',
 }
+
+// Известные ключи журнала — из самого словаря, без дублирования списка
+const AUDIT_KEYS = new Set(Object.keys(translations.audit))
 
 export default async function AuditLogPage({ searchParams }: { searchParams: Promise<{ page?: string }> }) {
   await requireRole([UserRole.ADMIN], '/admin/audit')
@@ -64,10 +67,10 @@ export default async function AuditLogPage({ searchParams }: { searchParams: Pro
                 <td className="px-4 py-2.5 text-slate-700">{log.userEmail}</td>
                 <td className="px-4 py-2.5">
                   <span className={`inline-block text-xs px-2 py-0.5 rounded border ${ACTION_STYLES[log.action] || 'bg-slate-50 text-slate-600 border-slate-100'}`}>
-                    {['CREATE', 'UPDATE', 'DELETE', 'IMPORT'].includes(log.action) ? t('audit', `action_${log.action}`, lang) : log.action}
+                    {AUDIT_KEYS.has(`action_${log.action}`) ? t('audit', `action_${log.action}`, lang) : log.action}
                   </span>
                 </td>
-                <td className="px-4 py-2.5 text-slate-600">{['project', 'university', 'user', 'hearing', 'passport', 'project_file', 'projects', 'universities'].includes(log.entity) ? t('audit', `entity_${log.entity}`, lang) : log.entity}</td>
+                <td className="px-4 py-2.5 text-slate-600">{AUDIT_KEYS.has(`entity_${log.entity}`) ? t('audit', `entity_${log.entity}`, lang) : log.entity}</td>
                 <td className="px-4 py-2.5 text-slate-500 max-w-xs truncate" title={log.details || undefined}>
                   {log.details || '—'}
                 </td>
