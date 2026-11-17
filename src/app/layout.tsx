@@ -50,6 +50,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="ru" suppressHydrationWarning>
       <body className={`${inter.variable} font-sans antialiased`}>
+        {/* Тему применяем до первой отрисовки, чтобы не мигала: localStorage 'theme'
+            (system|light|dark), по умолчанию — системная. Иначе inline-скрипт ThemeSwitcher. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var m=localStorage.getItem('theme');var q=window.matchMedia('(prefers-color-scheme: dark)');var d=m==='dark'||((!m||m==='system')&&q.matches);document.documentElement.classList.toggle('dark',d);q.addEventListener('change',function(){var cur=localStorage.getItem('theme');if(!cur||cur==='system')document.documentElement.classList.toggle('dark',q.matches)});}catch(e){}})()`,
+          }}
+        />
         <LangProvider>
           {children}
           <Toaster />

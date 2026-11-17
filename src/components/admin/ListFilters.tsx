@@ -42,7 +42,7 @@ export function ListFilters({ basePath, values, filters, searchPlaceholder = 'П
           name="q"
           defaultValue={values.q || ''}
           placeholder={searchPlaceholder}
-          className="pl-8 pr-3 py-2 w-56 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300"
+          className="pl-8 pr-3 py-2 w-56 text-sm border border-slate-200 rounded-lg bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300"
         />
       </div>
 

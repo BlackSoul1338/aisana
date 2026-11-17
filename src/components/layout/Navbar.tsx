@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Map, FolderKanban, Star, LayoutDashboard, Settings, Building2, Sparkles, Menu, X, Inbox, MessagesSquare, Boxes } from 'lucide-react'
 import { LangSwitcher } from '@/components/ui/LangSwitcher'
+import { ThemeSwitcher } from '@/components/ui/ThemeSwitcher'
 import { useLang } from '@/context/LangContext'
 
 export function Navbar() {
@@ -92,8 +93,9 @@ export function Navbar() {
           )}
         </nav>
 
-        {/* Lang switcher */}
+        {/* Переключатели языка и темы */}
         <LangSwitcher />
+        <ThemeSwitcher />
 
         {/* Бизнесу — его запросы; остальным вошедшим — админ-панель; гостю — вход */}
         {isBusiness ? (
