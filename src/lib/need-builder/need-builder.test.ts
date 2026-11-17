@@ -97,6 +97,11 @@ describe('персональные данные', () => {
     expect(found.every(f => !f.excerpt.includes('123-45'))).toBe(true)
   })
 
+  it('ловит адрес почты без точки в домене — такие учётки есть в базе', () => {
+    expect(findSensitive('Пишите на ivan@intranet').map(f => f.kind)).toEqual(['email'])
+    expect(findSensitive('Почта: ivan@corp.kz, конец.').map(f => f.kind)).toEqual(['email'])
+  })
+
   it('БИН компании с верной контрольной цифрой не считается ИИН: компания может его назвать', () => {
     // В 5–6 разрядах БИН — тип юрлица (4–6) и признак, а не день рождения
     for (const bin of ['040340001233', '150540012348', '991240005679']) {

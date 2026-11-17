@@ -120,6 +120,7 @@ const PROJECTS = [
     results: 'Пилот на двух линиях: пропуски дефектов снизились втрое.',
     isBestPractice: true,
     isScalable: false,
+    availableForIntegration: true,
   },
   {
     id: 'demo_prj_mining',
@@ -138,6 +139,7 @@ const PROJECTS = [
     results: 'Прогноз отказа насоса за 12 часов, обслуживание по графику.',
     isBestPractice: false,
     isScalable: true,
+    availableForIntegration: true,
   },
   {
     id: 'demo_prj_hr',
@@ -156,6 +158,7 @@ const PROJECTS = [
     results: 'Время отклика сократилось с 9 до 3 дней.',
     isBestPractice: true,
     isScalable: true,
+    availableForIntegration: true,
   },
   {
     id: 'demo_prj_edu_kz',
@@ -192,6 +195,7 @@ const PROJECTS = [
     results: 'Чувствительность модели на валидации — 91%.',
     isBestPractice: true,
     isScalable: false,
+    availableForIntegration: true,
   },
   {
     id: 'demo_prj_energy',
@@ -228,6 +232,7 @@ const PROJECTS = [
     results: '—',
     isBestPractice: false,
     isScalable: false,
+    availableForIntegration: true,
     publication: PublicationStatus.DRAFT,
   },
 ]
@@ -293,6 +298,7 @@ async function main() {
       results: p.results,
       isBestPractice: p.isBestPractice,
       isScalable: p.isScalable,
+      availableForIntegration: p.availableForIntegration ?? false,
       publication,
       publishedAt: publication === PublicationStatus.PUBLISHED ? new Date() : null,
     }
@@ -358,7 +364,12 @@ async function main() {
       message: 'Тестовый запрос, отклонённый оператором до передачи вузу.', operatorNote: 'Дубль запроса.' },
   ]
   for (const { id, ...r } of requests) {
-    await prisma.integrationRequest.upsert({ where: { id }, update: { ...contact, ...r }, create: { id, ...contact, ...r } })
+    // forwardedAt и заметки оператора/вуза — рабочие поля: при повторном сиде их не сбрасываем
+    await prisma.integrationRequest.upsert({
+      where: { id },
+      update: { ...contact, projectId: r.projectId, type: r.type, status: r.status, message: r.message },
+      create: { id, ...contact, ...r },
+    })
   }
   console.log(`✅ Запросы бизнеса: ${requests.length}, потребность: 1`)
 

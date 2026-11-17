@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
-import { UserRole } from '@prisma/client'
+import { Prisma, UserRole } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { requireApiRole } from '@/lib/auth'
 import { audit } from '@/lib/audit'
@@ -75,22 +75,12 @@ export async function PATCH(request: NextRequest) {
     const updateData: Record<string, any> = {}
     if (name !== undefined) updateData.name = name || null
     if (email) updateData.email = email.trim().toLowerCase()
+    // Компанию можно править без смены роли; при смене роли ниже она пересчитывается
+    if (organization !== undefined) updateData.organization = organization
+    if (universityId !== undefined) updateData.universityId = universityId || null
 
     // Роль уже проверена схемой userUpdateSchema — enum из ролей
     if (role) {
-      // Prevent demoting the last remaining admin (including yourself)
-      if (role !== UserRole.ADMIN) {
-        const target = await prisma.user.findUnique({ where: { id }, select: { role: true } })
-        if (target?.role === UserRole.ADMIN) {
-          const adminCount = await prisma.user.count({ where: { role: UserRole.ADMIN } })
-          if (adminCount <= 1) {
-            return NextResponse.json(
-              { error: 'Нельзя понизить роль последнего администратора' },
-              { status: 400 }
-            )
-          }
-        }
-      }
       if (role === UserRole.BUSINESS_REP && !organization) {
         return NextResponse.json({ error: 'Для представителя бизнеса нужно указать компанию' }, { status: 400 })
       }
@@ -103,23 +93,69 @@ export async function PATCH(request: NextRequest) {
       updateData.password = await bcrypt.hash(password, 10)
     }
 
-    const user = await prisma.user.update({
-      where: { id },
-      data: updateData,
-      select: { id: true, email: true, name: true, role: true, universityId: true, organization: true },
+    const result = await prisma.$transaction(async (tx) => {
+      if (universityId) {
+        const university = await tx.university.findUnique({
+          where: { id: universityId },
+          select: { id: true },
+        })
+        if (!university) {
+          return { error: 'Университет не найден', status: 400 }
+        }
+      }
+
+      // Prevent demoting the last remaining admin (including yourself)
+      if (role && role !== UserRole.ADMIN) {
+        const target = await tx.user.findUnique({ where: { id }, select: { role: true } })
+        if (target?.role === UserRole.ADMIN) {
+          const adminCount = await tx.user.count({ where: { role: UserRole.ADMIN } })
+          if (adminCount <= 1) {
+            return {
+              error: 'Нельзя понизить роль последнего администратора',
+              status: 400,
+            }
+          }
+        }
+      }
+
+      const user = await tx.user.update({
+        where: { id },
+        data: updateData,
+        select: { id: true, email: true, name: true, role: true, universityId: true, organization: true },
+      })
+
+      // Смена пароля отзывает все сессии пользователя: иначе старая cookie
+      // продолжает работать и украденный пароль не даёт никакого эффекта.
+      if (password) {
+        await tx.session.deleteMany({ where: { userId: id } })
+      }
+
+      return { user }
+    }, {
+      // Сериализуем: иначе два параллельных запроса одновременно видят
+      // «остался один админ» и оба проходят — параллельно можно вычеркнуть
+      // последнего администратора. Один из двух получит ошибку P2034.
+      isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
     })
 
-    // Смена пароля отзывает все сессии пользователя: иначе старая cookie
-    // продолжает работать и украденный пароль не даёт никакого эффекта.
-    if (password) {
-      await prisma.session.deleteMany({ where: { userId: id } })
+    if ('error' in result) {
+      return NextResponse.json({ error: result.error }, { status: result.status })
     }
 
-    await audit(currentUser, 'UPDATE', 'user', user.id, `${user.email} (${user.role})`)
-    return NextResponse.json(user)
+    await audit(currentUser, 'UPDATE', 'user', result.user.id, `${result.user.email} (${result.user.role})`)
+    return NextResponse.json(result.user)
   } catch (error: any) {
     if (error?.code === 'P2002') {
       return NextResponse.json({ error: 'Email уже используется' }, { status: 409 })
+    }
+    if (error?.code === 'P2025') {
+      return NextResponse.json({ error: 'Пользователь не найден' }, { status: 404 })
+    }
+    if (error?.code === 'P2034') {
+      return NextResponse.json(
+        { error: 'Конфликт с параллельным запросом. Повторите попытку.' },
+        { status: 409 }
+      )
     }
     console.error('Update user error:', error)
     return NextResponse.json({ error: 'Ошибка обновления' }, { status: 500 })
@@ -142,27 +178,43 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Нельзя удалить собственный аккаунт' }, { status: 400 })
     }
 
-    const target = await prisma.user.findUnique({ where: { id }, select: { role: true } })
-    if (!target) {
-      return NextResponse.json({ error: 'Пользователь не найден' }, { status: 404 })
-    }
-
-    if (target.role === UserRole.ADMIN) {
-      const adminCount = await prisma.user.count({ where: { role: UserRole.ADMIN } })
-      if (adminCount <= 1) {
-        return NextResponse.json(
-          { error: 'Нельзя удалить последнего администратора — система останется без доступа к управлению' },
-          { status: 400 }
-        )
+    const result = await prisma.$transaction(async (tx) => {
+      const target = await tx.user.findUnique({ where: { id }, select: { role: true } })
+      if (!target) {
+        return { error: 'Пользователь не найден', status: 404 }
       }
-    }
 
-    await prisma.session.deleteMany({ where: { userId: id } })
-    await prisma.user.delete({ where: { id } })
+      if (target.role === UserRole.ADMIN) {
+        const adminCount = await tx.user.count({ where: { role: UserRole.ADMIN } })
+        if (adminCount <= 1) {
+          return {
+            error: 'Нельзя удалить последнего администратора — система останется без доступа к управлению',
+            status: 400,
+          }
+        }
+      }
+
+      await tx.session.deleteMany({ where: { userId: id } })
+      await tx.user.delete({ where: { id } })
+
+      return { success: true }
+    }, {
+      isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+    })
+
+    if ('error' in result) {
+      return NextResponse.json({ error: result.error }, { status: result.status })
+    }
 
     await audit(user, 'DELETE', 'user', id)
     return NextResponse.json({ success: true })
   } catch (error: any) {
+    if (error?.code === 'P2034') {
+      return NextResponse.json(
+        { error: 'Конфликт с параллельным запросом. Повторите попытку.' },
+        { status: 409 }
+      )
+    }
     console.error('Delete user error:', error)
     return NextResponse.json({ error: 'Ошибка удаления' }, { status: 500 })
   }

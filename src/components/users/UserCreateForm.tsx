@@ -87,7 +87,7 @@ export function UserCreateForm({ universities }: Props) {
         </div>
         <div>
           <label className={labelClass}>Пароль</label>
-          <input name="password" type="password" required minLength={6} className={inputClass} />
+          <input name="password" type="password" required minLength={10} className={inputClass} />
         </div>
         <div>
           <label className={labelClass}>Роль</label>

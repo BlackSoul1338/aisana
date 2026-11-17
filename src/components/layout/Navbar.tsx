@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Map, FolderKanban, Star, LayoutDashboard, Settings, Building2, Sparkles, Menu, X, Inbox, MessagesSquare } from 'lucide-react'
+import { Map, FolderKanban, Star, LayoutDashboard, Settings, Building2, Sparkles, Menu, X, Inbox, MessagesSquare, Boxes } from 'lucide-react'
 import { LangSwitcher } from '@/components/ui/LangSwitcher'
 import { useLang } from '@/context/LangContext'
 
@@ -37,6 +37,7 @@ export function Navbar() {
     { href: '/universities',   label: t('nav', 'universities'), icon: Building2,      show: signedIn },
     { href: '/projects',       label: t('nav', 'projects'),     icon: FolderKanban,   show: signedIn },
     { href: '/best-practices', label: t('nav', 'bestProjects'), icon: Star,           show: isStaff },
+    { href: '/business/solutions', label: t('nav', 'solutions'), icon: Boxes,        show: isBusiness },
     { href: '/business/assistant', label: t('nav', 'assistant'), icon: MessagesSquare, show: isBusiness },
   ].filter(link => link.show)
 

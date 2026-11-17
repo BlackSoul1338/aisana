@@ -1,6 +1,7 @@
 import type { PrismaClient } from '@prisma/client'
 import { loadSearchIndex } from '@/lib/search/store'
 import { searchIndex } from '@/lib/search/engine'
+import { SHOWCASE_WHERE } from '@/lib/publication'
 import { NOT_SPECIFIED, type FieldState, type NeedFieldKey } from './readiness'
 
 /** По этим полям ищется решение: остальные (контур, интеграции, масштаб) в карточках проектов не описаны. */
@@ -32,7 +33,7 @@ export type NeedMatch = {
   reason: string
 }
 
-/** Подборка из опубликованных проектов. Ранжирует тот же поиск, что и каталог. */
+/** Подборка из витрины решений. Ранжирует тот же поиск, что и каталог. */
 export async function matchProjects(db: PrismaClient, query: string): Promise<NeedMatch[]> {
   if (!query.trim()) return []
   const index = await loadSearchIndex(db)
@@ -40,7 +41,7 @@ export async function matchProjects(db: PrismaClient, query: string): Promise<Ne
   if (!hits.length) return []
 
   const projects = await db.project.findMany({
-    where: { id: { in: hits.map(h => h.id) } },
+    where: { id: { in: hits.map(h => h.id) }, ...SHOWCASE_WHERE },
     select: { id: true, title: true, university: { select: { name: true, shortName: true } } },
   })
   const byId = new Map(projects.map(p => [p.id, p]))

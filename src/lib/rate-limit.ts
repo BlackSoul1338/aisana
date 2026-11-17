@@ -1,3 +1,4 @@
+import crypto from 'crypto'
 import { NextRequest } from 'next/server'
 
 // ── In-memory rate limiting / дедупликация ──────────────────
@@ -8,19 +9,57 @@ import { NextRequest } from 'next/server'
 
 type Bucket = { count: number; resetAt: number }
 
-const buckets = new Map<string, Bucket>()
-const MAX_BUCKETS = 50_000
+// Раздельные хранилища для скользящего окна rate-limit и дедупликации (isFirstInWindow).
+// Это исключает атаки вытеснения: накрутка просмотров или дедупликации
+// не может вытеснить из памяти счётчики защиты от брутфорса паролей (login:acc: / login:ip:).
+const rateLimitBuckets = new Map<string, Bucket>()
+const dedupBuckets = new Map<string, number>()
 
-function cleanup(now: number) {
-  if (buckets.size < MAX_BUCKETS) return
-  for (const [key, bucket] of buckets) {
-    if (bucket.resetAt <= now) buckets.delete(key)
+const MAX_RATE_LIMIT_BUCKETS = 50_000
+const MAX_DEDUP_BUCKETS = 50_000
+
+function cleanupRateLimit(now: number) {
+  if (rateLimitBuckets.size < MAX_RATE_LIMIT_BUCKETS) return
+
+  // 1. Удаляем все истёкшие бакеты
+  for (const [key, bucket] of rateLimitBuckets) {
+    if (bucket.resetAt <= now) rateLimitBuckets.delete(key)
   }
-  // Если после чистки всё ещё переполнено — удаляем самые старые записи
-  while (buckets.size >= MAX_BUCKETS) {
-    const oldest = buckets.keys().next().value
+  if (rateLimitBuckets.size < MAX_RATE_LIMIT_BUCKETS) return
+
+  // 2. Если всё ещё переполнено — защищаем активные блокировки учётных записей (login:acc:*)
+  // от вытеснения атакующим, генерирующим тысячи случайных IP или других ключей.
+  const targetSize = Math.floor(MAX_RATE_LIMIT_BUCKETS * 0.9)
+  for (const [key, bucket] of rateLimitBuckets) {
+    if (rateLimitBuckets.size <= targetSize) break
+    const isProtectedLockout = key.startsWith('login:acc:') && bucket.resetAt > now
+    if (!isProtectedLockout) {
+      rateLimitBuckets.delete(key)
+    }
+  }
+
+  // 3. Крайний случай: если даже после этого переполнено — удаляем самые старые записи
+  while (rateLimitBuckets.size >= MAX_RATE_LIMIT_BUCKETS) {
+    const oldest = rateLimitBuckets.keys().next().value
     if (oldest === undefined) break
-    buckets.delete(oldest)
+    rateLimitBuckets.delete(oldest)
+  }
+}
+
+function cleanupDedup(now: number) {
+  if (dedupBuckets.size < MAX_DEDUP_BUCKETS) return
+
+  // 1. Удаляем все истёкшие отметки времени
+  for (const [key, resetAt] of dedupBuckets) {
+    if (resetAt <= now) dedupBuckets.delete(key)
+  }
+  if (dedupBuckets.size < MAX_DEDUP_BUCKETS) return
+
+  // 2. Если всё ещё переполнено — удаляем старейшие до целевого порога
+  const targetSize = Math.floor(MAX_DEDUP_BUCKETS * 0.9)
+  for (const [key] of dedupBuckets) {
+    if (dedupBuckets.size <= targetSize) break
+    dedupBuckets.delete(key)
   }
 }
 
@@ -34,11 +73,11 @@ export function rateLimit(
   windowMs: number
 ): { ok: boolean; retryAfterSec: number } {
   const now = Date.now()
-  cleanup(now)
+  cleanupRateLimit(now)
 
-  const bucket = buckets.get(key)
+  const bucket = rateLimitBuckets.get(key)
   if (!bucket || bucket.resetAt <= now) {
-    buckets.set(key, { count: 1, resetAt: now + windowMs })
+    rateLimitBuckets.set(key, { count: 1, resetAt: now + windowMs })
     return { ok: true, retryAfterSec: 0 }
   }
 
@@ -52,21 +91,32 @@ export function rateLimit(
 
 /** Сбрасывает счётчик ключа — например, после успешного входа. */
 export function resetRateLimit(key: string): void {
-  buckets.delete(key)
+  rateLimitBuckets.delete(key)
+  dedupBuckets.delete(key)
+}
+
+/**
+ * Возвращает одно событие в счётчик: действие сорвалось до полезной работы
+ * (ошибка валидации, недоступная модель) и не должно тратить лимит.
+ */
+export function refundRateLimit(key: string): void {
+  const bucket = rateLimitBuckets.get(key)
+  if (bucket && bucket.count > 0) bucket.count -= 1
 }
 
 /**
  * Дедупликация: true только при ПЕРВОМ вызове с данным ключом в пределах окна.
  * Используется для честных счётчиков (просмотры, попадания в ИИ-поиск).
+ * Хранится в отдельном dedupBuckets, изолированно от rateLimit.
  */
 export function isFirstInWindow(key: string, windowMs: number): boolean {
   const now = Date.now()
-  cleanup(now)
+  cleanupDedup(now)
 
-  const bucket = buckets.get(key)
-  if (bucket && bucket.resetAt > now) return false
+  const resetAt = dedupBuckets.get(key)
+  if (resetAt !== undefined && resetAt > now) return false
 
-  buckets.set(key, { count: 1, resetAt: now + windowMs })
+  dedupBuckets.set(key, now + windowMs)
   return true
 }
 
@@ -87,8 +137,23 @@ export function isFirstInWindow(key: string, windowMs: number): boolean {
  * лимитов. Схема прокси на проде отсюда не видна, поэтому выбор оставлен
  * прежним; при известной схеме стоит брать адрес, который дописал свой прокси.
  */
-export function getClientIp(request: NextRequest): string {
-  const forwarded = request.headers.get('x-forwarded-for')
-  if (forwarded) return forwarded.split(',')[0].trim()
-  return request.headers.get('x-real-ip')?.trim() || 'unknown'
+export function getClientIp(
+  request: NextRequest | { headers: { get(name: string): string | null } }
+): string {
+  const forwarded = request?.headers?.get?.('x-forwarded-for')
+  const raw = forwarded ? forwarded.split(',')[0].trim() : request?.headers?.get?.('x-real-ip')?.trim()
+  if (!raw) return 'unknown'
+
+  // Удаляем пробельные и управляющие символы
+  const clean = raw.replace(/[\x00-\x20\x7f]/g, '')
+  if (!clean) return 'unknown'
+
+  // Защита от раздувания памяти длинными/поддельными заголовками:
+  // допустимый IPv4/IPv6 укладывается в 45 символов (до 64 с портом/scope).
+  // Если заголовок длиннее 64 символов — хешируем sha256 в фиксированную 32-символьную строку.
+  if (clean.length > 64) {
+    return crypto.createHash('sha256').update(clean).digest('hex').slice(0, 32)
+  }
+
+  return clean
 }

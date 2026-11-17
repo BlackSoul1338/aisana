@@ -9,7 +9,8 @@
 export type SensitiveKind = 'email' | 'phone' | 'iin' | 'card'
 export type Finding = { kind: SensitiveKind; excerpt: string }
 
-const EMAIL = /[\p{L}\p{N}._%+-]+@[\p{L}\p{N}.-]+\.\p{L}{2,}/gu
+// Домен без точки тоже считаем адресом: в базе есть учётки вида user@host
+const EMAIL = /[\p{L}\p{N}._%+-]+@[\p{L}\p{N}](?:[\p{L}\p{N}.-]*[\p{L}\p{N}])?/gu
 const PHONE = /(?<![\d])(?:\+7|8)[\s(-]*\d{3}[\s)-]*\d{3}[\s-]*\d{2}[\s-]*\d{2}(?![\d])/g
 const TWELVE_DIGITS = /(?<!\d)\d{12}(?!\d)/g
 const CARD = /(?<!\d)(?:\d[ -]?){12,18}\d(?!\d)/g

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireApiRole } from '@/lib/auth'
-import { rateLimit } from '@/lib/rate-limit'
-import { takeTurn } from '@/lib/need-builder/service'
+import { rateLimit, refundRateLimit } from '@/lib/rate-limit'
+import { NeedError, takeTurn } from '@/lib/need-builder/service'
 import { needMessageSchema, parseBody } from '@/lib/schemas'
 import { NEED_ROLES, TURNS_PER_HOUR, needErrorResponse } from '../../shared'
 
@@ -21,7 +21,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     }
 
     const { id } = await params
-    return NextResponse.json(await takeTurn(id, user.id, parsed.data.text))
+    try {
+      return NextResponse.json(await takeTurn(id, user.id, parsed.data.text))
+    } catch (error) {
+      if (error instanceof NeedError) refundRateLimit(`need:turn:${user.id}`)
+      throw error
+    }
   } catch (error) {
     return needErrorResponse(error, 'Не удалось обработать сообщение')
   }

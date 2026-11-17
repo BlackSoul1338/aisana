@@ -9,6 +9,7 @@ import { prisma } from '@/lib/prisma'
 import { canAccessUniversity, requireRole } from '@/lib/auth'
 import { canModerate } from '@/lib/publication'
 import { PublicationBadge, PublicationControl } from '@/components/admin/PublicationControl'
+import { IntegrationAvailabilityControl } from '@/components/admin/IntegrationAvailabilityControl'
 
 export default async function EditProjectPage({ params }: { params: Promise<{ id: string }> }) {
   const user = await requireRole([UserRole.ADMIN, UserRole.EDITOR, UserRole.UNIVERSITY_REP], '/admin/projects')
@@ -72,6 +73,22 @@ export default async function EditProjectPage({ params }: { params: Promise<{ id
           </p>
         )}
       </div>
+
+      {canModerate(user) && (
+        <div className="mb-6 rounded-xl border border-slate-200 bg-white p-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="text-sm text-slate-500">Витрина решений:</span>
+            <IntegrationAvailabilityControl
+              projectId={project.id}
+              availableForIntegration={project.availableForIntegration}
+            />
+          </div>
+          <p className="mt-2 text-xs text-slate-400">
+            Открытые проекты попадают в витрину для бизнеса. Публикация важнее флага:
+            черновик и проект на проверке в витрину не показываются.
+          </p>
+        </div>
+      )}
       <div className="bg-white border border-slate-200 rounded-xl p-6">
         <ProjectForm
           universities={universities}

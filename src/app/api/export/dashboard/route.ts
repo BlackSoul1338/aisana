@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import * as XLSX from 'xlsx'
 import { prisma } from '@/lib/prisma'
+import { requireApiUser } from '@/lib/auth'
 import { formatDate, formatDateTime } from '@/lib/datetime'
 import { PUBLISHED_ONLY } from '@/lib/publication'
 import { translations } from '@/lib/i18n'
@@ -18,6 +19,9 @@ function label(section: 'projects', key: string): string {
 
 export async function GET(request: NextRequest) {
   try {
+    const { response } = await requireApiUser(request)
+    if (response) return response
+
     // Генерация файла — недешёвая операция, ограничиваем: 5 выгрузок в минуту с IP
     const ip = getClientIp(request)
     if (!rateLimit(`export:${ip}`, 5, 60 * 1000).ok) {

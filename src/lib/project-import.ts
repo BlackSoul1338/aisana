@@ -5,6 +5,7 @@ import { canAccessUniversity } from '@/lib/auth'
 import { canModerate } from '@/lib/publication'
 import { DESCRIPTION_PLACEHOLDER, isDescriptionEmpty } from '@/lib/project-completeness'
 import { isAllowedFileUrl } from '@/lib/file-url'
+import { canAttachUpload } from '@/lib/uploads'
 
 type RawRow = Record<string, unknown>
 
@@ -92,10 +93,16 @@ function text(value: unknown) {
   return result.length ? result : null
 }
 
-function numberOrNull(value: unknown) {
+function teamSizeOrNull(value: unknown) {
   if (value === null || value === undefined || value === '') return null
   const parsed = Number(value)
-  return Number.isFinite(parsed) ? parsed : null
+  return Number.isInteger(parsed) && parsed >= 0 && parsed <= 10_000 ? parsed : null
+}
+
+function leadEmailOrNull(value: unknown) {
+  const email = text(value)
+  if (!email) return null
+  return /^[^\s@]+@[^\s@]+$/.test(email) ? email : null
 }
 
 function bool(value: unknown) {
@@ -151,6 +158,12 @@ function getField(rowIndex: Map<string, unknown>, field: keyof typeof FIELD_ALIA
   }
 
   return null
+}
+
+/** Была ли колонка в файле вообще: пустая ячейка отличается от отсутствия. */
+function hasField(rowIndex: Map<string, unknown>, field: keyof typeof FIELD_ALIASES) {
+  return FIELD_ALIASES[field].some(alias =>
+    rowIndex.has(normalize(alias)) || rowIndex.has(compact(alias)))
 }
 
 function parseCategory(value: unknown) {
@@ -332,26 +345,50 @@ export async function importProjectsFromRows(
       continue
     }
 
-    const description = text(getField(rowIndex, 'description')) || DESCRIPTION_PLACEHOLDER
-    const technologyIds = await technologyConnect(splitList(getField(rowIndex, 'technologies')))
+    const teamSizeRaw = getField(rowIndex, 'teamSize')
+    const teamSize = teamSizeOrNull(teamSizeRaw)
+    if (hasField(rowIndex, 'teamSize') && teamSizeRaw !== null && teamSize === null) {
+      summary.errors.push({ row: rowNumber, message: 'Команда: нужно целое число от 0 до 10000' })
+      summary.skipped += 1
+      continue
+    }
+
+    const leadEmailRaw = getField(rowIndex, 'leadEmail')
+    const leadEmail = leadEmailOrNull(leadEmailRaw)
+    if (hasField(rowIndex, 'leadEmail') && leadEmailRaw !== null && leadEmail === null) {
+      summary.errors.push({ row: rowNumber, message: 'Некорректный email руководителя' })
+      summary.skipped += 1
+      continue
+    }
+
+    const description = text(getField(rowIndex, 'description'))
+    const leadName = text(getField(rowIndex, 'leadName'))
+    const launchDate = dateOrNull(getField(rowIndex, 'launchDate'))
+    const impact = text(getField(rowIndex, 'impact'))
+    const results = text(getField(rowIndex, 'results'))
+    const tags = splitList(getField(rowIndex, 'tags'))
+    const technologyIds = hasField(rowIndex, 'technologies')
+      ? await technologyConnect(splitList(getField(rowIndex, 'technologies')))
+      : []
     const key = `${universityId}:${normalize(title)}`
     const existingProjectId = projectIndex.get(key)
 
     const data = {
       title,
-      description,
+      description: description || DESCRIPTION_PLACEHOLDER,
       universityId,
-      leadName: text(getField(rowIndex, 'leadName')),
-      leadEmail: text(getField(rowIndex, 'leadEmail')),
-      teamSize: numberOrNull(getField(rowIndex, 'teamSize')),
-      launchDate: dateOrNull(getField(rowIndex, 'launchDate')),
+      leadName,
+      leadEmail,
+      teamSize,
+      launchDate,
       category: parseCategory(getField(rowIndex, 'category')),
       status: parseStatus(getField(rowIndex, 'status')),
-      isBestPractice: bool(getField(rowIndex, 'isBestPractice')),
-      isScalable: bool(getField(rowIndex, 'isScalable')),
-      impact: text(getField(rowIndex, 'impact')),
-      results: text(getField(rowIndex, 'results')),
-      tags: splitList(getField(rowIndex, 'tags')),
+      // Бейджи — публичная реклама проекта, их ставит только модератор.
+      isBestPractice: importerCanPublish ? bool(getField(rowIndex, 'isBestPractice')) : false,
+      isScalable: importerCanPublish ? bool(getField(rowIndex, 'isScalable')) : false,
+      impact,
+      results,
+      tags,
     }
 
     // Ссылки из колонок кладём в project_files (вкладка «Файлы и ссылки»),
@@ -370,11 +407,14 @@ export async function importProjectsFromRows(
           where: { projectId, url: f.url },
           select: { id: true },
         })
-        if (!exists) {
-          await prisma.projectFile.create({
-            data: { projectId, type: f.type, label: f.label, url: f.url },
-          })
+        if (exists) continue
+        if (!(await canAttachUpload(user, f.url))) {
+          summary.errors.push({ row: rowNumber, message: `Файл принадлежит другому проекту: ${f.label}` })
+          continue
         }
+        await prisma.projectFile.create({
+          data: { projectId, type: f.type, label: f.label, url: f.url },
+        })
       }
     }
 
@@ -387,13 +427,28 @@ export async function importProjectsFromRows(
     }
 
     if (existingProjectId) {
-      await prisma.project.update({
-        where: { id: existingProjectId },
-        data: {
-          ...data,
-          technologies: { set: technologyIds },
-        },
-      })
+      // Обновляем только те колонки, которые есть в файле: иначе частичная
+      // таблица молча стирала бы описание, бейджи и остальные поля карточки.
+      const updateData: Record<string, any> = { title, universityId }
+      if (description) updateData.description = description
+      if (leadName) updateData.leadName = leadName
+      if (leadEmail) updateData.leadEmail = leadEmail
+      if (teamSize !== null) updateData.teamSize = teamSize
+      if (launchDate) updateData.launchDate = launchDate
+      if (getField(rowIndex, 'category') !== null) updateData.category = parseCategory(getField(rowIndex, 'category'))
+      if (getField(rowIndex, 'status') !== null) updateData.status = parseStatus(getField(rowIndex, 'status'))
+      if (impact) updateData.impact = impact
+      if (results) updateData.results = results
+      if (tags.length) updateData.tags = tags
+      if (technologyIds.length) updateData.technologies = { set: technologyIds }
+      if (importerCanPublish && getField(rowIndex, 'isBestPractice') !== null) {
+        updateData.isBestPractice = bool(getField(rowIndex, 'isBestPractice'))
+      }
+      if (importerCanPublish && getField(rowIndex, 'isScalable') !== null) {
+        updateData.isScalable = bool(getField(rowIndex, 'isScalable'))
+      }
+
+      await prisma.project.update({ where: { id: existingProjectId }, data: updateData })
       await attachRowFiles(existingProjectId)
       summary.updated += 1
     } else {
@@ -404,8 +459,8 @@ export async function importProjectsFromRows(
           // добавление: на портал проект выходит после проверки модератором
           // Строка без описания остаётся черновиком даже у модератора: карточка
           // из одного названия на портал не выходит, пока её не заполнят
-          publication: importerCanPublish && !isDescriptionEmpty(description) ? PublicationStatus.PUBLISHED : PublicationStatus.DRAFT,
-          publishedAt: importerCanPublish && !isDescriptionEmpty(description) ? new Date() : null,
+          publication: importerCanPublish && !isDescriptionEmpty(data.description) ? PublicationStatus.PUBLISHED : PublicationStatus.DRAFT,
+          publishedAt: importerCanPublish && !isDescriptionEmpty(data.description) ? new Date() : null,
           technologies: technologyIds.length ? { connect: technologyIds } : undefined,
         },
         select: { id: true },

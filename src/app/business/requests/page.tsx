@@ -49,7 +49,7 @@ export default async function BusinessRequestsPage() {
           <Inbox size={44} className="mx-auto mb-3 opacity-30" />
           <p className="text-lg font-medium">Запросов пока нет</p>
           <p className="mt-1 text-sm">
-            Откройте решение в <Link href="/projects" className="text-blue-600 hover:underline">каталоге</Link> и
+            Откройте решение в <Link href="/business/solutions" className="text-blue-600 hover:underline">витрине решений</Link> и
             отправьте запрос — оператор AiSana свяжет вас с вузом.
           </p>
         </div>

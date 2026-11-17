@@ -7,6 +7,7 @@ import { loadSearchIndex } from '@/lib/search/store'
 import { searchIndex } from '@/lib/search/engine'
 import { aiSearchSchema, parseBody } from '@/lib/schemas'
 import { generateMatchReasons, generateSearchSummary } from '@/lib/geminiSummary'
+import { withoutIntegrationFlag } from '@/lib/publication'
 import { getLlmCacheStats } from '@/lib/llm-cache'
 
 export const dynamic = 'force-dynamic'
@@ -79,7 +80,7 @@ export async function POST(request: NextRequest) {
         const project = byId.get(hit.id)
         if (!project) return null
         return {
-          ...project,
+          ...withoutIntegrationFlag(project),
           searchScore: hit.score,
           topics: hit.topics.map(topic => ({
             topic: topic.topic,

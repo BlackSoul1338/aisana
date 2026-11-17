@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { PublicationStatus, UserRole } from '@prisma/client'
 import {
-  canViewProjectContent, visibleProjectsWhere, visibilityScope, withoutLeadContacts,
+  SHOWCASE_WHERE, canViewProjectContent, isShowcaseProject, visibleProjectsWhere, visibilityScope,
+  withoutIntegrationFlag, withoutLeadContacts,
 } from '@/lib/publication'
 
 const OWN_UNIVERSITY = 'uni-1'
@@ -98,6 +99,34 @@ describe('область видимости для кэша', () => {
   it('у представителей вузов область своя', () => {
     expect(visibilityScope(rep)).toBe(`university:${OWN_UNIVERSITY}`)
     expect(visibilityScope(otherRep)).toBe(`university:${OTHER_UNIVERSITY}`)
+  })
+})
+
+describe('витрина решений для бизнеса', () => {
+  const project = (publication: PublicationStatus, availableForIntegration: boolean) => ({
+    publication, availableForIntegration,
+  })
+
+  it('в витрину попадает только опубликованный проект с флагом', () => {
+    expect(isShowcaseProject(project(PublicationStatus.PUBLISHED, true))).toBe(true)
+    expect(SHOWCASE_WHERE).toEqual({
+      publication: PublicationStatus.PUBLISHED,
+      availableForIntegration: true,
+    })
+  })
+
+  it('без флага или без публикации проект в витрину не попадает', () => {
+    expect(isShowcaseProject(project(PublicationStatus.PUBLISHED, false))).toBe(false)
+    expect(isShowcaseProject(project(PublicationStatus.REVIEW, true))).toBe(false)
+    expect(isShowcaseProject(project(PublicationStatus.DRAFT, true))).toBe(false)
+  })
+})
+
+describe('служебный флаг витрины в ответах API', () => {
+  it('скрывается, не меняя остальные поля', () => {
+    const project = { id: 'p-1', title: 'Проект', availableForIntegration: true }
+    expect(withoutIntegrationFlag(project)).toEqual({ id: 'p-1', title: 'Проект' })
+    expect(project.availableForIntegration).toBe(true)
   })
 })
 

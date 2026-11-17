@@ -209,9 +209,9 @@ export function UserEditControls({ user, universities, isSelf = false, isLastAdm
                   <input
                     name="password"
                     type={showPassword ? 'text' : 'password'}
-                    minLength={6}
+                    minLength={10}
                     className={`${inputCls} pr-10`}
-                    placeholder="Минимум 6 символов"
+                    placeholder="Минимум 10 символов"
                   />
                   <button
                     type="button"

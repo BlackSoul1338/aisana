@@ -13,8 +13,8 @@ import { visibleRequestsWhere } from '@/lib/integration-requests'
 
 export default async function AdminPage() {
   const user = await requireUser('/admin')
-  // Сюда ведёт вход по умолчанию; бизнесу нужен каталог решений, а не админ-панель
-  if (user.role === UserRole.BUSINESS_REP) redirect('/projects')
+  // Сюда ведёт вход по умолчанию; бизнесу нужна витрина решений, а не админ-панель
+  if (user.role === UserRole.BUSINESS_REP) redirect('/business/solutions')
   // VIEWER не имеет права видеть черновики чужих вузов: показываем ему
   // только опубликованное. Представитель вуза — проекты своего вуза.
   const projectWhere = user.role === UserRole.UNIVERSITY_REP

@@ -109,6 +109,8 @@ model Project {
   technologies  Technology[]    @relation("ProjectTechnologies")
   isBestPractice Boolean        @default(false)
   isScalable    Boolean         @default(false)
+  // Открыт для витрины интеграционных решений; ставит только модератор
+  availableForIntegration Boolean @default(false)
   impact        String?         @db.Text
   results       String?         @db.Text
 

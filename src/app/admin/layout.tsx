@@ -25,8 +25,8 @@ const ROLE_LABELS: Record<UserRole, string> = {
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const user = await requireUser('/admin')
-  // Админ-панель бизнесу не нужна: после входа и при нехватке прав — в каталог решений
-  if (user.role === UserRole.BUSINESS_REP) redirect('/projects')
+  // Админ-панель бизнесу не нужна: после входа и при нехватке прав — в витрину решений
+  if (user.role === UserRole.BUSINESS_REP) redirect('/business/solutions')
 
   const adminLinks = [
     { href: '/admin', label: 'Обзор', icon: LayoutDashboard, show: true },

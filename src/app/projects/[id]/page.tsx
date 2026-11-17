@@ -122,7 +122,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
           <h2 className="font-semibold text-slate-700 mb-3">Технологии</h2>
           <div className="flex flex-wrap gap-2">
             {project.technologies.map(tech => (
-              <Link key={tech.id} href={`/projects?tech=${tech.slug}`}
+              <Link key={tech.id} href={`${isBusiness ? '/business/solutions' : '/projects'}?tech=${tech.slug}`}
                 className="px-3 py-1.5 bg-slate-100 hover:bg-blue-100 hover:text-blue-700 text-slate-700 rounded-lg text-sm font-medium transition-colors">
                 {tech.name}
               </Link>
@@ -235,9 +235,9 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
 
   return (
     <PageLayout>
-      <Link href="/projects"
+      <Link href={isBusiness ? '/business/solutions' : '/projects'}
         className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700 mb-6 transition-colors">
-        <ArrowLeft size={14} /> Все проекты
+        <ArrowLeft size={14} /> {isBusiness ? 'Все решения' : 'Все проекты'}
       </Link>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

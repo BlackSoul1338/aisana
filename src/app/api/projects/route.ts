@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { revalidatePath } from 'next/cache'
 import { PublicationStatus, UserRole } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
-import { PUBLISHED_ONLY, canModerate, withoutLeadContacts } from '@/lib/publication'
+import { PUBLISHED_ONLY, canModerate, withoutIntegrationFlag, withoutLeadContacts } from '@/lib/publication'
 import { invalidateSearchIndex, loadSearchIndex, reclassifyProject } from '@/lib/search/store'
 import { searchIndex } from '@/lib/search/engine'
 import { canAccessUniversity, requireApiRole, requireApiUser } from '@/lib/auth'
@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
 
     await audit(user, 'CREATE', 'project', project.id, project.title)
     revalidatePath(`/universities/${project.universityId}`)
-    return NextResponse.json(project, { status: 201 })
+    return NextResponse.json(withoutIntegrationFlag(project), { status: 201 })
   } catch (error: any) {
     console.error('Create project error:', error)
     return NextResponse.json({ error: 'Ошибка создания проекта' }, { status: 500 })
@@ -118,7 +118,9 @@ export async function GET(request: NextRequest) {
 
     // Текстовый запрос обрабатывает смысловой движок поиска,
     // а не совпадение подстроки: см. src/lib/search
-    if (!q?.trim()) return NextResponse.json(projects.map(project => withoutLeadContacts(user, project)))
+    if (!q?.trim()) {
+      return NextResponse.json(projects.map(project => withoutIntegrationFlag(withoutLeadContacts(user, project))))
+    }
 
     const index = await loadSearchIndex(prisma)
     const { hits } = searchIndex(index, q, { limit: 500 })
@@ -128,7 +130,7 @@ export async function GET(request: NextRequest) {
       .filter(project => rank.has(project.id))
       .sort((a, b) => (rank.get(a.id) ?? 0) - (rank.get(b.id) ?? 0))
 
-    return NextResponse.json(ranked.map(project => withoutLeadContacts(user, project)))
+    return NextResponse.json(ranked.map(project => withoutIntegrationFlag(withoutLeadContacts(user, project))))
   } catch {
     return NextResponse.json({ error: 'Ошибка загрузки' }, { status: 500 })
   }

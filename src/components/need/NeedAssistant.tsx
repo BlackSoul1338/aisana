@@ -11,7 +11,7 @@ import type { NeedMatch } from '@/lib/need-builder/match'
 import type { NeedView, TurnResult } from '@/lib/need-builder/service'
 
 const GREETING =
-  'Опишите своими словами, какую задачу компании вы хотите решить с помощью ИИ: какой процесс, что не устраивает сейчас, какой результат нужен. Я задам уточняющие вопросы и подберу решения университетов из каталога.'
+  'Опишите своими словами, какую задачу компании вы хотите решить с помощью ИИ: какой процесс, что не устраивает сейчас, какой результат нужен. Я задам уточняющие вопросы и подберу решения университетов из витрины.'
 
 const STATUS_ICON = {
   ok: <CheckCircle2 size={15} className="shrink-0 text-emerald-600" />,
@@ -140,7 +140,7 @@ export function NeedAssistant({ initialNeed, initialMatches, aiEnabled }: {
           ) : (
             <p className="text-sm text-slate-500">
               {!aiEnabled && collecting
-                ? <>Помощник подбора сейчас недоступен. Выберите решение в <Link href="/projects" className="text-blue-600 hover:underline">каталоге</Link> и отправьте запрос из карточки проекта{need ? ' или отправьте эту потребность оператору' : ''}.</>
+                ? <>Помощник подбора сейчас недоступен. Выберите решение в <Link href="/business/solutions" className="text-blue-600 hover:underline">витрине решений</Link> и отправьте запрос из карточки проекта{need ? ' или отправьте эту потребность оператору' : ''}.</>
                 : collecting
                 ? `Достигнут предел в ${MAX_TURNS} сообщений — отправьте запрос оператору, он уточнит остальное.`
                 : <>Потребность отправлена оператору. Статус — в разделе <Link href="/business/requests" className="text-blue-600 hover:underline">«Мои запросы»</Link>.</>}
@@ -225,7 +225,7 @@ function Matches({ matches, hasNeed }: { matches: NeedMatch[]; hasNeed: boolean 
         <ul className="space-y-3">
           {matches.map(match => (
             <li key={match.id}>
-              <Link href={`/projects/${match.id}`} target="_blank" className="text-sm font-medium text-slate-800 hover:text-blue-600">
+              <Link href={`/projects/${match.id}`} className="text-sm font-medium text-slate-800 hover:text-blue-600">
                 {match.title}
               </Link>
               <p className="flex items-center gap-1 text-xs text-slate-400"><Building2 size={11} /> {match.university}</p>
@@ -236,10 +236,13 @@ function Matches({ matches, hasNeed }: { matches: NeedMatch[]; hasNeed: boolean 
       ) : (
         <p className="text-sm text-slate-400">
           {hasNeed
-            ? 'Пока ничего близкого в каталоге. Уточните задачу или отправьте запрос оператору — он подберёт решение сам.'
+            ? 'Пока ничего близкого в витрине. Уточните задачу или отправьте запрос оператору — он подберёт решение сам.'
             : 'Подборка появится после первого сообщения.'}
         </p>
       )}
+      <Link href="/business/solutions" className="mt-3 inline-block text-xs font-medium text-blue-600 hover:underline">
+        Все решения для бизнеса →
+      </Link>
     </div>
   )
 }

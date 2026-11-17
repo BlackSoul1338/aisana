@@ -14,6 +14,23 @@ export const PUBLISHED_ONLY = { publication: PublicationStatus.PUBLISHED } as co
 /** Тот же фильтр для вложенных связей: university.projects, region... */
 export const PUBLISHED_PROJECTS_RELATION = { where: PUBLISHED_ONLY } as const
 
+/**
+ * Витрина решений для бизнеса: проект опубликован и открыт для интеграции.
+ * Публикация важнее флага — снятый с публикации проект исчезает из витрины.
+ */
+export const SHOWCASE_WHERE = {
+  ...PUBLISHED_ONLY,
+  availableForIntegration: true,
+} as const
+
+/** То же правило для уже загруженной записи. */
+export function isShowcaseProject(project: {
+  publication: PublicationStatus
+  availableForIntegration: boolean
+}): boolean {
+  return project.publication === PublicationStatus.PUBLISHED && project.availableForIntegration
+}
+
 /** Публикацией и снятием с публикации управляют администратор и редактор. */
 export function canModerate(user: { role: UserRole }): boolean {
   return user.role === UserRole.ADMIN || user.role === UserRole.EDITOR
@@ -102,6 +119,17 @@ export function withoutLeadContacts<T extends { leadEmail: string | null }>(
   project: T,
 ): T {
   return canSeeLeadContacts(user) ? project : { ...project, leadEmail: null }
+}
+
+/**
+ * Убирает из ответа API служебный флаг витрины: форма ответов /api/projects
+ * читается внешними клиентами, и новое поле не должно её менять.
+ */
+export function withoutIntegrationFlag<T extends { availableForIntegration: boolean }>(
+  project: T,
+): Omit<T, 'availableForIntegration'> {
+  const { availableForIntegration: _flag, ...rest } = project
+  return rest
 }
 
 export const PUBLICATION_LABELS: Record<PublicationStatus, string> = {

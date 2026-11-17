@@ -1,3 +1,4 @@
+import crypto from 'crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { requireApiRole } from '@/lib/auth'
 import { UserRole } from '@prisma/client'
@@ -46,7 +47,7 @@ export async function POST(request: NextRequest) {
       .replace(/[^a-zA-Z0-9._ -]/g, '_')
       .replace(/\s+/g, '_')
       .slice(0, 60)
-    const uniqueId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+    const uniqueId = `${Date.now()}-${crypto.randomBytes(8).toString('hex')}`
     const filename = `${uniqueId}-${baseName || 'document'}${ext}`
 
     // Наружу отдаём не ссылку хранилища, а собственный адрес: файл приватный,

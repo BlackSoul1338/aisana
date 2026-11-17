@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { UserRole } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { requireApiRole, requireApiUser } from '@/lib/auth'
-import { canViewProjectContent, withoutLeadContacts } from '@/lib/publication'
+import { canViewProjectContent, withoutIntegrationFlag, withoutLeadContacts } from '@/lib/publication'
 import { audit } from '@/lib/audit'
 import { parseBody, hearingSchema } from '@/lib/schemas'
 
@@ -22,7 +22,10 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     if (!canViewProjectContent(user, hearing.project)) {
       return NextResponse.json({ error: 'Не найдено' }, { status: 404 })
     }
-    return NextResponse.json({ ...hearing, project: withoutLeadContacts(user, hearing.project) })
+    return NextResponse.json({
+      ...hearing,
+      project: withoutIntegrationFlag(withoutLeadContacts(user, hearing.project)),
+    })
   } catch {
     return NextResponse.json({ error: 'Ошибка' }, { status: 500 })
   }

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { UserRole } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
-import { PUBLISHED_PROJECTS_RELATION, withoutLeadContacts } from '@/lib/publication'
+import { PUBLISHED_PROJECTS_RELATION, withoutIntegrationFlag, withoutLeadContacts } from '@/lib/publication'
 import { canAccessUniversity, requireApiRole, requireApiUser } from '@/lib/auth'
 import { deleteUpload } from '@/lib/uploads'
 import { invalidateSearchIndex } from '@/lib/search/store'
@@ -31,7 +31,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     if (!university) return NextResponse.json({ error: 'Не найдено' }, { status: 404 })
     return NextResponse.json({
       ...university,
-      projects: university.projects.map(project => withoutLeadContacts(user, project)),
+      projects: university.projects.map(project => withoutIntegrationFlag(withoutLeadContacts(user, project))),
     })
   } catch {
     return NextResponse.json({ error: 'Ошибка' }, { status: 500 })

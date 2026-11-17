@@ -1,20 +1,10 @@
 'use client'
 
 import { useState } from 'react'
+import { sanitizeNextPath } from '@/lib/file-url'
 
 interface Props {
   nextPath?: string
-}
-
-// Only allow same-site relative paths to prevent open-redirect attacks
-// via crafted "?next=https://evil.com" links.
-function sanitizeNextPath(path?: string): string {
-  if (!path) return '/admin'
-  // Must start with a single "/" (not "//" which browsers treat as protocol-relative)
-  if (!path.startsWith('/') || path.startsWith('//')) return '/admin'
-  // Reject anything containing a scheme marker just in case
-  if (path.includes('://')) return '/admin'
-  return path
 }
 
 export function LoginForm({ nextPath = '/admin' }: Props) {

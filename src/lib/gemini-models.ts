@@ -41,7 +41,7 @@ export const MODEL_LITE = process.env.GEMINI_MODEL_LITE || 'gemini-3.5-flash-lit
  */
 export const MODEL_FALLBACKS: string[] = (
   process.env.GEMINI_MODEL_FALLBACKS ||
-  'gemini-3.8-flash,gemini-3-flash-preview,gemini-3.5-flash-lite,gemini-3.1-flash-lite'
+  'gemini-3.8-flash,gemini-3-flash,gemini-3.5-flash-lite,gemini-3.1-flash-lite'
 )
   .split(',')
   .map(name => name.trim())
