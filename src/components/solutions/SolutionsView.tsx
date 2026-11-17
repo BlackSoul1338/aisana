@@ -17,7 +17,7 @@ interface Props {
   technologies: { slug: string; name: string }[]
 }
 
-/** Клиентская часть витрины: язык хранится в localStorage, сервер его не знает. */
+/** Клиентская часть витрины: язык берётся из cookie 'lang' через LangContext. */
 export function SolutionsView({ projects, total, page, pageSize, tech, technologies }: Props) {
   const { lang, t } = useLang()
   const count = lang === 'ru'
@@ -47,7 +47,7 @@ export function SolutionsView({ projects, total, page, pageSize, tech, technolog
             {t('solutions', 'reset')}
           </Link>
         )}
-        <button type="submit" className="rounded-lg bg-slate-800 px-4 py-2 text-sm text-white transition-colors hover:bg-slate-700">
+        <button type="submit" className="rounded-lg bg-blue-600 px-4 py-2 text-sm text-white transition-colors hover:bg-blue-700">
           {t('projects', 'apply')}
         </button>
       </AutoSubmitForm>

@@ -1,6 +1,8 @@
 import { redirect } from 'next/navigation'
 import { LoginForm } from '@/components/auth/LoginForm'
 import { getCurrentUser } from '@/lib/auth'
+import { t } from '@/lib/i18n'
+import { getRequestLang } from '@/lib/i18n-server'
 import { sanitizeNextPath } from '@/lib/file-url'
 
 export default async function LoginPage({
@@ -11,6 +13,7 @@ export default async function LoginPage({
   const user = await getCurrentUser()
   const { next } = await searchParams
   const safeNext = sanitizeNextPath(next)
+  const lang = await getRequestLang()
 
   if (user) redirect(safeNext)
 
@@ -21,8 +24,8 @@ export default async function LoginPage({
           <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-blue-600 text-sm font-bold text-white">
             AI
           </div>
-          <h1 className="text-xl font-bold text-slate-800">Вход в админ-панель</h1>
-          <p className="mt-1 text-sm text-slate-500">Карта ИИ-проектов вузов</p>
+          <h1 className="text-xl font-bold text-slate-800">{t('login', 'title', lang)}</h1>
+          <p className="mt-1 text-sm text-slate-500">{t('login', 'subtitle', lang)}</p>
         </div>
 
         <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">

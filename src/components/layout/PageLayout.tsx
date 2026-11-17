@@ -24,14 +24,14 @@ export function PageLayout({ children }: { children: React.ReactNode }) {
 
             <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
               <Link href="/contacts" className="hover:text-slate-600 transition-colors">
-                Контакты
+                {t('footer', 'contacts')}
               </Link>
               <span className="text-slate-200">·</span>
               <a
                 href="/docs/instrukciya-dlya-vuzov.docx"
                 className="hover:text-slate-600 transition-colors"
               >
-                Инструкция для вузов
+                {t('footer', 'instruction')}
               </a>
               <span className="text-slate-200">·</span>
               <p>
