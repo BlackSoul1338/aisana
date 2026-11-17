@@ -88,6 +88,13 @@ export const REQUEST_TYPE_LABELS: Record<IntegrationRequestType, string> = {
   INTEGRATION: 'Внедрение',
 }
 
+export const REQUEST_TYPE_LABELS_KZ: Record<IntegrationRequestType, string> = {
+  DEMO: 'Демонстрация',
+  CONSULTATION: 'Консультация',
+  PILOT: 'Пилот',
+  INTEGRATION: 'Енгізу',
+}
+
 export const REQUEST_STATUS_LABELS: Record<IntegrationRequestStatus, string> = {
   NEW: 'Новый',
   IN_REVIEW: 'На проверке',
@@ -95,6 +102,24 @@ export const REQUEST_STATUS_LABELS: Record<IntegrationRequestStatus, string> = {
   IN_PROGRESS: 'В работе',
   DONE: 'Завершён',
   DECLINED: 'Отклонён',
+}
+
+export const REQUEST_STATUS_LABELS_KZ: Record<IntegrationRequestStatus, string> = {
+  NEW: 'Жаңа',
+  IN_REVIEW: 'Тексерілуде',
+  SENT_TO_UNIVERSITY: 'ЖОО-ға жіберілді',
+  IN_PROGRESS: 'Жұмыста',
+  DONE: 'Аяқталды',
+  DECLINED: 'Бас тартылған',
+}
+
+/** Подпись статуса/типа запроса на языке интерфейса; RU-вариант оставлен для журнала. */
+export function requestStatusLabel(status: IntegrationRequestStatus, lang: 'ru' | 'kz' = 'ru'): string {
+  return (lang === 'kz' ? REQUEST_STATUS_LABELS_KZ : REQUEST_STATUS_LABELS)[status]
+}
+
+export function requestTypeLabel(type: IntegrationRequestType, lang: 'ru' | 'kz' = 'ru'): string {
+  return (lang === 'kz' ? REQUEST_TYPE_LABELS_KZ : REQUEST_TYPE_LABELS)[type]
 }
 
 export const REQUEST_STATUS_BADGE: Record<IntegrationRequestStatus, string> = {

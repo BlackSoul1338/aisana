@@ -1,5 +1,8 @@
+'use client'
+
 import { ProjectStatus } from '@prisma/client'
 import { cn, STATUS_CONFIG } from '@/lib/utils'
+import { useLang } from '@/context/LangContext'
 
 interface Props {
   status: ProjectStatus
@@ -7,6 +10,7 @@ interface Props {
 }
 
 export function StatusBadge({ status, size = 'md' }: Props) {
+  const { t } = useLang()
   const config = STATUS_CONFIG[status]
   return (
     <span
@@ -18,7 +22,7 @@ export function StatusBadge({ status, size = 'md' }: Props) {
         size === 'sm' ? 'px-2 py-0.5 text-xs' : 'px-3 py-1 text-xs'
       )}
     >
-      {config.label}
+      {t('status', status)}
     </span>
   )
 }

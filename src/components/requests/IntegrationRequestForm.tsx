@@ -3,12 +3,14 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { CheckCircle2, Loader2, Send } from 'lucide-react'
-import { REQUEST_TYPE_LABELS } from '@/lib/integration-requests'
+import { REQUEST_TYPE_LABELS, requestTypeLabel } from '@/lib/integration-requests'
+import { useLang } from '@/context/LangContext'
 
-const TYPES = Object.entries(REQUEST_TYPE_LABELS) as [keyof typeof REQUEST_TYPE_LABELS, string][]
+const TYPE_KEYS = Object.keys(REQUEST_TYPE_LABELS) as (keyof typeof REQUEST_TYPE_LABELS)[]
 
 /** Форма запроса компании по решению: уходит оператору портала. */
 export function IntegrationRequestForm({ projectId }: { projectId: string }) {
+  const { t, lang } = useLang()
   const [loading, setLoading] = useState(false)
   const [sent, setSent] = useState(false)
   const [error, setError] = useState('')
@@ -29,7 +31,7 @@ export function IntegrationRequestForm({ projectId }: { projectId: string }) {
       })
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
-        throw new Error(data.error || 'Не удалось отправить запрос')
+        throw new Error(data.error || t('requestForm', 'failed'))
       }
       form.reset()
       setSent(true)
@@ -44,15 +46,15 @@ export function IntegrationRequestForm({ projectId }: { projectId: string }) {
     return (
       <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-5 text-center">
         <CheckCircle2 className="mx-auto mb-2 text-emerald-600" size={24} />
-        <p className="text-sm font-medium text-emerald-900">Запрос отправлен</p>
+        <p className="text-sm font-medium text-emerald-900">{t('requestForm', 'sentTitle')}</p>
         <p className="mt-1 text-xs text-emerald-700">
-          Оператор AiSana проверит его и свяжется с вами по почте.
+          {t('requestForm', 'sentText')}
         </p>
         <Link
           href="/business/requests"
           className="mt-3 inline-block text-sm text-emerald-700 underline underline-offset-2 hover:text-emerald-900"
         >
-          Мои запросы
+          {t('requestForm', 'myRequests')}
         </Link>
       </div>
     )
@@ -68,23 +70,23 @@ export function IntegrationRequestForm({ projectId }: { projectId: string }) {
       )}
 
       <div>
-        <label className={label} htmlFor="ir-type">Что нужно</label>
+        <label className={label} htmlFor="ir-type">{t('requestForm', 'typeLabel')}</label>
         <select id="ir-type" name="type" defaultValue="CONSULTATION" className={input}>
-          {TYPES.map(([value, text]) => <option key={value} value={value}>{text}</option>)}
+          {TYPE_KEYS.map(value => <option key={value} value={value}>{requestTypeLabel(value, lang)}</option>)}
         </select>
       </div>
 
       <div>
-        <label className={label} htmlFor="ir-message">Задача компании <span className="text-red-500">*</span></label>
+        <label className={label} htmlFor="ir-message">{t('requestForm', 'messageLabel')} <span className="text-red-500">*</span></label>
         <textarea
           id="ir-message" name="message" required minLength={10} maxLength={4000} rows={4}
           className={`${input} resize-none`}
-          placeholder="Какой процесс хотите улучшить, какие данные есть, сроки"
+          placeholder={t('requestForm', 'messagePlaceholder')}
         />
       </div>
 
       <div>
-        <label className={label} htmlFor="ir-phone">Телефон</label>
+        <label className={label} htmlFor="ir-phone">{t('requestForm', 'phoneLabel')}</label>
         <input id="ir-phone" name="contactPhone" maxLength={40} className={input} placeholder="+7 7XX XXX XX XX" />
       </div>
 
@@ -94,12 +96,11 @@ export function IntegrationRequestForm({ projectId }: { projectId: string }) {
         className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
       >
         {loading ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />}
-        {loading ? 'Отправка…' : 'Отправить запрос'}
+        {loading ? t('requestForm', 'sending') : t('requestForm', 'send')}
       </button>
 
       <p className="text-xs text-slate-400">
-        Запрос увидит оператор AiSana, а после проверки — вуз-разработчик. Контакты
-        из вашей учётной записи передаются вместе с запросом.
+        {t('requestForm', 'consent')}
       </p>
     </form>
   )

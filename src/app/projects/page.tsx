@@ -13,6 +13,8 @@ import { CATEGORY_LABELS, STATUS_LABELS } from '@/types'
 import { INDUSTRIES } from '@/lib/industries'
 import { plural } from '@/lib/plural'
 import { canWriteContent, requireUser } from '@/lib/auth'
+import { t } from '@/lib/i18n'
+import { getRequestLang } from '@/lib/i18n-server'
 
 const PAGE_SIZE = 24
 
@@ -25,16 +27,16 @@ interface Params {
  * Группы стадий для ссылок с дашборда: «Внедрено» там — это внедрено и
  * масштабировано вместе, «В разработке» — прототип и пилот.
  */
-const STATUS_GROUPS: Record<string, { label: string; statuses: ProjectStatus[] }> = {
-  DEPLOYED: { label: 'Внедрено и масштабировано', statuses: ['IMPLEMENTED', 'SCALED'] },
-  IN_PROGRESS: { label: 'В разработке (прототип и пилот)', statuses: ['PROTOTYPE', 'PILOT'] },
+const STATUS_GROUPS: Record<string, { key: string; statuses: ProjectStatus[] }> = {
+  DEPLOYED: { key: 'statusGroupDeployed', statuses: ['IMPLEMENTED', 'SCALED'] },
+  IN_PROGRESS: { key: 'statusGroupInProgress', statuses: ['PROTOTYPE', 'PILOT'] },
 }
 
-const SORTS: Record<string, { label: string; orderBy: Prisma.ProjectOrderByWithRelationInput }> = {
-  newest: { label: 'Сначала новые', orderBy: { createdAt: 'desc' } },
-  oldest: { label: 'Сначала старые', orderBy: { createdAt: 'asc' } },
-  title: { label: 'По названию А-Я', orderBy: { title: 'asc' } },
-  views: { label: 'По просмотрам', orderBy: { viewCount: 'desc' } },
+const SORTS: Record<string, { key: string; orderBy: Prisma.ProjectOrderByWithRelationInput }> = {
+  newest: { key: 'sortNewest', orderBy: { createdAt: 'desc' } },
+  oldest: { key: 'sortOldest', orderBy: { createdAt: 'asc' } },
+  title: { key: 'sortTitle', orderBy: { title: 'asc' } },
+  views: { key: 'sortViews', orderBy: { viewCount: 'desc' } },
 }
 
 function buildWhere(params: Params): Prisma.ProjectWhereInput {
@@ -117,6 +119,7 @@ async function getFilterOptions() {
 export default async function ProjectsPage({ searchParams }: { searchParams: Promise<Params> }) {
   // Настоящая проверка сессии: middleware смотрит только наличие cookie
   const user = await requireUser('/')
+  const lang = await getRequestLang()
 
   const sp = await searchParams
   const page = Math.max(1, parseInt(sp.page || '1', 10) || 1)
@@ -133,10 +136,10 @@ export default async function ProjectsPage({ searchParams }: { searchParams: Pro
     <PageLayout>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">ИИ-проекты</h1>
+          <h1 className="text-2xl font-bold text-slate-800">{t('projects', 'title', lang)}</h1>
           <p className="text-slate-500 mt-1">
-            {hasFilters ? 'Найдено: ' : ''}{total} {plural(total, 'проект', 'проекта', 'проектов')}
-            {sp.q?.trim() ? <> по запросу «{sp.q.trim()}»</> : null}
+            {hasFilters ? `${t('projects', 'found', lang)}: ` : ''}{total} {lang === 'kz' ? 'жоба' : plural(total, 'проект', 'проекта', 'проектов')}
+            {sp.q?.trim() ? <> {t('projects', 'forQuery', lang)} «{sp.q.trim()}»</> : null}
           </p>
         </div>
         {canWriteContent(user) && (
@@ -145,7 +148,7 @@ export default async function ProjectsPage({ searchParams }: { searchParams: Pro
             className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
           >
             <Plus size={16} />
-            Добавить проект
+            {t('projects', 'addProject', lang)}
           </Link>
         )}
       </div>
@@ -154,49 +157,49 @@ export default async function ProjectsPage({ searchParams }: { searchParams: Pro
         <input
           name="q"
           defaultValue={sp.q}
-          placeholder="Название, описание, технология…"
+          placeholder={t('projects', 'searchPlaceholder', lang)}
           className="col-span-2 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
         />
         <select name="status" defaultValue={sp.status || ''} className={select}>
-          <option value="">Все стадии</option>
-          {Object.entries(STATUS_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-          {Object.entries(STATUS_GROUPS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+          <option value="">{t('projects', 'allStages', lang)}</option>
+          {Object.keys(STATUS_LABELS).map(k => <option key={k} value={k}>{t('status', k, lang)}</option>)}
+          {Object.entries(STATUS_GROUPS).map(([k, v]) => <option key={k} value={k}>{t('projects', v.key, lang)}</option>)}
         </select>
         <select name="industry" defaultValue={sp.industry || ''} className={select}>
-          <option value="">Все отрасли</option>
-          {INDUSTRIES.map(i => <option key={i.value} value={i.value}>{i.ru}</option>)}
-          <option value="NONE">Отрасль не указана</option>
+          <option value="">{t('projects', 'allIndustries', lang)}</option>
+          {INDUSTRIES.map(i => <option key={i.value} value={i.value}>{i[lang]}</option>)}
+          <option value="NONE">{t('projects', 'industryNone', lang)}</option>
         </select>
         <select name="category" defaultValue={sp.category || ''} className={select}>
-          <option value="">Все категории</option>
-          {Object.entries(CATEGORY_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+          <option value="">{t('projects', 'allCategories', lang)}</option>
+          {Object.keys(CATEGORY_LABELS).map(k => <option key={k} value={k}>{t('category', k, lang)}</option>)}
         </select>
         <select name="university" defaultValue={sp.university || ''} className={select}>
-          <option value="">Все вузы</option>
+          <option value="">{t('projects', 'allUniversities', lang)}</option>
           {universities.map(u => <option key={u.id} value={u.id}>{u.shortName ? `${u.shortName} — ${u.name}` : u.name}</option>)}
         </select>
         <select name="region" defaultValue={sp.region || ''} className={select}>
-          <option value="">Все регионы</option>
-          {regions.map(r => <option key={r.id} value={r.code.toLowerCase()}>{r.name}</option>)}
+          <option value="">{t('projects', 'allRegions', lang)}</option>
+          {regions.map(r => <option key={r.id} value={r.code.toLowerCase()}>{lang === 'kz' && r.nameKz ? r.nameKz : r.name}</option>)}
         </select>
         <select name="tech" defaultValue={sp.tech || ''} className={select}>
-          <option value="">Все технологии</option>
+          <option value="">{t('projects', 'allTech', lang)}</option>
           {technologies.map(t => <option key={t.id} value={t.slug}>{t.name}</option>)}
         </select>
         <select name="sort" defaultValue={sp.sort || ''} className={select}>
-          <option value="">{sp.q?.trim() ? 'По релевантности' : 'Сначала новые'}</option>
+          <option value="">{sp.q?.trim() ? t('projects', 'relevant', lang) : t('projects', 'sortNewest', lang)}</option>
           {Object.entries(SORTS)
             .filter(([key]) => sp.q?.trim() || key !== 'newest')
-            .map(([key, sort]) => <option key={key} value={key}>{sort.label}</option>)}
+            .map(([key, sort]) => <option key={key} value={key}>{t('projects', sort.key, lang)}</option>)}
         </select>
         {/* Тематическое направление приходит по ссылке с карточки проекта — сохраняем его при смене фильтров */}
         {sp.topic && <input type="hidden" name="topic" value={sp.topic} />}
         <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700 transition-colors">
-          Найти
+          {t('projects', 'apply', lang)}
         </button>
         {hasFilters && (
           <Link href="/projects" className="text-center text-sm text-slate-400 hover:text-slate-600 py-2 border border-dashed border-slate-200 rounded-lg transition-colors">
-            Сбросить фильтры
+            {t('common', 'reset', lang)}
           </Link>
         )}
       </AutoSubmitForm>
@@ -208,8 +211,8 @@ export default async function ProjectsPage({ searchParams }: { searchParams: Pro
       ) : (
         <div className="text-center py-20 bg-white border border-slate-200 rounded-xl text-slate-400">
           <FolderKanban size={48} className="mx-auto mb-3 opacity-30" />
-          <p className="text-lg font-medium">Проекты не найдены</p>
-          <p className="text-sm mt-1">Попробуйте изменить параметры поиска</p>
+          <p className="text-lg font-medium">{t('projects', 'notFound', lang)}</p>
+          <p className="text-sm mt-1">{t('projects', 'tryAdjust', lang)}</p>
         </div>
       )}
 
@@ -219,6 +222,7 @@ export default async function ProjectsPage({ searchParams }: { searchParams: Pro
         totalItems={total}
         basePath="/projects"
         searchParams={sp as Record<string, string | undefined>}
+        totalLabel={t('common', 'total', lang)}
       />
     </PageLayout>
   )

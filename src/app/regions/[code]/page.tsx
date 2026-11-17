@@ -8,6 +8,7 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
 export async function generateMetadata({ params }: { params: Promise<{ code: string }> }): Promise<Metadata> {
+  const lang = await getRequestLang()
   const { code } = await params
   // Коды регионов в БД хранятся в верхнем регистре, а ссылки с карты
   // ведут на /regions/ast — без toUpperCase() метаданные не находили регион
@@ -19,7 +20,7 @@ export async function generateMetadata({ params }: { params: Promise<{ code: str
   // Несуществующий код — сразу отдаём страницу «не найдено»,
   // чтобы во вкладке не появлялся заголовок «Регион не найден»
   if (!region) notFound()
-  const description = `ИИ-проекты и вузы региона ${region.name}: карта решений, статистика, лучшие практики`
+  const description = `${t('region', 'metaDesc', lang)} ${region.name}: ${t('region', 'metaSuffix', lang)}`
   return {
     title: region.name,
     description,
@@ -31,10 +32,14 @@ import Link from 'next/link'
 import { ArrowLeft, Building2, FolderKanban, CheckCircle } from 'lucide-react'
 import { ProjectCard } from '@/components/ui/project-card'
 import { requireUser } from '@/lib/auth'
+import { plural } from '@/lib/plural'
+import { t } from '@/lib/i18n'
+import { getRequestLang } from '@/lib/i18n-server'
 
 export default async function RegionPage({ params }: { params: Promise<{ code: string }> }) {
   // Настоящая проверка сессии: middleware смотрит только наличие cookie
   await requireUser('/')
+  const lang = await getRequestLang()
   const { code } = await params
   const region = await prisma.region.findFirst({
     where: { code: code.toUpperCase() },
@@ -66,17 +71,17 @@ export default async function RegionPage({ params }: { params: Promise<{ code: s
   return (
     <PageLayout>
       <Link href="/" className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700 mb-6 transition-colors">
-        <ArrowLeft size={14} /> На карту
+        <ArrowLeft size={14} /> {t('region', 'toMap', lang)}
       </Link>
 
       <div className="bg-gradient-to-r from-blue-600 to-blue-800 rounded-xl p-6 mb-6 text-white">
-        <h1 className="text-3xl font-bold mb-1">{region.name}</h1>
-        {region.nameKz && <p className="text-blue-200 text-sm mb-4">{region.nameKz}</p>}
+        <h1 className="text-3xl font-bold mb-1">{lang === 'kz' && region.nameKz ? region.nameKz : region.name}</h1>
+        {region.nameKz && <p className="text-blue-200 text-sm mb-4">{lang === 'kz' ? region.name : region.nameKz}</p>}
         <div className="flex gap-6">
           {[
-            { icon: Building2, label: 'Вузов', value: region.universities.length },
-            { icon: FolderKanban, label: 'Проектов', value: totalProjects },
-            { icon: CheckCircle, label: 'Внедрено', value: implementedCount },
+            { icon: Building2, label: t('region', 'statUni', lang), value: region.universities.length },
+            { icon: FolderKanban, label: t('region', 'statProjects', lang), value: totalProjects },
+            { icon: CheckCircle, label: t('region', 'statImplemented', lang), value: implementedCount },
           ].map(stat => (
             <div key={stat.label} className="flex items-center gap-2">
               <stat.icon size={16} className="text-blue-300" />
@@ -87,7 +92,7 @@ export default async function RegionPage({ params }: { params: Promise<{ code: s
         </div>
       </div>
 
-      <h2 className="text-lg font-semibold text-slate-800 mb-4">Университеты ({region.universities.length})</h2>
+      <h2 className="text-lg font-semibold text-slate-800 mb-4">{t('region', 'universities', lang)} ({region.universities.length})</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
         {region.universities.map(uni => (
           <Link key={uni.id} href={`/universities/${uni.id}`}>
@@ -98,12 +103,12 @@ export default async function RegionPage({ params }: { params: Promise<{ code: s
                 </div>
                 <div className="min-w-0">
                   {uni.shortName && <p className="text-xs font-semibold text-blue-600">{uni.shortName}</p>}
-                  <p className="text-sm font-medium text-slate-700 truncate">{uni.name}</p>
+                  <p className="text-sm font-medium text-slate-700 truncate">{lang === 'kz' && uni.nameKz ? uni.nameKz : uni.name}</p>
                 </div>
               </div>
               <div className="mt-3 flex items-center gap-1.5 text-xs text-slate-500">
                 <FolderKanban size={12} className="text-blue-400" />
-                <span className="font-semibold text-slate-700">{uni._count.projects}</span> проектов
+                <span className="font-semibold text-slate-700">{uni._count.projects}</span> {lang === 'kz' ? 'жоба' : plural(uni._count.projects, 'проект', 'проекта', 'проектов')}
               </div>
             </div>
           </Link>
@@ -112,7 +117,7 @@ export default async function RegionPage({ params }: { params: Promise<{ code: s
 
       {allRecentProjects.length > 0 && (
         <>
-          <h2 className="text-lg font-semibold text-slate-800 mb-4">Последние проекты</h2>
+          <h2 className="text-lg font-semibold text-slate-800 mb-4">{t('region', 'lastProjects', lang)}</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {allRecentProjects.map(p => (
               <ProjectCard key={p.id} project={p as any} />

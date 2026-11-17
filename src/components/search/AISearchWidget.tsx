@@ -7,14 +7,7 @@ import { StatusBadge } from '@/components/ui/status-badge'
 import { CategoryBadge } from '@/components/ui/category-badge'
 import { useLang } from '@/context/LangContext'
 
-const EXAMPLES = [
-  'Проекты в области нефтегазовой и энергетической отрасли',
-  'ИИ для автоматической проверки знаний студентов',
-  'Компьютерное зрение в медицине и здравоохранении',
-  'Чат-боты для образования на казахском языке',
-  'Машинное обучение для анализа данных в науке',
-  'Робототехника и автоматизация производства',
-]
+const EXAMPLE_KEYS = ['ex1', 'ex2', 'ex3', 'ex4', 'ex5', 'ex6'] as const
 
 const STORAGE_KEY = 'ai-search-state-v1'
 
@@ -100,7 +93,7 @@ export function AISearchWidget() {
         body: JSON.stringify({ query: searchQuery }),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Ошибка поиска')
+      if (!res.ok) throw new Error(data.error || t('search', 'failed'))
       setResults(data.results)
       setAiSummary(data.aiSummary || null)
       setMatchReasons(data.matchReasons || {})
@@ -133,7 +126,7 @@ export function AISearchWidget() {
               value={query}
               onChange={e => setQuery(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && doSearch()}
-              placeholder="Например: проекты для автоматизации приёмной комиссии..."
+              placeholder={t('search', 'placeholder')}
               className="w-full pl-11 pr-4 py-3.5 border-2 border-slate-200 focus:border-blue-500 rounded-xl text-sm bg-white focus:outline-none transition-colors"
             />
             {query && (
@@ -151,22 +144,22 @@ export function AISearchWidget() {
             className="flex items-center gap-2 bg-gradient-to-r from-violet-600 to-blue-600 hover:from-violet-700 hover:to-blue-700 disabled:opacity-50 text-white px-5 py-3.5 rounded-xl text-sm font-medium transition-all shadow-sm"
           >
             {loading ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
-            Найти
+            {t('search', 'find')}
           </button>
         </div>
       </div>
 
       {results === null && !loading && (
         <div>
-          <p className="text-xs text-slate-400 uppercase tracking-wide font-medium mb-3">Примеры запросов</p>
+          <p className="text-xs text-slate-400 uppercase tracking-wide font-medium mb-3">{t('search', 'examples')}</p>
           <div className="flex flex-wrap gap-2">
-            {EXAMPLES.map(ex => (
+            {EXAMPLE_KEYS.map(key => (
               <button
-                key={ex}
-                onClick={() => { setQuery(ex); doSearch(ex) }}
+                key={key}
+                onClick={() => { const ex = t('search', key); setQuery(ex); doSearch(ex) }}
                 className="px-3 py-1.5 bg-white border border-slate-200 hover:border-blue-300 hover:text-blue-600 text-slate-600 rounded-full text-xs transition-all"
               >
-                {ex}
+                {t('search', key)}
               </button>
             ))}
           </div>
@@ -176,7 +169,7 @@ export function AISearchWidget() {
       {loading && (
         <div className="flex flex-col items-center py-12 gap-3 text-slate-400">
           <Loader2 size={32} className="animate-spin text-blue-500" />
-          <p className="text-sm">Идёт поиск по базе данных...</p>
+          <p className="text-sm">{t('search', 'searching')}</p>
         </div>
       )}
 
@@ -184,7 +177,7 @@ export function AISearchWidget() {
         <div className="flex gap-3 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
           <AlertCircle size={18} className="text-red-500 shrink-0 mt-0.5" />
           <div className="flex-1">
-            <p className="text-sm font-medium text-red-700">Ошибка ИИ-поиска</p>
+            <p className="text-sm font-medium text-red-700">{t('search', 'failedTitle')}</p>
             <p className="text-xs text-red-600 mt-1 break-words">{error}</p>
           </div>
         </div>
@@ -196,7 +189,7 @@ export function AISearchWidget() {
             <div className="mb-4 rounded-xl border border-violet-200 bg-violet-50/80 p-4 text-sm text-violet-900 shadow-sm">
               <div className="flex items-center gap-2 font-semibold mb-2">
                 <Sparkles size={16} className="text-violet-600" />
-                AI-резюме
+                {t('search', 'aiSummary')}
               </div>
               <p className="leading-6 text-violet-800">{aiSummary}</p>
             </div>
@@ -210,12 +203,12 @@ export function AISearchWidget() {
 
           <div className="flex items-center justify-between mb-4">
             <p className="text-sm text-slate-600">
-              По запросу <span className="font-semibold text-slate-800">«{searched}»</span> найдено{' '}
-              <span className="font-bold text-blue-600">{results.length}</span> проектов
+              {t('search', 'foundFor')} <span className="font-semibold text-slate-800">«{searched}»</span>:{' '}
+              <span className="font-bold text-blue-600">{results.length}</span> {t('search', 'projectsFound')}
             </p>
             {results.length > 0 && (
               <button onClick={clearSearch} className="text-xs text-slate-400 hover:text-slate-600">
-                Новый поиск
+                {t('search', 'newSearch')}
               </button>
             )}
           </div>
@@ -223,8 +216,8 @@ export function AISearchWidget() {
           {results.length === 0 ? (
             <div className="text-center py-12 bg-slate-50 border border-slate-200 rounded-xl text-slate-400">
               <Search size={36} className="mx-auto mb-3 opacity-30" />
-              <p className="font-medium">Подходящих проектов не найдено</p>
-              <p className="text-sm mt-1">Попробуйте переформулировать запрос</p>
+              <p className="font-medium">{t('search', 'noneFound')}</p>
+              <p className="text-sm mt-1">{t('search', 'tryRephrase')}</p>
             </div>
           ) : (
             <div className="space-y-3">

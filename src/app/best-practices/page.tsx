@@ -8,17 +8,20 @@ import { ProjectCard } from '@/components/ui/project-card'
 import { Star, TrendingUp } from 'lucide-react'
 import { getCurrentUser } from '@/lib/auth'
 import { AccessDenied } from '@/components/layout/AccessDenied'
+import { t } from '@/lib/i18n'
+import { getRequestLang } from '@/lib/i18n-server'
 
 export default async function BestPracticesPage() {
   const user = await getCurrentUser()
+  const lang = await getRequestLang()
 
   // Раздел содержит внутреннюю аналитику по проектам вузов,
   // поэтому открыт только сотрудникам оператора портала (ADMIN и EDITOR).
   if (!user) {
     return (
       <AccessDenied
-        title="Требуется авторизация"
-        description="Раздел «Лучшие проекты» доступен только авторизованным пользователям."
+        title={t('best', 'authRequired', lang)}
+        description={t('best', 'authDesc', lang)}
         showLogin
         nextPath="/best-practices"
       />
@@ -27,7 +30,7 @@ export default async function BestPracticesPage() {
 
   if (!canModerate(user)) {
     return (
-      <AccessDenied description="Раздел «Лучшие проекты» доступен только администраторам и редакторам портала." />
+      <AccessDenied description={t('best', 'modOnly', lang)} />
     )
   }
 
@@ -54,20 +57,19 @@ export default async function BestPracticesPage() {
           <div className="w-10 h-10 rounded-xl bg-amber-500 flex items-center justify-center">
             <Star className="text-white" size={20} />
           </div>
-          <h1 className="text-2xl font-bold text-slate-800">Лучшие проекты</h1>
+          <h1 className="text-2xl font-bold text-slate-800">{t('best', 'title', lang)}</h1>
         </div>
         <p className="text-slate-600 max-w-2xl">
-          Проекты, признанные наиболее эффективными и рекомендованные для масштабирования в другие
-          университеты Казахстана. Критерии отбора: результативность, воспроизводимость, готовность документации.
+          {t('best', 'subtitle', lang)}
         </p>
         <div className="flex gap-4 mt-4">
           <div className="flex items-center gap-2 text-sm text-amber-700 bg-amber-100 px-3 py-1.5 rounded-lg">
             <Star size={14} className="fill-amber-500 text-amber-500" />
-            <span><strong>{highlighted.length}</strong> лучших проектов</span>
+            <span><strong>{highlighted.length}</strong> {t('best', 'countBest', lang)}</span>
           </div>
           <div className="flex items-center gap-2 text-sm text-violet-700 bg-violet-100 px-3 py-1.5 rounded-lg">
             <TrendingUp size={14} />
-            <span><strong>{scalable.length}</strong> готово к тиражированию</span>
+            <span><strong>{scalable.length}</strong> {t('best', 'countScalable', lang)}</span>
           </div>
         </div>
       </div>
@@ -76,7 +78,7 @@ export default async function BestPracticesPage() {
         <section className="mb-8">
           <h2 className="text-lg font-semibold text-slate-800 flex items-center gap-2 mb-4">
             <Star size={18} className="text-amber-500 fill-amber-500" />
-            Лучшие проекты
+            {t('best', 'sectionBest', lang)}
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {highlighted.map(p => (
@@ -90,7 +92,7 @@ export default async function BestPracticesPage() {
         <section>
           <h2 className="text-lg font-semibold text-slate-800 flex items-center gap-2 mb-4">
             <TrendingUp size={18} className="text-violet-500" />
-            Готовы к тиражированию
+            {t('best', 'sectionScale', lang)}
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {scalable.map(p => (
@@ -103,8 +105,8 @@ export default async function BestPracticesPage() {
       {bestPractices.length === 0 && (
         <div className="text-center py-20 text-slate-400">
           <Star size={48} className="mx-auto mb-3 opacity-30" />
-          <p className="text-lg font-medium">Нет лучших проектов</p>
-          <p className="text-sm mt-1">Отметьте проекты как «Лучший проект» или «К тиражированию»</p>
+          <p className="text-lg font-medium">{t('best', 'empty', lang)}</p>
+          <p className="text-sm mt-1">{t('best', 'emptyHint', lang)}</p>
         </div>
       )}
     </PageLayout>

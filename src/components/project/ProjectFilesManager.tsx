@@ -2,15 +2,16 @@
 
 import { useState } from 'react'
 import { FileText, Video, Link2, Trash2, Plus, ExternalLink, FileCheck, Loader2, AlertCircle } from 'lucide-react'
+import { useLang } from '@/context/LangContext'
 
 const FILE_TYPES = [
-  { value: 'ACT',           label: 'Акт внедрения',    icon: FileCheck },
-  { value: 'PRESENTATION',  label: 'Презентация',       icon: FileText },
-  { value: 'DOCUMENTATION', label: 'Документация',      icon: FileText },
-  { value: 'VIDEO',         label: 'Видео',             icon: Video },
-  { value: 'ZOOM',          label: 'Zoom запись',       icon: Video },
-  { value: 'LINK',          label: 'Ссылка',            icon: Link2 },
-  { value: 'OTHER',         label: 'Прочее',            icon: FileText },
+  { value: 'ACT',           key: 'fileTypeAct',          icon: FileCheck },
+  { value: 'PRESENTATION',  key: 'fileTypePresentation', icon: FileText },
+  { value: 'DOCUMENTATION', key: 'fileTypeDoc',          icon: FileText },
+  { value: 'VIDEO',         key: 'fileTypeVideo',        icon: Video },
+  { value: 'ZOOM',          key: 'fileTypeZoom',         icon: Video },
+  { value: 'LINK',          key: 'fileTypeLink',         icon: Link2 },
+  { value: 'OTHER',         key: 'fileTypeOther',        icon: FileText },
 ]
 
 const TYPE_COLORS: Record<string, string> = {
@@ -42,6 +43,7 @@ function isValidUrl(url: string): boolean {
 }
 
 export function ProjectFilesManager({ projectId, initialFiles = [], readonly = false }: Props) {
+  const { t } = useLang()
   const [files, setFiles] = useState<ProjectFile[]>(initialFiles)
   const [adding, setAdding] = useState(false)
   const [form, setForm] = useState({ type: 'PRESENTATION', label: '', url: '' })
@@ -53,11 +55,11 @@ export function ProjectFilesManager({ projectId, initialFiles = [], readonly = f
     setError('')
 
     if (!form.label.trim() || !form.url.trim()) {
-      setError('Заполните название и ссылку')
+      setError(t('project', 'fillRequired'))
       return
     }
     if (!isValidUrl(form.url)) {
-      setError('Ссылка должна начинаться с http:// или https://')
+      setError(t('project', 'urlMustBeHttp'))
       return
     }
 
@@ -71,7 +73,7 @@ export function ProjectFilesManager({ projectId, initialFiles = [], readonly = f
       const data = await res.json()
 
       if (!res.ok) {
-        throw new Error(data.error || 'Ошибка добавления файла')
+        throw new Error(data.error || t('project', 'addFailed'))
       }
 
       setFiles(prev => [...prev, data])
@@ -85,7 +87,7 @@ export function ProjectFilesManager({ projectId, initialFiles = [], readonly = f
   }
 
   async function deleteFile(fileId: string) {
-    if (!confirm('Удалить файл?')) return
+    if (!confirm(t('project', 'deleteFileConfirm'))) return
     setDeletingId(fileId)
     setError('')
     try {
@@ -96,7 +98,7 @@ export function ProjectFilesManager({ projectId, initialFiles = [], readonly = f
       })
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
-        throw new Error(data.error || 'Ошибка удаления файла')
+        throw new Error(data.error || t('project', 'deleteFileFailed'))
       }
       // Only remove from UI after the server confirms it's actually gone
       setFiles(prev => prev.filter(f => f.id !== fileId))
@@ -108,12 +110,12 @@ export function ProjectFilesManager({ projectId, initialFiles = [], readonly = f
   }
 
   const getIcon = (type: string) => {
-    const t = FILE_TYPES.find(t => t.value === type)
-    const Icon = t?.icon || FileText
+    const ft = FILE_TYPES.find(ft => ft.value === type)
+    const Icon = ft?.icon || FileText
     return <Icon size={14} />
   }
 
-  const getLabel = (type: string) => FILE_TYPES.find(t => t.value === type)?.label || type
+  const getLabel = (type: string) => { const ft = FILE_TYPES.find(ft => ft.value === type); return ft ? t('project', ft.key) : type }
 
   return (
     <div className="space-y-3">
@@ -156,7 +158,7 @@ export function ProjectFilesManager({ projectId, initialFiles = [], readonly = f
       )}
 
       {files.length === 0 && readonly && (
-        <p className="text-slate-400 text-sm py-2">Файлы не прикреплены</p>
+        <p className="text-slate-400 text-sm py-2">{t('project', 'filesNotAttached')}</p>
       )}
 
       {!readonly && (
@@ -166,7 +168,7 @@ export function ProjectFilesManager({ projectId, initialFiles = [], readonly = f
               onClick={() => { setAdding(true); setError('') }}
               className="flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-700 font-medium"
             >
-              <Plus size={14} /> Добавить файл / ссылку
+              <Plus size={14} /> {t('project', 'addFileLink')}
             </button>
           ) : (
             <div className="border border-blue-200 bg-blue-50 rounded-xl p-4 space-y-3">
@@ -176,10 +178,10 @@ export function ProjectFilesManager({ projectId, initialFiles = [], readonly = f
                   onChange={e => setForm(p => ({ ...p, type: e.target.value }))}
                   className="border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  {FILE_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                  {FILE_TYPES.map(ft => <option key={ft.value} value={ft.value}>{t('project', ft.key)}</option>)}
                 </select>
                 <input
-                  placeholder="Название (например: Акт внедрения КарТУ)"
+                  placeholder={t('project', 'fileNamePlaceholder')}
                   value={form.label}
                   onChange={e => setForm(p => ({ ...p, label: e.target.value }))}
                   className="border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -198,13 +200,13 @@ export function ProjectFilesManager({ projectId, initialFiles = [], readonly = f
                   className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-4 py-1.5 rounded-lg text-sm font-medium"
                 >
                   {saving && <Loader2 size={13} className="animate-spin" />}
-                  {saving ? 'Добавление...' : 'Добавить'}
+                  {saving ? t('project', 'adding') : t('common', 'add')}
                 </button>
                 <button
                   onClick={() => { setAdding(false); setError('') }}
                   className="text-slate-500 hover:text-slate-700 px-4 py-1.5 text-sm"
                 >
-                  Отмена
+                  {t('common', 'cancel')}
                 </button>
               </div>
             </div>

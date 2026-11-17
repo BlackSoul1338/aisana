@@ -87,7 +87,7 @@ export function DashboardCharts({
   const totalProjects = byStatus.reduce((s, x) => s + x.count, 0)
   const funnel = STATUS_ORDER.map(status => ({
     status,
-    name: t('projects', status),
+    name: t('status', status),
     count: statusMap[status] || 0,
     color: STATUS_COLORS[status],
   }))
@@ -98,7 +98,7 @@ export function DashboardCharts({
     const found = stages.find(s => s.status === status)
     return {
       status,
-      name: t('projects', status),
+      name: t('status', status),
       color: STATUS_COLORS[status],
       total: found?.total ?? 0,
       confirmed: found?.confirmed ?? 0,
@@ -122,7 +122,7 @@ export function DashboardCharts({
   const industryMax = Math.max(...industryRows.filter(row => row.key !== 'NONE').map(row => row.count), 1)
 
   const categoryData = byCategory.map(c => ({
-    name: t('projects', c.category),
+    name: t('category', c.category),
     value: c.count,
     color: CATEGORY_COLORS[c.category as ProjectCategory] || '#94a3b8',
   }))

@@ -25,6 +25,7 @@ export type TopicId =
 export interface Topic {
   id: TopicId
   label: string
+  labelKz: string
   labelEn: string
   strong: string[]
   medium: string[]
@@ -36,6 +37,7 @@ export const TOPICS: Topic[] = [
   {
     id: 'INDUSTRY',
     label: 'Промышленность',
+    labelKz: 'Өнеркәсіп',
     labelEn: 'Industry',
     strong: [
       'завод', 'производств', 'промышлен', 'цех', 'конвейер', 'станок', 'станочн',
@@ -56,6 +58,7 @@ export const TOPICS: Topic[] = [
   {
     id: 'MINING',
     label: 'ГМК (горно-металлургический комплекс)',
+    labelKz: 'Тау-кен және металлургия кешені',
     labelEn: 'Mining & Metallurgy',
     aliases: ['гмк', 'мтк'],
     strong: [
@@ -77,6 +80,7 @@ export const TOPICS: Topic[] = [
   {
     id: 'HR',
     label: 'HR и управление персоналом',
+    labelKz: 'HR және персоналды басқару',
     labelEn: 'HR',
     aliases: ['hr', 'hrm', 'ats'],
     strong: [
@@ -96,6 +100,7 @@ export const TOPICS: Topic[] = [
   {
     id: 'HEALTHCARE',
     label: 'Здравоохранение',
+    labelKz: 'Денсаулық сақтау',
     labelEn: 'Healthcare',
     strong: [
       'медицин', 'здравоохран', 'пациент', 'больниц', 'клиник', 'поликлиник',
@@ -113,6 +118,7 @@ export const TOPICS: Topic[] = [
   {
     id: 'EDUCATION',
     label: 'Образование',
+    labelKz: 'Білім беру',
     labelEn: 'Education',
     aliases: ['lms', 'moocs'],
     strong: [
@@ -131,6 +137,7 @@ export const TOPICS: Topic[] = [
   {
     id: 'FINTECH',
     label: 'FinTech',
+    labelKz: 'FinTech',
     labelEn: 'FinTech',
     strong: [
       'финанс', 'банк', 'платеж', 'кредит', 'транзакц', 'скоринг', 'страхов',
@@ -147,6 +154,7 @@ export const TOPICS: Topic[] = [
   {
     id: 'GOVTECH',
     label: 'GovTech',
+    labelKz: 'GovTech',
     labelEn: 'GovTech',
     aliases: ['egov', 'цон'],
     strong: [
@@ -165,6 +173,7 @@ export const TOPICS: Topic[] = [
   {
     id: 'AGRITECH',
     label: 'AgriTech',
+    labelKz: 'AgriTech',
     labelEn: 'AgriTech',
     strong: [
       'сельск хозяйств', 'сельскохозяйствен', 'агропром', 'агротех', 'агроном',
@@ -181,6 +190,7 @@ export const TOPICS: Topic[] = [
   {
     id: 'LOGISTICS',
     label: 'Логистика',
+    labelKz: 'Логистика',
     labelEn: 'Logistics',
     strong: [
       'логистик', 'склад', 'перевозк', 'доставк', 'грузоперевозк', 'цепочк поставок',
@@ -198,6 +208,7 @@ export const TOPICS: Topic[] = [
   {
     id: 'CONSTRUCTION',
     label: 'Строительство',
+    labelKz: 'Құрылыс',
     labelEn: 'Construction',
     aliases: ['bim'],
     strong: [
@@ -215,6 +226,7 @@ export const TOPICS: Topic[] = [
   {
     id: 'SMART_CITY',
     label: 'Smart City',
+    labelKz: 'Smart City (ақылды қала)',
     labelEn: 'Smart City',
     strong: [
       'умн город', 'смарт сити', 'городск среда', 'городск инфраструктур',
@@ -232,6 +244,7 @@ export const TOPICS: Topic[] = [
   {
     id: 'ENERGY',
     label: 'Энергетика',
+    labelKz: 'Энергетика',
     labelEn: 'Energy',
     strong: [
       'энергетик', 'энергосистем', 'электростанц', 'электросет', 'подстанц',
@@ -249,6 +262,7 @@ export const TOPICS: Topic[] = [
   {
     id: 'ENVIRONMENT',
     label: 'Экология',
+    labelKz: 'Экология',
     labelEn: 'Environment',
     strong: [
       'эколог', 'окружающ сред', 'загрязнен', 'выброс', 'углеродн след',
@@ -265,6 +279,7 @@ export const TOPICS: Topic[] = [
   {
     id: 'ROBOTICS',
     label: 'Робототехника',
+    labelKz: 'Робототехника',
     labelEn: 'Robotics',
     aliases: ['бпла', 'уав', 'uav', 'agv'],
     strong: [
@@ -282,6 +297,7 @@ export const TOPICS: Topic[] = [
   {
     id: 'COMPUTER_VISION',
     label: 'Computer Vision',
+    labelKz: 'Компьютерлік көру',
     labelEn: 'Computer Vision',
     aliases: ['cv', 'ocr', 'yolo'],
     strong: [
@@ -301,6 +317,7 @@ export const TOPICS: Topic[] = [
   {
     id: 'NLP',
     label: 'NLP (обработка языка)',
+    labelKz: 'NLP (табиғи тілді өңдеу)',
     labelEn: 'NLP',
     aliases: ['nlp', 'asr', 'tts', 'ner'],
     strong: [
@@ -319,6 +336,7 @@ export const TOPICS: Topic[] = [
   {
     id: 'LLM',
     label: 'LLM и генеративный ИИ',
+    labelKz: 'LLM және генеративті ЖИ',
     labelEn: 'LLM & Generative AI',
     aliases: ['llm', 'gpt', 'rag', 'chatgpt', 'gemini', 'claude', 'llama'],
     strong: [
@@ -337,6 +355,7 @@ export const TOPICS: Topic[] = [
   {
     id: 'CYBERSECURITY',
     label: 'Кибербезопасность',
+    labelKz: 'Киберқауіпсіздік',
     labelEn: 'Cybersecurity',
     aliases: ['siem', 'soc', 'dlp', 'waf'],
     strong: [
@@ -355,6 +374,7 @@ export const TOPICS: Topic[] = [
   {
     id: 'IOT',
     label: 'IoT',
+    labelKz: 'IoT (заттар интернеті)',
     labelEn: 'IoT',
     aliases: ['iot', 'mqtt', 'plc', 'scada', 'rfid'],
     strong: [
@@ -372,6 +392,7 @@ export const TOPICS: Topic[] = [
   {
     id: 'DIGITAL_TWIN',
     label: 'Цифровой двойник',
+    labelKz: 'Цифрлық егіз',
     labelEn: 'Digital Twin',
     strong: [
       'цифров двойник', 'цифровой двойник', 'digital twin',

@@ -3,6 +3,7 @@
 import { useState, useRef } from 'react'
 import { FileText, Upload, Trash2, ExternalLink, Maximize2, X, Link2, Loader2 } from 'lucide-react'
 import { toEmbedUrl } from '@/lib/embed'
+import { useLang } from '@/context/LangContext'
 
 interface Props {
   projectId: string
@@ -11,6 +12,7 @@ interface Props {
 }
 
 export function AgentPassportViewer({ projectId, initialUrl, canEdit = false }: Props) {
+  const { t } = useLang()
   const [url, setUrl] = useState(initialUrl || '')
   const [mode, setMode] = useState<'closed' | 'upload' | 'link'>('closed')
   const [linkInput, setLinkInput] = useState(initialUrl || '')
@@ -29,7 +31,7 @@ export function AgentPassportViewer({ projectId, initialUrl, canEdit = false }: 
         body: JSON.stringify({ url: newUrl }),
       })
       const data = await res.json().catch(() => ({}))
-      if (!res.ok) throw new Error(data.error || 'Ошибка сохранения')
+      if (!res.ok) throw new Error(data.error || t('project', 'saveFailed'))
       setUrl(newUrl)
       setMode('closed')
     } catch (e: any) {
@@ -47,7 +49,7 @@ export function AgentPassportViewer({ projectId, initialUrl, canEdit = false }: 
       formData.append('file', file)
       const res = await fetch('/api/upload', { method: 'POST', body: formData })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Ошибка загрузки')
+      if (!res.ok) throw new Error(data.error || t('project', 'loadFailed'))
       await saveUrl(data.url)
     } catch (e: any) {
       setError(e.message)
@@ -56,14 +58,14 @@ export function AgentPassportViewer({ projectId, initialUrl, canEdit = false }: 
   }
 
   async function removePassport() {
-    if (!confirm('Удалить паспорт агента?')) return
+    if (!confirm(t('project', 'deleteConfirm'))) return
     setSaving(true)
     setError('')
     try {
       const res = await fetch(`/api/projects/${projectId}/passport`, { method: 'DELETE' })
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
-        throw new Error(data.error || 'Ошибка удаления')
+        throw new Error(data.error || t('project', 'deleteFailed'))
       }
       setUrl('')
       setLinkInput('')
@@ -81,20 +83,20 @@ export function AgentPassportViewer({ projectId, initialUrl, canEdit = false }: 
         <div className="flex items-center justify-between px-4 py-3 bg-slate-900">
           <div className="flex items-center gap-2 text-white">
             <FileText size={16} className="text-blue-400" />
-            <span className="text-sm font-medium">Паспорт агента</span>
+            <span className="text-sm font-medium">{t('project', 'passportTitle')}</span>
           </div>
           <div className="flex items-center gap-2">
             <a href={url} target="_blank" rel="noopener noreferrer"
               className="flex items-center gap-1.5 text-xs text-slate-300 hover:text-white px-3 py-1.5 rounded-lg hover:bg-white/10 transition-colors">
-              <ExternalLink size={13} /> Открыть в новой вкладке
+              <ExternalLink size={13} /> {t('project', 'openNewTab')}
             </a>
             <button onClick={() => setFullscreen(false)}
               className="flex items-center gap-1.5 text-xs text-slate-300 hover:text-white px-3 py-1.5 rounded-lg hover:bg-white/10 transition-colors">
-              <X size={16} /> Закрыть
+              <X size={16} /> {t('project', 'close')}
             </button>
           </div>
         </div>
-        <iframe src={toEmbedUrl(url, '#toolbar=1&navpanes=0')} className="flex-1 w-full" title="Паспорт агента" />
+        <iframe src={toEmbedUrl(url, '#toolbar=1&navpanes=0')} className="flex-1 w-full" title={t('project', 'passportTitle')} />
       </div>
     )
   }
@@ -113,8 +115,8 @@ export function AgentPassportViewer({ projectId, initialUrl, canEdit = false }: 
           className="flex flex-col items-center justify-center py-16 bg-slate-50 border-2 border-dashed border-slate-200 rounded-xl text-center"
         >
           <FileText size={40} className="text-slate-300 mb-3" />
-          <p className="text-slate-500 font-medium">Паспорт агента не загружен</p>
-          <p className="text-slate-400 text-sm mt-1">Перетащите PDF сюда или выберите способ ниже</p>
+          <p className="text-slate-500 font-medium">{t('project', 'passportNotLoaded')}</p>
+          <p className="text-slate-400 text-sm mt-1">{t('project', 'dropHint')}</p>
 
           {canEdit && (
             <div className="flex gap-2 mt-5">
@@ -124,13 +126,13 @@ export function AgentPassportViewer({ projectId, initialUrl, canEdit = false }: 
                 className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
               >
                 {saving ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
-                Загрузить PDF
+                {t('project', 'uploadPdf')}
               </button>
               <button
                 onClick={() => setMode('link')}
                 className="flex items-center gap-2 border border-slate-200 hover:border-blue-300 text-slate-600 hover:text-blue-600 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
               >
-                <Link2 size={14} /> Вставить ссылку
+                <Link2 size={14} /> {t('project', 'pasteLink')}
               </button>
               <input
                 ref={fileInputRef}
@@ -149,9 +151,9 @@ export function AgentPassportViewer({ projectId, initialUrl, canEdit = false }: 
 
         {mode === 'link' && (
           <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 space-y-3">
-            <p className="text-sm font-medium text-slate-700">Ссылка на PDF паспорт агента</p>
+            <p className="text-sm font-medium text-slate-700">{t('project', 'pdfLinkTitle')}</p>
             <p className="text-xs text-slate-500">
-              Например, прямая ссылка на Google Drive (доступ «у кого есть ссылка») или другое хранилище.
+              {t('project', 'pdfLinkHint')}
             </p>
             <input
               value={linkInput}
@@ -162,10 +164,10 @@ export function AgentPassportViewer({ projectId, initialUrl, canEdit = false }: 
             <div className="flex gap-2">
               <button onClick={() => saveUrl(linkInput)} disabled={saving || !linkInput.trim()}
                 className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-medium">
-                {saving ? 'Сохранение...' : 'Сохранить'}
+                {saving ? t('project', 'saving') : t('common', 'save')}
               </button>
               <button onClick={() => setMode('closed')} className="text-slate-500 hover:text-slate-700 px-4 py-2 text-sm">
-                Отмена
+                {t('common', 'cancel')}
               </button>
             </div>
           </div>
@@ -180,22 +182,22 @@ export function AgentPassportViewer({ projectId, initialUrl, canEdit = false }: 
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-2 text-sm text-slate-600">
           <FileText size={16} className="text-blue-500" />
-          <span className="font-medium">Паспорт агента (PDF)</span>
+          <span className="font-medium">{t('project', 'passportFile')}</span>
         </div>
         <div className="flex items-center gap-2">
           <a href={url} target="_blank" rel="noopener noreferrer"
             className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-blue-600 border border-slate-200 hover:border-blue-300 px-2.5 py-1.5 rounded-lg transition-colors">
-            <ExternalLink size={12} /> Открыть
+            <ExternalLink size={12} /> {t('project', 'open')}
           </a>
           <button onClick={() => setFullscreen(true)}
             className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-blue-600 border border-slate-200 hover:border-blue-300 px-2.5 py-1.5 rounded-lg transition-colors">
-            <Maximize2 size={12} /> На весь экран
+            <Maximize2 size={12} /> {t('project', 'fullscreen')}
           </button>
           {canEdit && (
             <>
               <button onClick={() => fileInputRef.current?.click()} disabled={saving}
                 className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-blue-600 border border-slate-200 hover:border-blue-300 px-2.5 py-1.5 rounded-lg transition-colors">
-                <Upload size={12} /> Заменить
+                <Upload size={12} /> {t('project', 'replace')}
               </button>
               <input
                 ref={fileInputRef}
@@ -209,7 +211,7 @@ export function AgentPassportViewer({ projectId, initialUrl, canEdit = false }: 
               />
               <button onClick={removePassport}
                 className="flex items-center gap-1.5 text-xs text-red-500 hover:text-red-600 border border-red-100 hover:border-red-300 px-2.5 py-1.5 rounded-lg transition-colors">
-                <Trash2 size={12} /> Удалить
+                <Trash2 size={12} /> {t('common', 'delete')}
               </button>
             </>
           )}
@@ -222,15 +224,15 @@ export function AgentPassportViewer({ projectId, initialUrl, canEdit = false }: 
         <iframe
           src={toEmbedUrl(url, '#toolbar=1&navpanes=0&scrollbar=1')}
           className="w-full h-full"
-          title="Паспорт агента"
+          title={t('project', 'passportTitle')}
           loading="lazy"
         />
       </div>
 
       <p className="text-xs text-slate-400 text-center">
-        Если документ не отображается —{' '}
+        {t('project', 'notRendered')}{' '}
         <a href={url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
-          откройте напрямую →
+          {t('project', 'openDirectly')}
         </a>
       </p>
     </div>

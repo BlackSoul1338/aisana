@@ -2,19 +2,14 @@
 
 import { useState } from 'react'
 import { FileText, Bot, Paperclip, BarChart2 } from 'lucide-react'
+import { useLang } from '@/context/LangContext'
 
-interface Tab {
-  id: string
-  label: string
-  icon: React.ElementType
-}
-
-const TABS: Tab[] = [
-  { id: 'overview',  label: 'Обзор',           icon: FileText  },
-  { id: 'passport',  label: 'Паспорт агента',   icon: Bot       },
-  { id: 'files',     label: 'Файлы и ссылки',   icon: Paperclip },
-  { id: 'stats',     label: 'Статистика',        icon: BarChart2 },
-]
+const TABS = [
+  { id: 'overview',  key: 'tabOverview',   icon: FileText  },
+  { id: 'passport',  key: 'passportTitle', icon: Bot       },
+  { id: 'files',     key: 'filesTitle',    icon: Paperclip },
+  { id: 'stats',     key: 'tabStats',      icon: BarChart2 },
+] as const
 
 interface Props {
   overview:  React.ReactNode
@@ -24,6 +19,7 @@ interface Props {
 }
 
 export function ProjectTabs({ overview, passport, files, stats }: Props) {
+  const { t } = useLang()
   const [active, setActive] = useState('overview')
 
   const content: Record<string, React.ReactNode> = { overview, passport, files, stats }
@@ -43,7 +39,7 @@ export function ProjectTabs({ overview, passport, files, stats }: Props) {
             }`}
           >
             <tab.icon size={14} />
-            {tab.label}
+            {t('project', tab.key)}
           </button>
         ))}
       </div>
