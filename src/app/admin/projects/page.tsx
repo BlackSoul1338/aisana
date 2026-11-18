@@ -14,6 +14,7 @@ import { ListFilters } from '@/components/admin/ListFilters'
 import { Pagination } from '@/components/admin/Pagination'
 import { t } from '@/lib/i18n'
 import { getRequestLang } from '@/lib/i18n-server'
+import { technologyLabel } from '@/lib/technologies'
 
 const DEFAULT_PAGE_SIZE = 25
 const PAGE_SIZES = [50, 100]
@@ -97,7 +98,7 @@ export default async function AdminProjectsPage({ searchParams }: { searchParams
       where,
       include: {
         university: { select: { name: true, shortName: true } },
-        technologies: { select: { name: true } },
+        technologies: { select: { name: true, slug: true } },
         _count: { select: { files: true } },
       },
       orderBy,
@@ -120,7 +121,7 @@ export default async function AdminProjectsPage({ searchParams }: { searchParams
     status: project.status,
     statusLabel: t('status', project.status, lang),
     publication: project.publication,
-    technologies: project.technologies.map(t => t.name).join(', '),
+    technologies: project.technologies.map(tech => technologyLabel(tech, lang)).join(', '),
     noDescription: isDescriptionEmpty(project.description),
     noFiles: project._count.files === 0 && !project.agentPassportPdf,
     dateLabel: project.publication === 'REVIEW' && project.submittedAt
