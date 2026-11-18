@@ -1,6 +1,7 @@
 import crypto from 'crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { requireApiRole } from '@/lib/auth'
+import { getClientIp, rateLimit } from '@/lib/rate-limit'
 import { UserRole } from '@prisma/client'
 import { MAX_UPLOAD_BYTES, saveUpload } from '@/lib/uploads'
 
@@ -9,8 +10,19 @@ import { MAX_UPLOAD_BYTES, saveUpload } from '@/lib/uploads'
 // система доступна только на чтение — запись падала с EROFS.
 export async function POST(request: NextRequest) {
   try {
-    const { response } = await requireApiRole(request, [UserRole.ADMIN, UserRole.EDITOR, UserRole.UNIVERSITY_REP])
+    const { user, response } = await requireApiRole(request, [UserRole.ADMIN, UserRole.EDITOR, UserRole.UNIVERSITY_REP])
     if (response) return response
+
+    if (!rateLimit(`upload:${user.id}`, 20, 60 * 1000).ok) {
+      return NextResponse.json({ error: 'Слишком много файлов. Повторите через минуту.' }, { status: 429 })
+    }
+
+    // Дешёвый precheck до чтения тела: дороже MAX+запас multipart просто не принимаем
+    const contentLength = Number(request.headers.get('content-length') ?? 0)
+    if (contentLength > MAX_UPLOAD_BYTES + 16 * 1024) {
+      const limitMb = Math.round(MAX_UPLOAD_BYTES / 1024 / 1024)
+      return NextResponse.json({ error: `Файл больше ${limitMb}MB` }, { status: 413 })
+    }
 
     const formData = await request.formData()
     const file = formData.get('file') as File | null

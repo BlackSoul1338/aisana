@@ -51,3 +51,7 @@ next-env.d.ts
 
 AGENTS.md
 docs/
+
+# Выгрузки из легаси-эпохи: хранилище теперь в uploads_data / Blob
+public/uploads/
+backups/

@@ -27,7 +27,11 @@ import { scoreFields } from '../src/lib/need-builder/readiness'
 const prisma = new PrismaClient()
 
 /** Тестовые учётки. Пароль — из DEMO_PASSWORD, иначе фиксированный демо-пароль. */
-const DEMO_PASSWORD = process.env.DEMO_PASSWORD || 'demo12345'
+const DEMO_PASSWORD: string = (() => {
+  const p = process.env.DEMO_PASSWORD
+  if (!p) throw new Error('Укажите DEMO_PASSWORD — демо-сиды без пароля не запускаются')
+  return p
+})()
 
 const UNIVERSITIES = [
   {

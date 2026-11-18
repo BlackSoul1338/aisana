@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma'
 import { DEVICE_COOKIE, DEVICE_MAX_AGE_SECONDS, isTrustedDevice, trustDevice } from '@/lib/trusted-devices'
 import { SESSION_COOKIE, SESSION_MAX_AGE_SECONDS, hashSessionToken } from '@/lib/auth'
 import { resetRateLimit } from '@/lib/rate-limit'
+import { audit } from '@/lib/audit'
 import { getClientIp, rateLimit } from '@/lib/rate-limit'
 import { loginSchema, parseBody } from '@/lib/schemas'
 
@@ -72,6 +73,9 @@ export async function POST(request: NextRequest) {
         expires,
       },
     })
+
+    await audit(user, 'LOGIN', 'session', user.id, null,
+      { ip, userAgent: request.headers.get('user-agent') })
 
     // Отметка о входе: по ней в админке видно, кто из вузов ни разу не заходил.
     // Не критично для входа — ошибка записи не должна его ломать.

@@ -9,14 +9,18 @@ import { getClientIp, rateLimit } from '@/lib/rate-limit'
 import { INDUSTRIES, industryLabel } from '@/lib/industries'
 import { technologyLabel } from '@/lib/technologies'
 import { isDescriptionEmpty } from '@/lib/project-completeness'
+import { audit } from '@/lib/audit'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   try {
-    const { response } = await requireApiUser(request)
+    const { user, response } = await requireApiUser(request)
     if (response) return response
     const lang = request.cookies.get('lang')?.value === 'kz' ? 'kz' : 'ru'
+
+    await audit(user, 'EXPORT', 'dashboard', null, `lang=${lang}`,
+      { ip: getClientIp(request), userAgent: request.headers.get('user-agent') })
 
     // Генерация файла — недешёвая операция, ограничиваем: 5 выгрузок в минуту с IP
     const ip = getClientIp(request)
@@ -34,11 +38,11 @@ export async function GET(request: NextRequest) {
         orderBy: { createdAt: 'desc' },
       }),
       prisma.region.findMany({
-        include: { universities: { include: { _count: { select: { projects: true } } } } },
+        include: { universities: { include: { _count: { select: { projects: { where: PUBLISHED_ONLY } } } } } },
         orderBy: { name: 'asc' },
       }),
       prisma.technology.findMany({
-        include: { _count: { select: { projects: true } } },
+        include: { _count: { select: { projects: { where: PUBLISHED_ONLY } } } },
         orderBy: { projects: { _count: 'desc' } },
       }),
     ])

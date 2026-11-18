@@ -1,6 +1,6 @@
 import { prisma } from './prisma'
 
-export type AuditAction = 'CREATE' | 'UPDATE' | 'DELETE' | 'IMPORT'
+export type AuditAction = 'CREATE' | 'UPDATE' | 'DELETE' | 'IMPORT' | 'LOGIN' | 'LOGOUT' | 'EXPORT'
 
 /**
  * Запись действия администратора/редактора в журнал аудита.
@@ -13,7 +13,8 @@ export async function audit(
   action: AuditAction,
   entity: string,
   entityId?: string | null,
-  details?: string | null
+  details?: string | null,
+  context?: { ip?: string | null; userAgent?: string | null } | null,
 ): Promise<void> {
   try {
     await prisma.auditLog.create({
@@ -24,6 +25,8 @@ export async function audit(
         entity,
         entityId: entityId ?? null,
         details: details ? details.slice(0, 1000) : null,
+        ip: context?.ip ?? null,
+        userAgent: context?.userAgent ?? null,
       },
     })
   } catch (error) {

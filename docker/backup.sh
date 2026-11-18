@@ -42,6 +42,14 @@ purge_llm_cache() {
 
 # Просроченные сессии: вход по ним уже невозможен, но строки копятся.
 # Таблицу читают на каждый запрос, поэтому чистим её вместе с кэшем.
+# Журнал аудита: год хранения и дальше — строки никому не нужны
+purge_audit_logs() {
+  count=$(psql -h db -U postgres -d ai_map_kz -tAc \
+    "WITH deleted AS (DELETE FROM audit_logs WHERE created_at <= now() - interval '365 days' RETURNING 1) SELECT count(*) FROM deleted") \
+    || return 1
+  echo "[$(date '+%F %T')] аудит: удалено старше года — $count"
+}
+
 purge_sessions() {
   count=$(psql -h db -U postgres -d ai_map_kz -tAc \
     "WITH deleted AS (DELETE FROM sessions WHERE expires <= now() RETURNING 1) SELECT count(*) FROM deleted") \
@@ -60,5 +68,6 @@ while true; do
   do_backup || echo "[$(date '+%F %T')] ОШИБКА БЭКАПА — повтор через сутки"
   purge_llm_cache || echo "[$(date '+%F %T')] ОШИБКА ЧИСТКИ КЭША ИИ — не критично"
   purge_sessions || echo "[$(date '+%F %T')] ОШИБКА ЧИСТКИ СЕССИЙ — не критично"
+  purge_audit_logs || echo "[$(date '+%F %T')] ОШИБКА ЧИСТКИ АУДИТА — не критично"
   sleep "$INTERVAL_SECONDS"
 done
