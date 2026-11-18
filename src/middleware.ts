@@ -10,7 +10,7 @@ import { NextRequest, NextResponse } from 'next/server'
  * То есть это удобная переадресация на вход, а не единственная защита.
  */
 
-const SESSION_COOKIE = 'ai_map_kz_session'
+const SESSION_COOKIE = '__Host-ai_map_sess'
 
 /** Пути, доступные без входа. Точное совпадение либо префикс с «/». */
 const PUBLIC_PATHS = [

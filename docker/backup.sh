@@ -8,6 +8,9 @@
 #   docker compose exec backup /backup.sh once
 set -eu
 
+# Дампы могут содержать персональные данные — доступ только владельцу
+umask 077
+
 BACKUP_DIR=/backups
 RETENTION_DAYS=14
 INTERVAL_SECONDS=86400   # раз в сутки
@@ -17,6 +20,7 @@ do_backup() {
   file="$BACKUP_DIR/ai_map_kz_$ts.dump"
   echo "[$(date '+%F %T')] pg_dump -> $file"
   pg_dump -h db -U postgres -d ai_map_kz -F c -f "$file"
+  chmod 600 "$file"
   echo "[$(date '+%F %T')] готово: $(du -h "$file" | cut -f1)"
 
   # Ротация: удаляем дампы старше RETENTION_DAYS дней

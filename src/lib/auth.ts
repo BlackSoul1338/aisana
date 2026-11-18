@@ -1,3 +1,4 @@
+import crypto from 'crypto'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { NextRequest, NextResponse } from 'next/server'
@@ -5,7 +6,7 @@ import { UserRole } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { canModerate } from '@/lib/publication'
 
-export const SESSION_COOKIE = 'ai_map_kz_session'
+export const SESSION_COOKIE = '__Host-ai_map_sess'
 export const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 30
 
 export type AuthUser = NonNullable<Awaited<ReturnType<typeof getCurrentUser>>>
@@ -17,11 +18,16 @@ function isExpired(expires: Date) {
   return expires.getTime() <= Date.now()
 }
 
+/** В базе храним только sha256 токена: утечка дампа не даёт токенов сессий. */
+export function hashSessionToken(token: string): string {
+  return crypto.createHash('sha256').update(token).digest('hex')
+}
+
 async function findUserByToken(token?: string) {
   if (!token) return null
 
   const session = await prisma.session.findUnique({
-    where: { sessionToken: token },
+    where: { sessionToken: hashSessionToken(token) },
     include: {
       user: {
         include: {

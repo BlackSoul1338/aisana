@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs'
 import crypto from 'crypto'
 import { prisma } from '@/lib/prisma'
 import { DEVICE_COOKIE, DEVICE_MAX_AGE_SECONDS, isTrustedDevice, trustDevice } from '@/lib/trusted-devices'
-import { SESSION_COOKIE, SESSION_MAX_AGE_SECONDS } from '@/lib/auth'
+import { SESSION_COOKIE, SESSION_MAX_AGE_SECONDS, hashSessionToken } from '@/lib/auth'
 import { resetRateLimit } from '@/lib/rate-limit'
 import { getClientIp, rateLimit } from '@/lib/rate-limit'
 import { loginSchema, parseBody } from '@/lib/schemas'
@@ -61,12 +61,13 @@ export async function POST(request: NextRequest) {
     // входов за 15 минут с разных машин.
     resetRateLimit(accountKey)
 
+    // В базу уходит sha256 токена, в cookie — сам токен: чужой дамп сессий не даёт входа
     const sessionToken = crypto.randomBytes(32).toString('hex')
     const expires = new Date(Date.now() + SESSION_MAX_AGE_SECONDS * 1000)
 
     await prisma.session.create({
       data: {
-        sessionToken,
+        sessionToken: hashSessionToken(sessionToken),
         userId: user.id,
         expires,
       },
