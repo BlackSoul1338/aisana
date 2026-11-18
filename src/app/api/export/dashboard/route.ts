@@ -111,7 +111,7 @@ export async function GET(request: NextRequest) {
 
     // ── Лист «Технологии» ──────────────────────────────────────
     const byTech = technologies
-      .filter(t => t._count.projects > 0)
+      .filter(tech => tech._count.projects > 0)
       .map(tech => ({ [t('exportXlsx', 'colTech', lang)]: technologyLabel(tech, lang), [colProjects]: tech._count.projects }))
 
     const wb = XLSX.utils.book_new()

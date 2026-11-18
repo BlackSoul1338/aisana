@@ -1,6 +1,7 @@
+import { UserRole } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { SHOWCASE_WHERE } from '@/lib/publication'
-import { requireUser } from '@/lib/auth'
+import { requireRole } from '@/lib/auth'
 import { PageLayout } from '@/components/layout/PageLayout'
 import { SolutionsView } from '@/components/solutions/SolutionsView'
 
@@ -13,7 +14,7 @@ interface Params {
 
 /** Витрина для бизнеса: опубликованные проекты, открытые модератором для интеграции. */
 export default async function SolutionsPage({ searchParams }: { searchParams: Promise<Params> }) {
-  await requireUser('/business/solutions')
+  await requireRole([UserRole.BUSINESS_REP, UserRole.ADMIN, UserRole.EDITOR], '/business/solutions')
 
   const sp = await searchParams
   const page = Math.max(1, parseInt(sp.page || '1', 10) || 1)

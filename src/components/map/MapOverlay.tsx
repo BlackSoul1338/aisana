@@ -1,6 +1,7 @@
 'use client'
 
 import { useLang } from '@/context/LangContext'
+import { MAP_SCALE } from './map-scale'
 
 interface Props {
   stats: { totalUniversities: number; totalProjects: number }
@@ -57,13 +58,7 @@ export function MapOverlay({ stats }: Props) {
           {t('home', 'legendTitle')}
         </p>
         <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 sm:grid-cols-1 sm:gap-2">
-          {[
-            { label: '0', color: 'var(--map-0)' },
-            { label: '1–5', color: 'var(--map-1)' },
-            { label: '6–15', color: 'var(--map-2)' },
-            { label: '16–30', color: 'var(--map-3)' },
-            { label: '30+', color: 'var(--map-4)' },
-          ].map(item => (
+          {MAP_SCALE.map(item => (
             <div key={item.label} className="flex items-center gap-2">
               <div
                 className="h-3 w-3 shrink-0 rounded-sm border border-slate-300 dark:border-white/20 sm:h-4 sm:w-4"

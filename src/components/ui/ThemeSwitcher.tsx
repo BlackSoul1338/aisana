@@ -29,6 +29,15 @@ export function ThemeSwitcher({ variant = 'dark' }: { variant?: 'dark' | 'light'
     if (saved === 'system' || saved === 'light' || saved === 'dark') setModeState(saved)
   }, [])
 
+  // system-режим должен следовать за ОС, как inline-скрипт в layout
+  useEffect(() => {
+    if (mode !== 'system') return
+    const media = window.matchMedia('(prefers-color-scheme: dark)')
+    const onChange = () => applyMode('system')
+    media.addEventListener('change', onChange)
+    return () => media.removeEventListener('change', onChange)
+  }, [mode])
+
   function choose(next: ThemeMode) {
     setModeState(next)
     try {
