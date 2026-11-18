@@ -16,6 +16,22 @@ export function Navbar() {
   const navRef = useRef<HTMLElement>(null)
   const [logoFailed, setLogoFailed] = useState(false)
 
+  // Скролл колёсиком листает навигацию, а не страницу: иначе при наведении на
+  // шапку kz-таб вертикальный скролл дёргает страницу вниз-вверх. React вешает
+  // wheel-обработчики как passive, поэтому preventDefault здесь не сработает —
+  // вешаем свой { passive: false }. Пока навигация помещается — страница листается.
+  useEffect(() => {
+    const el = navRef.current
+    if (!el) return
+    const onWheel = (event: WheelEvent) => {
+      if (el.scrollWidth <= el.clientWidth + 1) return
+      event.preventDefault()
+      el.scrollLeft += Math.abs(event.deltaY) >= Math.abs(event.deltaX) ? event.deltaY : event.deltaX
+    }
+    el.addEventListener('wheel', onWheel, { passive: false })
+    return () => el.removeEventListener('wheel', onWheel)
+  }, [])
+
   // Роль нужна, чтобы не показывать разделы, куда пользователя всё равно не пустят.
   // Это только удобство интерфейса — доступ проверяется на сервере.
   const [role, setRole] = useState<string | null>(null)
@@ -73,13 +89,6 @@ export function Navbar() {
         <nav
           ref={navRef}
           className="nav-scroll hidden lg:flex items-center gap-1 flex-1 overflow-x-auto"
-          onWheel={event => {
-            const el = navRef.current
-            if (!el || el.scrollWidth <= el.clientWidth) return
-            if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return
-            el.scrollLeft += event.deltaY
-            event.preventDefault()
-          }}
         >
           {navLinks.map(({ href, label, icon: Icon }) => (
             <Link
