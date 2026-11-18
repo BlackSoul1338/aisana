@@ -9,6 +9,7 @@ import { AgentPassportViewer } from '@/components/project/AgentPassportViewer'
 import { ProjectFilesManager } from '@/components/project/ProjectFilesManager'
 import { INDUSTRIES } from '@/lib/industries'
 import { MIN_DESCRIPTION_LENGTH } from '@/lib/project-completeness'
+import { technologyLabel } from '@/lib/technologies'
 import { useLang } from '@/context/LangContext'
 
 interface University { id: string; name: string; shortName?: string | null }
@@ -278,7 +279,7 @@ export function ProjectForm({ universities, technologies, project, defaultUniver
                     : 'bg-white text-slate-600 border-slate-200 hover:border-blue-300'
                 }`}
               >
-                {tech.name}
+                {technologyLabel(tech, lang)}
               </button>
             ))}
           </div>

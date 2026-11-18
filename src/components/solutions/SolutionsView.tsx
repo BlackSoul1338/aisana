@@ -6,6 +6,7 @@ import { useLang } from '@/context/LangContext'
 import { AutoSubmitForm } from '@/components/ui/AutoSubmitForm'
 import { Pagination } from '@/components/admin/Pagination'
 import { plural } from '@/lib/plural'
+import { technologyLabel } from '@/lib/technologies'
 import { SolutionCard, type SolutionProject } from './SolutionCard'
 
 interface Props {
@@ -40,7 +41,7 @@ export function SolutionsView({ projects, total, page, pageSize, tech, technolog
           className="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
         >
           <option value="">{t('solutions', 'allTech')}</option>
-          {technologies.map(item => <option key={item.slug} value={item.slug}>{item.name}</option>)}
+          {technologies.map(item => <option key={item.slug} value={item.slug}>{technologyLabel(item, lang)}</option>)}
         </select>
         {tech && (
           <Link href="/business/solutions" className="text-sm text-slate-400 hover:text-slate-600">
@@ -58,6 +59,7 @@ export function SolutionsView({ projects, total, page, pageSize, tech, technolog
             <SolutionCard
               key={project.id}
               project={project}
+              lang={lang}
               readyLabel={t('solutions', 'ready')}
               detailsLabel={t('solutions', 'details')}
             />

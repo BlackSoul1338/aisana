@@ -6,6 +6,8 @@ import { metaDescription } from '@/lib/seo'
 import { PublicationStatus } from '@prisma/client'
 import { t } from '@/lib/i18n'
 import { getRequestLang } from '@/lib/i18n-server'
+import { technologyLabel } from '@/lib/technologies'
+import { tagLabel } from '@/lib/tags'
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const lang = await getRequestLang()
@@ -125,7 +127,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
             {project.technologies.map(tech => (
               <Link key={tech.id} href={`${isBusiness ? '/business/solutions' : '/projects'}?tech=${tech.slug}`}
                 className="px-3 py-1.5 bg-slate-100 hover:bg-blue-100 hover:text-blue-700 text-slate-700 rounded-lg text-sm font-medium transition-colors">
-                {tech.name}
+                {technologyLabel(tech, lang)}
               </Link>
             ))}
           </div>
@@ -184,7 +186,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
           <div className="flex flex-wrap gap-2">
             {project.tags.map(tag => (
               <span key={tag} className="px-2.5 py-1 bg-slate-100 text-slate-600 rounded-full text-xs">
-                #{tag}
+                #{tagLabel(tag, lang)}
               </span>
             ))}
           </div>

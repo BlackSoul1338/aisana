@@ -7,6 +7,7 @@ import { PUBLISHED_ONLY } from '@/lib/publication'
 import { t } from '@/lib/i18n'
 import { getClientIp, rateLimit } from '@/lib/rate-limit'
 import { INDUSTRIES, industryLabel } from '@/lib/industries'
+import { technologyLabel } from '@/lib/technologies'
 import { isDescriptionEmpty } from '@/lib/project-completeness'
 
 export const dynamic = 'force-dynamic'
@@ -28,7 +29,7 @@ export async function GET(request: NextRequest) {
         where: PUBLISHED_ONLY,
         include: {
           university: { select: { name: true, shortName: true, region: { select: { name: true } } } },
-          technologies: { select: { name: true } },
+          technologies: { select: { name: true, slug: true } },
         },
         orderBy: { createdAt: 'desc' },
       }),
@@ -70,7 +71,7 @@ export async function GET(request: NextRequest) {
       [t('exportXlsx', 'colStatus', lang)]: t('status', p.status, lang),
       [t('exportXlsx', 'colIndustry', lang)]: industryLabel(p.industry, lang),
       [t('exportXlsx', 'colImplementedWhere', lang)]: p.implementedAt || '',
-      [t('exportXlsx', 'colTech', lang)]: p.technologies.map(t => t.name).join(', '),
+      [t('exportXlsx', 'colTech', lang)]: p.technologies.map(tech => technologyLabel(tech, lang)).join(', '),
       [t('exportXlsx', 'colLead', lang)]: p.leadName || '',
       [t('exportXlsx', 'colTeam', lang)]: p.teamSize ?? '',
       [t('exportXlsx', 'colLaunch', lang)]: p.launchDate ? formatDate(p.launchDate) : '',
@@ -111,7 +112,7 @@ export async function GET(request: NextRequest) {
     // ── Лист «Технологии» ──────────────────────────────────────
     const byTech = technologies
       .filter(t => t._count.projects > 0)
-      .map(tech => ({ [t('exportXlsx', 'colTech', lang)]: tech.name, [colProjects]: tech._count.projects }))
+      .map(tech => ({ [t('exportXlsx', 'colTech', lang)]: technologyLabel(tech, lang), [colProjects]: tech._count.projects }))
 
     const wb = XLSX.utils.book_new()
     const addSheet = (rows: object[], name: string, widths: number[]) => {

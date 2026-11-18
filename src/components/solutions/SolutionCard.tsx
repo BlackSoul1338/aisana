@@ -3,6 +3,8 @@ import { ArrowRight, Building2, CheckCircle2 } from 'lucide-react'
 import type { ProjectCategory, ProjectStatus } from '@/types'
 import { StatusBadge } from '@/components/ui/status-badge'
 import { CategoryBadge } from '@/components/ui/category-badge'
+import { technologyLabel } from '@/lib/technologies'
+import type { Lang } from '@/lib/i18n'
 
 /**
  * Только поля карточки. Клиентская витрина сериализует их в браузер,
@@ -15,17 +17,18 @@ export interface SolutionProject {
   status: ProjectStatus
   category: ProjectCategory
   university: { name: string; shortName: string | null }
-  technologies: { id: string; name: string }[]
+  technologies: { id: string; name: string; slug: string }[]
 }
 
 interface Props {
   project: SolutionProject
+  lang: Lang
   readyLabel: string
   detailsLabel: string
 }
 
 /** Карточка витрины: только то, по чему бизнес решает, подходит ли решение. */
-export function SolutionCard({ project, readyLabel, detailsLabel }: Props) {
+export function SolutionCard({ project, lang, readyLabel, detailsLabel }: Props) {
   return (
     <Link href={`/projects/${project.id}`} className="group flex h-full flex-col rounded-xl border border-slate-200 bg-white p-5 transition-all hover:border-blue-300 hover:shadow-md">
       <div className="mb-3 flex flex-wrap gap-2">
@@ -51,7 +54,7 @@ export function SolutionCard({ project, readyLabel, detailsLabel }: Props) {
         <div className="mt-3 flex flex-wrap gap-1">
           {project.technologies.slice(0, 3).map(tech => (
             <span key={tech.id} className="rounded bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600">
-              {tech.name}
+              {technologyLabel(tech, lang)}
             </span>
           ))}
         </div>

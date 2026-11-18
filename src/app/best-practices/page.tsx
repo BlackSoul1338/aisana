@@ -82,7 +82,7 @@ export default async function BestPracticesPage() {
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {highlighted.map(p => (
-              <ProjectCard key={p.id} project={p as any} />
+              <ProjectCard key={p.id} project={p as any} lang={lang} />
             ))}
           </div>
         </section>
@@ -96,7 +96,7 @@ export default async function BestPracticesPage() {
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {scalable.map(p => (
-              <ProjectCard key={p.id} project={p as any} />
+              <ProjectCard key={p.id} project={p as any} lang={lang} />
             ))}
           </div>
         </section>

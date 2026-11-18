@@ -4,12 +4,15 @@ import { ProjectWithRelations } from '@/types'
 import { StatusBadge } from './status-badge'
 import { CategoryBadge } from './category-badge'
 import { formatDate } from '@/lib/utils'
+import { technologyLabel } from '@/lib/technologies'
+import type { Lang } from '@/lib/i18n'
 
 interface Props {
   project: ProjectWithRelations
+  lang: Lang
 }
 
-export function ProjectCard({ project }: Props) {
+export function ProjectCard({ project, lang }: Props) {
   return (
     <Link href={`/projects/${project.id}`}>
       <div className="group bg-white border border-slate-200 rounded-xl p-5 hover:border-blue-300 hover:shadow-md transition-all cursor-pointer">
@@ -62,7 +65,7 @@ export function ProjectCard({ project }: Props) {
                 key={tech.id}
                 className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-[11px] font-medium"
               >
-                {tech.name}
+                {technologyLabel(tech, lang)}
               </span>
             ))}
             {project.technologies.length > 4 && (

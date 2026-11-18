@@ -32,7 +32,7 @@ export default async function SolutionsPage({ searchParams }: { searchParams: Pr
         status: true,
         category: true,
         university: { select: { name: true, shortName: true } },
-        technologies: { select: { id: true, name: true } },
+        technologies: { select: { id: true, name: true, slug: true } },
       },
       orderBy: { createdAt: 'desc' },
       skip: (page - 1) * PAGE_SIZE,

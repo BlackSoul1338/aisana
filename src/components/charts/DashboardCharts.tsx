@@ -8,6 +8,7 @@ import { Eye, Sparkles, CheckCircle2, XCircle } from 'lucide-react'
 import { ProjectStatus, ProjectCategory } from '@prisma/client'
 import { useLang } from '@/context/LangContext'
 import { industryLabel } from '@/lib/industries'
+import { technologyLabel } from '@/lib/technologies'
 
 const STATUS_ORDER: ProjectStatus[] = ['IDEA', 'PROTOTYPE', 'PILOT', 'IMPLEMENTED', 'SCALED']
 const STATUS_COLORS: Record<ProjectStatus, string> = {
@@ -32,7 +33,7 @@ interface Props {
   byCategory: { category: string; count: number }[]
   stages: { status: string; total: number; confirmed: number; noDescription: number }[]
   byIndustry: { industry: string; count: number }[]
-  technologies: { name: string; count: number }[]
+  technologies: { slug: string; name: string; count: number }[]
   topViewed: { id: string; title: string; viewCount: number }[]
   topSearched: { id: string; title: string; searchHitCount: number }[]
   topUniversities: { name: string; shortName: string; count: number }[]
@@ -284,7 +285,7 @@ export function DashboardCharts({
           <p className="text-slate-400 text-sm text-center py-8">{t('dashboard', 'noData')}</p>
         ) : (
           <ResponsiveContainer width="100%" height={Math.max(260, technologies.length * 30 + 40)}>
-            <BarChart data={technologies} layout="vertical" margin={{ left: 0, right: 20 }}>
+            <BarChart data={technologies.map(tech => ({ ...tech, name: technologyLabel(tech, lang) }))} layout="vertical" margin={{ left: 0, right: 20 }}>
               <CartesianGrid strokeDasharray="3 3" horizontal={false} />
               <XAxis type="number" tick={{ fontSize: 11 }} allowDecimals={false} />
               <YAxis type="category" dataKey="name" width={140} interval={0} tick={{ fontSize: 11 }}
