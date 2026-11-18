@@ -137,6 +137,15 @@ describe('searchIndex — совпадения по лёгким полям', ()
   })
 })
 
+describe('indexProject', () => {
+  it('разбирает поля проекта', () => {
+    const item = indexProject(industrial)
+    expect(item.id).toBe('p_industrial')
+    expect(item.fields.title.text).toContain('дефектов сварных')
+    expect(item.fields.region.text).toBe('алматы')
+  })
+})
+
 /**
  * Отбор: поиск не должен возвращать полпортала. Индекс из 30 проектов,
  * почти все отнесены к образованию — как на настоящем портале.

@@ -106,14 +106,6 @@ export const STATUS_LABELS: Record<ProjectStatus, string> = {
   SCALED: 'Масштабировано',
 }
 
-export const HEARING_DECISION_LABELS: Record<HearingDecision, string> = {
-  PENDING: 'На рассмотрении',
-  APPROVED: 'Одобрено',
-  REJECTED: 'Отклонено',
-  REVISION: 'На доработке',
-  RECOMMENDED: 'Рекомендовано',
-}
-
 export const STATUS_COLORS: Record<ProjectStatus, string> = {
   IDEA: '#94a3b8',
   PROTOTYPE: '#f59e0b',

@@ -988,6 +988,22 @@ export const translations = {
     noProjects:    { ru: 'Нет проектов', kz: 'Жобалар жоқ' },
     changesSaved:  { ru: 'Изменения сохранены', kz: 'Өзгерістер сақталды' },
   },
+
+  // ── Запросы на интеграцию ─────────────
+  requestStatus: {
+    NEW:                 { ru: 'Новый',         kz: 'Жаңа' },
+    IN_REVIEW:           { ru: 'На проверке',   kz: 'Тексерілуде' },
+    SENT_TO_UNIVERSITY:  { ru: 'Передан вузу',  kz: 'ЖОО-ға жіберілді' },
+    IN_PROGRESS:         { ru: 'В работе',      kz: 'Жұмыста' },
+    DONE:                { ru: 'Завершён',      kz: 'Аяқталды' },
+    DECLINED:            { ru: 'Отклонён',      kz: 'Бас тартылған' },
+  },
+  requestType: {
+    DEMO:                { ru: 'Демонстрация',  kz: 'Демонстрация' },
+    CONSULTATION:        { ru: 'Консультация',  kz: 'Консультация' },
+    PILOT:               { ru: 'Пилот',         kz: 'Пилот' },
+    INTEGRATION:         { ru: 'Внедрение',     kz: 'Енгізу' },
+  },
 } as const
 
 export type TranslationKey = typeof translations

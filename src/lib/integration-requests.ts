@@ -1,6 +1,7 @@
 import { IntegrationRequestStatus, IntegrationRequestType, UserRole } from '@prisma/client'
 import type { Prisma } from '@prisma/client'
 import { canModerate } from '@/lib/publication'
+import { t, translations } from '@/lib/i18n'
 
 /**
  * Правила запросов бизнеса по решениям.
@@ -81,45 +82,20 @@ export function canSetProject(user: Actor, request: RequestScope): boolean {
   return canModerate(user) && request.forwardedAt === null
 }
 
-export const REQUEST_TYPE_LABELS: Record<IntegrationRequestType, string> = {
-  DEMO: 'Демонстрация',
-  CONSULTATION: 'Консультация',
-  PILOT: 'Пилот',
-  INTEGRATION: 'Внедрение',
-}
+// ── Заявка на интеграцию локализована в src/lib/i18n.ts (requestStatus/requestType)
+export const REQUEST_STATUS_LABELS: Record<IntegrationRequestStatus, string> =
+  Object.fromEntries(Object.entries(translations.requestStatus).map(([k, v]) => [k, v.ru])) as Record<IntegrationRequestStatus, string>
 
-export const REQUEST_TYPE_LABELS_KZ: Record<IntegrationRequestType, string> = {
-  DEMO: 'Демонстрация',
-  CONSULTATION: 'Консультация',
-  PILOT: 'Пилот',
-  INTEGRATION: 'Енгізу',
-}
+export const REQUEST_TYPE_LABELS: Record<IntegrationRequestType, string> =
+  Object.fromEntries(Object.entries(translations.requestType).map(([k, v]) => [k, v.ru])) as Record<IntegrationRequestType, string>
 
-export const REQUEST_STATUS_LABELS: Record<IntegrationRequestStatus, string> = {
-  NEW: 'Новый',
-  IN_REVIEW: 'На проверке',
-  SENT_TO_UNIVERSITY: 'Передан вузу',
-  IN_PROGRESS: 'В работе',
-  DONE: 'Завершён',
-  DECLINED: 'Отклонён',
-}
-
-export const REQUEST_STATUS_LABELS_KZ: Record<IntegrationRequestStatus, string> = {
-  NEW: 'Жаңа',
-  IN_REVIEW: 'Тексерілуде',
-  SENT_TO_UNIVERSITY: 'ЖОО-ға жіберілді',
-  IN_PROGRESS: 'Жұмыста',
-  DONE: 'Аяқталды',
-  DECLINED: 'Бас тартылған',
-}
-
-/** Подпись статуса/типа запроса на языке интерфейса; RU-вариант оставлен для журнала. */
+/** Подпись статуса/типа запроса на языке интерфейса. */
 export function requestStatusLabel(status: IntegrationRequestStatus, lang: 'ru' | 'kz' = 'ru'): string {
-  return (lang === 'kz' ? REQUEST_STATUS_LABELS_KZ : REQUEST_STATUS_LABELS)[status]
+  return t('requestStatus', status, lang)
 }
 
 export function requestTypeLabel(type: IntegrationRequestType, lang: 'ru' | 'kz' = 'ru'): string {
-  return (lang === 'kz' ? REQUEST_TYPE_LABELS_KZ : REQUEST_TYPE_LABELS)[type]
+  return t('requestType', type, lang)
 }
 
 export const REQUEST_STATUS_BADGE: Record<IntegrationRequestStatus, string> = {

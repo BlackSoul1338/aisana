@@ -39,6 +39,15 @@ describe('форматирование дат по казахстанскому 
     expect(formatDateInput(undefined)).toBe('2026-11-11')
   })
 
+  it('формат для поля даты — ГГГГ-ММ-ДД', () => {
+    expect(formatDateInput('2026-03-05T12:00:00Z')).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+  })
+
+  it('пустая дата даёт текущую дату, а не пустую строку', () => {
+    expect(formatDateInput(null)).not.toBe('')
+    expect(formatDateInput(undefined)).not.toBe('')
+  })
+
   it('зона — стандартная казахстанская', () => {
     expect(TIME_ZONE).toBe('Asia/Qyzylorda')
   })
