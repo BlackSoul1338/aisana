@@ -13,6 +13,9 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
 
 COPY prisma ./prisma
 
+# Он нужен демо-сиду: он импортирует код из src/ (scoreFields)
+COPY src ./src
+
 RUN pnpm exec prisma generate
 
 # prisma migrate deploy — применяет только закоммиченные миграции из prisma/migrations,
@@ -31,5 +34,9 @@ CMD sh -c " \
   fi && \
   echo '🌱 Running seed (regions + technologies + admin only)...' && \
   pnpm exec tsx prisma/seed.ts && \
+  if [ "${SEED_DEMO:-0}" = '1' ]; then \
+    echo '🌱 SEED_DEMO=1 — наполняем демо-данными (временный презентационный деплой)' && \
+    pnpm exec tsx prisma/seed-demo.ts; \
+  fi && \
   echo '✅ Migration & seed complete!' \
 "
