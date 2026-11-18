@@ -23,6 +23,8 @@ import { classifyProject, type ClassifiableProject, type TopicMatch } from './cl
 import { parseQuery, type ParsedQuery } from './query'
 import { fuzzyMatches, hasAllWords, normalize, tokenize } from './text'
 import type { TopicId } from './taxonomy'
+import { technologyLabel } from '@/lib/technologies'
+import { tagLabel } from '@/lib/tags'
 
 /** Поля, по которым идёт лексический поиск, и их вклад в оценку. */
 const SEARCH_FIELDS = {
@@ -137,14 +139,27 @@ const STATUS_TEXT: Record<string, string> = {
   SCALED: 'масштабировано тиражирование',
 }
 
+/** Исходное слово и его казахская подпись (если известна). */
+function techWithKz(tech: { name: string; slug?: string | null }): string {
+  const kz = technologyLabel({ slug: tech.slug ?? '', name: tech.name }, 'kz')
+  return kz === tech.name ? tech.name : `${tech.name} ${kz}`
+}
+
+function tagWithKz(tag: string): string {
+  const kz = tagLabel(tag, 'kz')
+  return kz === tag ? tag : `${tag} ${kz}`
+}
+
 /** Готовит проект к поиску: классифицирует и раскладывает текст по полям. */
 export function indexProject(project: IndexableProject): IndexedProject {
   const topics = classifyProject(project)
 
   const raw: Record<SearchField, string> = {
     title: project.title ?? '',
-    tags: (project.tags ?? []).join(' '),
-    technologies: (project.technologies ?? []).map(t => t.name).join(' '),
+    // Казахские подписи кладём рядом с исходными: kz-запрос должен находить
+    // проект по «компьютерлік көру», хотя в базе лежит русское name.
+    tags: (project.tags ?? []).map(tag => tagWithKz(tag)).join(' '),
+    technologies: (project.technologies ?? []).map(t => techWithKz(t)).join(' '),
     description: project.description ?? '',
     impact: project.impact ?? '',
     results: project.results ?? '',

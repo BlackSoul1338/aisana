@@ -12,13 +12,13 @@ const TAG_LABELS: Record<string, string> = {
   'оптимизация': 'оңтайландыру',
   'проверка': 'тексеру',
   'датчики': 'датчиктер',
-  'диагностика заболеваний': 'ауруларды диагностикалау',
-  'подбор персонала': 'персоналды іріктеу',
+  'диагностика заболеваний': 'аурулар диагностикасы',
+  'подбор персонала': 'персонал іріктеу',
   'горнодобыча': 'тау-кен өнеркәсібі',
   'контроль качества': 'сапа бақылауы',
   'цифровой двойник': 'цифрлық егіз',
   'черновик': 'қаралама',
-  'сварка': 'пісіру',
+  'сварка': 'металл пісіру',
   'рентген': 'рентген',
   'солнечная станция': 'күн электрстанциясы',
   'демо': 'демо',
@@ -31,7 +31,21 @@ const TAG_LABELS: Record<string, string> = {
   'энергетика': 'энергетика',
 }
 
+/** Ключ поиска в словаре: без «#», лишних пробелов, «ё» и регистра. */
+function normalizeTag(tag: string): string {
+  return tag
+    .replace(/^#+/, '')
+    .trim()
+    .replace(/ё/gi, 'е')
+    .replace(/\s+/g, ' ')
+    .toLocaleLowerCase('ru')
+}
+
 export function tagLabel(tag: string, lang: Lang): string {
   if (lang !== 'kz') return tag
-  return TAG_LABELS[tag.trim().toLowerCase()] ?? tag
+  const label = TAG_LABELS[normalizeTag(tag)]
+  if (!label) return tag
+  // «Сварка» → «Металл пісіру»: автора не переучиваем, регистр сохраняем
+  const startsUpper = /^\p{Lu}/u.test(tag.replace(/^#+/, '').trim())
+  return startsUpper ? label.charAt(0).toLocaleUpperCase('kk') + label.slice(1) : label
 }

@@ -41,7 +41,9 @@ export function SolutionsView({ projects, total, page, pageSize, tech, technolog
           className="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
         >
           <option value="">{t('solutions', 'allTech')}</option>
-          {technologies.map(item => <option key={item.slug} value={item.slug}>{technologyLabel(item, lang)}</option>)}
+          {[...technologies]
+            .sort((a, b) => technologyLabel(a, lang).localeCompare(technologyLabel(b, lang), lang === 'kz' ? 'kk' : 'ru'))
+            .map(item => <option key={item.slug} value={item.slug}>{technologyLabel(item, lang)}</option>)}
         </select>
         {tech && (
           <Link href="/business/solutions" className="text-sm text-slate-400 hover:text-slate-600">
