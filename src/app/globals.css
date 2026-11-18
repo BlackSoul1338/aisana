@@ -101,8 +101,8 @@
 .dark .text-slate-800 { color: #e2e8f0; }
 .dark .text-slate-700 { color: #cbd5e1; }
 .dark .text-slate-600 { color: #a9b8d0; }
-.dark .text-slate-500 { color: #8b9cb8; }
-.dark .text-slate-400 { color: #7186a2; }
+.dark .text-slate-500 { color: #9db2d0; }
+.dark .text-slate-400 { color: #8598b5; }
 .dark .hover\:text-slate-600:hover,
 .dark .hover\:text-slate-700:hover { color: #cbd5e1; }
 .dark .hover\:text-slate-800:hover,
@@ -221,7 +221,16 @@ select {
   color: #f1f5f9;
 }
 
-/* Kazakhstan government design system */
+/* Подписи осей графиков: читаемые в обеих темах */
+.recharts-cartesian-axis-tick text,
+.recharts-text { fill: #475569; }
+.dark .recharts-cartesian-axis-tick text,
+.dark .recharts-text { fill: #a9bcd0; }
+
+/* Скрытый скроллбар у горизонтальной навигации в шапке */
+.nav-scroll { scrollbar-width: none; }
+.nav-scroll::-webkit-scrollbar { display: none; }
+
 .gov-gradient {
   background: linear-gradient(135deg, #1A56DB 0%, #0b2f87 100%);
 }

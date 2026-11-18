@@ -41,6 +41,22 @@ export const FIELD_TITLES: Record<NeedFieldKey, string> = {
 }
 
 export const NOT_SPECIFIED = 'не указано'
+export const NOT_SPECIFIED_KZ = 'көрсетілмеген'
+
+/** Казахские подписи полей — для интерфейса на kz. */
+export const FIELD_TITLES_KZ: Record<NeedFieldKey, string> = {
+  task: 'Тапсырма және процесс',
+  problem: 'Қазіргі мәселе',
+  goal: 'Күтілетін нәтиже',
+  data: 'Қолжетімді деректер',
+  environment: 'Қайда жұмыс істеу керек',
+  integrations: 'Интеграциялар',
+  scale: 'Масштаб және мерзімі',
+}
+
+export function fieldTitle(key: NeedFieldKey, lang: 'ru' | 'kz'): string {
+  return lang === 'kz' ? FIELD_TITLES_KZ[key] : FIELD_TITLES[key]
+}
 
 export type RawField = { key: NeedFieldKey; status: FieldStatus; value: string; quote: string; quoteVerified: boolean }
 export type FieldState = RawField & { weight: number; earned: number }

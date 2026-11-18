@@ -34,7 +34,7 @@ export function NeedAssistant({ initialNeed, initialMatches, aiEnabled }: {
   /** false — на сервере нет ключа Gemini: диалог недоступен, отправка оператору работает */
   aiEnabled: boolean
 }) {
-  const { t } = useLang()
+  const { t, lang } = useLang()
   const router = useRouter()
   const [need, setNeed] = useState(initialNeed)
   const [matches, setMatches] = useState(initialMatches)
@@ -86,7 +86,7 @@ export function NeedAssistant({ initialNeed, initialMatches, aiEnabled }: {
   }
 
   const gaps = need?.fields.filter(f => f.status !== 'ok').map(f => f.key) ?? []
-  const quickReplies = gaps.flatMap(key => QUICK_REPLIES[key] ?? []).slice(0, 4)
+  const quickReplies = gaps.flatMap(key => QUICK_REPLIES[lang][key] ?? []).slice(0, 4)
 
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">

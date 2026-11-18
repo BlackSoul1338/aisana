@@ -186,12 +186,12 @@ export function AISearchWidget() {
       {results !== null && !loading && (
         <div>
           {aiSummary && (
-            <div className="mb-4 rounded-xl border border-violet-200 bg-violet-50/80 p-4 text-sm text-violet-900 shadow-sm">
+            <div className="mb-4 rounded-xl border border-violet-200 dark:border-violet-800/60 bg-violet-50/80 dark:bg-violet-950/40 p-4 text-sm text-violet-900 dark:text-violet-200 shadow-sm">
               <div className="flex items-center gap-2 font-semibold mb-2">
                 <Sparkles size={16} className="text-violet-600" />
                 {t('search', 'aiSummary')}
               </div>
-              <p className="leading-6 text-violet-800">{aiSummary}</p>
+              <p className="leading-6 text-violet-800 dark:text-violet-300">{aiSummary}</p>
             </div>
           )}
 

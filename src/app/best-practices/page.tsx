@@ -52,22 +52,22 @@ export default async function BestPracticesPage() {
   return (
     <PageLayout>
       {/* Header */}
-      <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-6 mb-8">
+      <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 dark:from-amber-950/40 dark:to-orange-950/30 dark:border-amber-900/70 rounded-xl p-6 mb-8">
         <div className="flex items-center gap-3 mb-2">
           <div className="w-10 h-10 rounded-xl bg-amber-500 flex items-center justify-center">
             <Star className="text-white" size={20} />
           </div>
-          <h1 className="text-2xl font-bold text-slate-800">{t('best', 'title', lang)}</h1>
+          <h1 className="text-2xl font-bold text-slate-800 dark:text-amber-100">{t('best', 'title', lang)}</h1>
         </div>
-        <p className="text-slate-600 max-w-2xl">
+        <p className="text-slate-600 dark:text-amber-100/75 max-w-2xl">
           {t('best', 'subtitle', lang)}
         </p>
         <div className="flex gap-4 mt-4">
-          <div className="flex items-center gap-2 text-sm text-amber-700 bg-amber-100 px-3 py-1.5 rounded-lg">
+          <div className="flex items-center gap-2 text-sm text-amber-800 bg-amber-100 px-3 py-1.5 rounded-lg dark:text-amber-200 dark:bg-amber-900/40">
             <Star size={14} className="fill-amber-500 text-amber-500" />
             <span><strong>{highlighted.length}</strong> {t('best', 'countBest', lang)}</span>
           </div>
-          <div className="flex items-center gap-2 text-sm text-violet-700 bg-violet-100 px-3 py-1.5 rounded-lg">
+          <div className="flex items-center gap-2 text-sm text-violet-800 bg-violet-100 px-3 py-1.5 rounded-lg dark:text-violet-200 dark:bg-violet-900/40">
             <TrendingUp size={14} />
             <span><strong>{scalable.length}</strong> {t('best', 'countScalable', lang)}</span>
           </div>
@@ -76,7 +76,7 @@ export default async function BestPracticesPage() {
 
       {highlighted.length > 0 && (
         <section className="mb-8">
-          <h2 className="text-lg font-semibold text-slate-800 flex items-center gap-2 mb-4">
+          <h2 className="text-lg font-semibold text-slate-800 dark:text-amber-100 flex items-center gap-2 mb-4">
             <Star size={18} className="text-amber-500 fill-amber-500" />
             {t('best', 'sectionBest', lang)}
           </h2>
@@ -90,7 +90,7 @@ export default async function BestPracticesPage() {
 
       {scalable.length > 0 && (
         <section>
-          <h2 className="text-lg font-semibold text-slate-800 flex items-center gap-2 mb-4">
+          <h2 className="text-lg font-semibold text-slate-800 dark:text-violet-200 flex items-center gap-2 mb-4">
             <TrendingUp size={18} className="text-violet-500" />
             {t('best', 'sectionScale', lang)}
           </h2>

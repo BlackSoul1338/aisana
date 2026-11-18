@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { Map, FolderKanban, Star, LayoutDashboard, Settings, Building2, Sparkles, Menu, X, Inbox, MessagesSquare, Boxes } from 'lucide-react'
 import { LangSwitcher } from '@/components/ui/LangSwitcher'
@@ -13,6 +13,7 @@ export function Navbar() {
   // Логотип: положите файл в public/images/logo.png.
   // Пока файла нет (или он не загрузился) — показывается запасной значок,
   // шапка не «ломается» пустой картинкой.
+  const navRef = useRef<HTMLElement>(null)
   const [logoFailed, setLogoFailed] = useState(false)
 
   // Роль нужна, чтобы не показывать разделы, куда пользователя всё равно не пустят.
@@ -68,8 +69,18 @@ export function Navbar() {
 
         <div className="hidden lg:block h-6 w-px bg-white/10" />
 
-        {/* Navigation */}
-        <nav className="hidden lg:flex items-center gap-1 flex-1 overflow-x-auto">
+        {/* Navigation: на узких экранах листается колесом мыши, скроллбар скрыт */}
+        <nav
+          ref={navRef}
+          className="nav-scroll hidden lg:flex items-center gap-1 flex-1 overflow-x-auto"
+          onWheel={event => {
+            const el = navRef.current
+            if (!el || el.scrollWidth <= el.clientWidth) return
+            if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return
+            el.scrollLeft += event.deltaY
+            event.preventDefault()
+          }}
+        >
           {navLinks.map(({ href, label, icon: Icon }) => (
             <Link
               key={href}

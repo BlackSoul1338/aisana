@@ -20,8 +20,8 @@ export default async function LoginPage({
   if (user) redirect(safeNext)
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-12">
-      <div className="mx-auto mb-6 flex w-full max-w-sm items-center justify-end gap-2">
+    <main className="relative min-h-screen bg-slate-50 px-4 flex items-center justify-center py-12">
+      <div className="absolute right-4 top-4 flex items-center gap-2">
         <LangSwitcher variant="light" />
         <ThemeSwitcher variant="light" />
       </div>

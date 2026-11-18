@@ -24,7 +24,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     }
 
     const { id } = await params
-    const { requestId, projectTitle } = await sendNeed(id, user, parsed.data)
+    const lang = request.cookies.get('lang')?.value === 'kz' ? 'kz' : 'ru'
+    const { requestId, projectTitle } = await sendNeed(id, user, parsed.data, lang)
     await audit(user, 'CREATE', 'integration_request', requestId,
       `Консультация из помощника подбора${projectTitle ? `: ${projectTitle}` : ''}`)
     return NextResponse.json({ id: requestId }, { status: 201 })

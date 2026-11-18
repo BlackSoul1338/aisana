@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      const result = await createNeed(user.id, parsed.data.text)
+      const result = await createNeed(user.id, parsed.data.text, request.cookies.get('lang')?.value === 'kz' ? 'kz' : 'ru')
       return NextResponse.json(result, { status: 201 })
     } catch (error) {
       if (error instanceof NeedError) refundRateLimit(`need:turn:${user.id}`)

@@ -98,9 +98,9 @@ async function requestOnce(prompt: string, deadline: number): Promise<{ analysis
  * null — модель недоступна (нет ключа, у всей цепочки кончилась квота) или
  * дважды вернула ответ не по схеме.
  */
-export async function analyzeDialog(messages: DialogMessage[]): Promise<AiAnalysis | null> {
+export async function analyzeDialog(messages: DialogMessage[], lang: 'ru' | 'kz' = 'ru'): Promise<AiAnalysis | null> {
   if (!process.env.GEMINI_API_KEY) return null
-  const prompt = analyzePrompt(formatDialog(messages))
+  const prompt = analyzePrompt(formatDialog(messages), lang)
   const deadline = Date.now() + TOTAL_BUDGET_MS
   for (let attempt = 0; attempt < 2; attempt++) {
     const { analysis, available } = await requestOnce(prompt, deadline)

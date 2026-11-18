@@ -1,6 +1,7 @@
 import { BusinessNeedStatus, IntegrationRequestType, PublicationStatus, type BusinessNeed, type Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { analyzeDialog, type DialogMessage } from './analyze'
+import type { NeedLang } from './questions'
 import { fieldChanges, type FieldChange } from './diff'
 import { matchProjects, needQuery, type NeedMatch } from './match'
 import { questionsMessage, selectQuestions, type Question } from './questions'
@@ -68,7 +69,7 @@ export async function needMatches(view: NeedView): Promise<NeedMatch[]> {
  * вопросы считает код. Запись — с оптимистичной блокировкой по turnCount,
  * чтобы два параллельных хода не затёрли друг друга.
  */
-export async function takeTurn(needId: string, userId: string, text: string): Promise<TurnResult> {
+export async function takeTurn(needId: string, userId: string, text: string, lang: NeedLang = 'ru'): Promise<TurnResult> {
   const need = await prisma.businessNeed.findFirst({ where: { id: needId, userId } })
   if (!need) throw new NeedError('not_found')
   if (need.status !== BusinessNeedStatus.COLLECTING) throw new NeedError('closed')
@@ -83,11 +84,11 @@ export async function takeTurn(needId: string, userId: string, text: string): Pr
   const messages: DialogMessage[] = [...prev.messages, { role: 'user', text }]
 
   // Без разбора ход не засчитывается: иначе недоступная модель съела бы лимит ходов
-  const ai = await analyzeDialog(messages)
+  const ai = await analyzeDialog(messages, lang)
   if (!ai) throw new NeedError('unavailable')
   const { fields, readiness } = scoreFields(verifyAnalysis(ai, businessTexts(messages)))
-  const questions = selectQuestions({ fields, aiQuestions: ai.questions, turn })
-  const reply = questionsMessage(questions)
+  const questions = selectQuestions({ fields, aiQuestions: ai.questions, turn, lang })
+  const reply = questionsMessage(questions, lang)
 
   const nextMessages: DialogMessage[] = [...messages, { role: 'assistant', text: reply }]
   const snapshots: NeedSnapshot[] = [...prev.snapshots, { turn, readiness }]
@@ -113,13 +114,13 @@ export async function takeTurn(needId: string, userId: string, text: string): Pr
 }
 
 /** Новая потребность сразу с первым сообщением компании. */
-export async function createNeed(userId: string, text: string): Promise<TurnResult> {
+export async function createNeed(userId: string, text: string, lang: NeedLang = 'ru'): Promise<TurnResult> {
   // Проверяем до создания строки, чтобы не оставлять пустых потребностей
   const findings = findSensitive(text)
   if (findings.length) throw new NeedError('sensitive', findings)
   const need = await prisma.businessNeed.create({ data: { userId }, select: { id: true } })
   try {
-    return await takeTurn(need.id, userId, text)
+    return await takeTurn(need.id, userId, text, lang)
   } catch (error) {
     // Первый ход не удался (модель недоступна) — пустая потребность не нужна
     await prisma.businessNeed.delete({ where: { id: need.id } }).catch(() => {})
@@ -137,6 +138,7 @@ export async function sendNeed(
   needId: string,
   user: Sender,
   input: { projectId?: string | null; comment?: string | null; contactPhone?: string | null },
+  lang: NeedLang = 'ru',
 ): Promise<{ requestId: string; projectTitle: string | null }> {
   const need = await prisma.businessNeed.findFirst({ where: { id: needId, userId: user.id } })
   if (!need) throw new NeedError('not_found')
@@ -168,7 +170,7 @@ export async function sendNeed(
         organization: user.organization,
         contactPhone: input.contactPhone ?? null,
         type: IntegrationRequestType.CONSULTATION,
-        message: needSummary(view.fields, view.readiness, input.comment),
+        message: needSummary(view.fields, view.readiness, input.comment, lang),
       },
       select: { id: true },
     })

@@ -60,7 +60,7 @@ describe('проверка цитат', () => {
   })
 
   it('готовые ответы-кнопки можно подтвердить цитатой, в отличие от короткого «да»', () => {
-    for (const reply of Object.values(QUICK_REPLIES).flat()) {
+    for (const reply of Object.values(QUICK_REPLIES.ru).flat()) {
       expect(quoteFound(reply.slice(0, 40), `Ассистент спросил, мы ответили: ${reply}`)).toBe(true)
     }
   })
