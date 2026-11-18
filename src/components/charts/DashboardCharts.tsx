@@ -288,8 +288,8 @@ export function DashboardCharts({
             <BarChart data={technologies.map(tech => ({ ...tech, name: technologyLabel(tech, lang) }))} layout="vertical" margin={{ left: 0, right: 20 }}>
               <CartesianGrid strokeDasharray="3 3" horizontal={false} />
               <XAxis type="number" tick={{ fontSize: 11 }} allowDecimals={false} />
-              <YAxis type="category" dataKey="name" width={140} interval={0} tick={{ fontSize: 11 }}
-                tickFormatter={v => v.length > 18 ? v.slice(0, 17) + '…' : v} />
+              <YAxis type="category" dataKey="name" width={200} interval={0} tick={{ fontSize: 11 }}
+                tickFormatter={v => v.length > 26 ? v.slice(0, 25) + '…' : v} />
               <Tooltip />
               <Bar dataKey="count" fill="#0d9488" radius={[0, 4, 4, 0]} name={t('dashboard', 'projects')} />
             </BarChart>

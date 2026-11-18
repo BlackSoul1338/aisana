@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { tagLabel } from '@/lib/tags'
+import { normalizeTag, TAG_LABELS, tagLabel } from '@/lib/tags'
 
 describe('tagLabel', () => {
   it('переводит известные теги, сохраняя регистр первой буквы', () => {
@@ -14,8 +14,16 @@ describe('tagLabel', () => {
     expect(tagLabel('КОНТРОЛЬ КАЧЕСТВА', 'kz')).toBe('Сапа бақылауы')
   })
 
+  it('ключи словаря уже нормализованы', () => {
+    for (const key of Object.keys(TAG_LABELS)) {
+      expect(normalizeTag(key), key).toBe(key)
+    }
+  })
+
   it('свободный текст автора остаётся как есть', () => {
     expect(tagLabel('қазақ тілі', 'kz')).toBe('қазақ тілі')
+    expect(tagLabel('#қазақ тілі', 'kz')).toBe('қазақ тілі')
     expect(tagLabel('сварка', 'ru')).toBe('сварка')
+    expect(tagLabel('#сварка', 'ru')).toBe('сварка')
   })
 })

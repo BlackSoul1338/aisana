@@ -184,11 +184,14 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
         <div className="bg-white border border-slate-200 rounded-xl p-5">
           <h2 className="font-semibold text-slate-700 mb-3">{t('project', 'tags', lang)}</h2>
           <div className="flex flex-wrap gap-2">
-            {[...new Set(project.tags.map(tag => tagLabel(tag, lang)))].map(tag => (
-              <span key={tag} className="px-2.5 py-1 bg-slate-100 text-slate-600 rounded-full text-xs">
-                #{tag}
-              </span>
-            ))}
+            {project.tags
+              .map(tag => tagLabel(tag, lang))
+              .filter((tag, i, all) => all.findIndex(t => t.toLocaleLowerCase('kk') === tag.toLocaleLowerCase('kk')) === i)
+              .map(tag => (
+                <span key={tag} className="px-2.5 py-1 bg-slate-100 text-slate-600 rounded-full text-xs">
+                  #{tag}
+                </span>
+              ))}
           </div>
         </div>
       )}

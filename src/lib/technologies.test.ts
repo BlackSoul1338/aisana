@@ -12,9 +12,13 @@ describe('technologyLabel', () => {
 
   it('таблица покрывает все технологии из prisma/seed.ts', () => {
     const seed = readFileSync('prisma/seed.ts', 'utf8')
-    const seeded = [...seed.matchAll(/name: '[^']*',\s*slug: '([^']+)'/g)].map(m => m[1])
+    const seeded = [...seed.matchAll(/name: '([^']*)',\s*slug: '([^']+)'/g)].map(m => ({ name: m[1], slug: m[2] }))
     expect(seeded.length).toBeGreaterThan(0)
-    expect([...seeded].sort()).toEqual([...TECHNOLOGY_SLUGS].sort())
+    expect(seeded.map(t => t.slug).sort()).toEqual([...TECHNOLOGY_SLUGS].sort())
     expect(Object.keys(TECHNOLOGY_LABELS).sort()).toEqual([...TECHNOLOGY_SLUGS].sort())
+    // импорт пишет name из TECHNOLOGY_LABELS.ru — расхождение создаст дубль в БД
+    for (const tech of seeded) {
+      expect(TECHNOLOGY_LABELS[tech.slug as keyof typeof TECHNOLOGY_LABELS].ru).toBe(tech.name)
+    }
   })
 })

@@ -5,7 +5,7 @@ import type { Lang } from '@/lib/i18n'
  * термины, остальные показываем как написано: машинный перевод названий
  * проектов и тегов не входит в задачу интерфейса.
  */
-const TAG_LABELS: Record<string, string> = {
+export const TAG_LABELS: Record<string, string> = {
   'рекрутинг': 'рекрутинг',
   'hr': 'HR',
   'медицина': 'медицина',
@@ -20,19 +20,19 @@ const TAG_LABELS: Record<string, string> = {
   'черновик': 'қаралама',
   'сварка': 'металл пісіру',
   'рентген': 'рентген',
-  'солнечная станция': 'күн электрстанциясы',
+  'солнечная станция': 'күн электр стансасы',
   'демо': 'демо',
   'автоматизация': 'автоматтандыру',
   'компьютерное зрение': 'компьютерлік көру',
   'производство': 'өндіріс',
   'здравоохранение': 'денсаулық сақтау',
-  'предиктивное обслуживание': 'болжамды қызмет көрсету',
+  'предиктивное обслуживание': 'болжамды техникалық қызмет көрсету',
   'возобновляемая энергия': 'жаңартылатын энергия',
   'энергетика': 'энергетика',
 }
 
 /** Ключ поиска в словаре: без «#», лишних пробелов, «ё» и регистра. */
-function normalizeTag(tag: string): string {
+export function normalizeTag(tag: string): string {
   return tag
     .replace(/^#+/, '')
     .trim()
@@ -42,10 +42,12 @@ function normalizeTag(tag: string): string {
 }
 
 export function tagLabel(tag: string, lang: Lang): string {
-  if (lang !== 'kz') return tag
-  const label = TAG_LABELS[normalizeTag(tag)]
-  if (!label) return tag
+  // Решётку добавляет страница — убираем её и в ru, и в kz, иначе будет «##тег»
+  const clean = tag.replace(/^#+/, '').trim()
+  if (lang !== 'kz') return clean
+  const label = TAG_LABELS[normalizeTag(clean)]
+  if (!label) return clean
   // «Сварка» → «Металл пісіру»: автора не переучиваем, регистр сохраняем
-  const startsUpper = /^\p{Lu}/u.test(tag.replace(/^#+/, '').trim())
+  const startsUpper = /^\p{Lu}/u.test(clean)
   return startsUpper ? label.charAt(0).toLocaleUpperCase('kk') + label.slice(1) : label
 }
