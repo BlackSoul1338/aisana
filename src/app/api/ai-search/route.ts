@@ -106,12 +106,14 @@ export async function POST(request: NextRequest) {
     // Пояснения от модели — поверх уже готовой выдачи, необязательны.
     // Проект мог быть удалён между сборкой индекса и запросом — тогда
     // его нет в byId, и он просто не попадает в пояснения.
+    const lang = request.cookies.get('lang')?.value === 'kz' ? 'kz' : 'ru'
+
     const [summary, reasons] = await Promise.all([
-      generateSearchSummary(query, projects.map(p => ({ title: p.title, description: p.description }))),
+      generateSearchSummary(query, projects.map(p => ({ title: p.title, description: p.description })), lang),
       generateMatchReasons(query, hits.slice(0, 30).flatMap(hit => {
         const project = byId.get(hit.id)
         return project ? [{ id: hit.id, title: project.title, description: project.description }] : []
-      })),
+      }), lang),
     ])
 
     // Эффективность кэша — в лог сервера, а не в ответ: клиенту она

@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { StatusBadge } from '@/components/ui/status-badge'
 import { CategoryBadge } from '@/components/ui/category-badge'
 import { useLang } from '@/context/LangContext'
+import { technologyLabel } from '@/lib/technologies'
 
 const EXAMPLE_KEYS = ['ex1', 'ex2', 'ex3', 'ex4', 'ex5', 'ex6'] as const
 
@@ -18,7 +19,7 @@ interface AIResult {
   status: string
   category: string
   university: { name: string; shortName?: string | null; region: { name: string } }
-  technologies: { name: string }[]
+  technologies: { id?: string; name: string; slug?: string | null }[]
 }
 
 interface StoredState {
@@ -47,7 +48,8 @@ function saveStoredState(state: StoredState) {
 }
 
 export function AISearchWidget() {
-  const { t } = useLang()
+  const { t, lang } = useLang()
+  // Локализованные подписи справочных технологий (см. lib/technologies.ts)
   const [query, setQuery] = useState('')
   const [loading, setLoading] = useState(false)
   const [results, setResults] = useState<AIResult[] | null>(null)
@@ -247,9 +249,9 @@ export function AISearchWidget() {
 
                         {project.technologies.length > 0 && (
                           <div className="flex flex-wrap gap-1 mt-2">
-                            {project.technologies.slice(0, 5).map(t => (
-                              <span key={t.name} className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-[11px]">
-                                {t.name}
+                            {project.technologies.slice(0, 5).map(tech => (
+                              <span key={tech.name} className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-[11px]">
+                                {technologyLabel({ slug: tech.slug ?? '', name: tech.name }, lang)}
                               </span>
                             ))}
                           </div>
