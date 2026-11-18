@@ -94,7 +94,7 @@ export default function KazakhstanMap({ regions }: Props) {
         projection="geoMercator"
         projectionConfig={{ scale: 1100, center: [67, 48] }}
         style={{ width: '100%', height: '100%', overflow: 'visible' }}
-        className="filter drop-shadow-[0_12px_24px_rgba(15,23,42,0.08),0_2px_6px_rgba(15,23,42,0.04)] dark:drop-shadow-none"
+        className="filter drop-shadow-[0_12px_24px_rgba(15,23,42,0.08)] dark:drop-shadow-none"
       >
         <ZoomableGroup zoom={1} minZoom={0.8} maxZoom={6}>
           <Geographies geography={GEO_URL}>

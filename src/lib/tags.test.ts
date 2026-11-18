@@ -22,8 +22,12 @@ describe('tagLabel', () => {
 
   it('свободный текст автора остаётся как есть', () => {
     expect(tagLabel('қазақ тілі', 'kz')).toBe('қазақ тілі')
-    expect(tagLabel('#қазақ тілі', 'kz')).toBe('қазақ тілі')
     expect(tagLabel('сварка', 'ru')).toBe('сварка')
+  })
+
+  it('ведущая решётка снимается и в ru, и в kz, перевод при этом работает', () => {
+    expect(tagLabel('#қазақ тілі', 'kz')).toBe('қазақ тілі')
     expect(tagLabel('#сварка', 'ru')).toBe('сварка')
+    expect(tagLabel('#сварка', 'kz')).toBe('металл пісіру')
   })
 })

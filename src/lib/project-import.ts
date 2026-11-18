@@ -202,6 +202,40 @@ export function parseProjectWorkbook(buffer: Buffer, maxRows = 0) {
   })
 }
 
+// ── Нормализация технологий ──────────────────────────────
+// Известные алиасы сводим к обобщённым группам (см. prisma/seed.ts),
+// чтобы импорт из Excel не плодил дубликаты вида AI / ИИ / GPT / Claude.
+// Неизвестные названия создаются как есть.
+export function buildTechAliasMap(): Record<string, { name: string; slug: string }> {
+  const groups: [string, string, string[]][] = [
+    ['Генеративный ИИ (LLM)', 'gen-ai',
+      ['ai', 'ии', 'llm', 'gpt', 'chatgpt', 'claude', 'gemini', 'groq', 'llama', 'mistral', 'openai', 'edenai', 'генеративный ии', 'генеративный ии (llm)']],
+    ['Машинное обучение', 'machine-learning',
+      ['machine learning', 'ml', 'машинное обучение']],
+    ['Компьютерное зрение', 'computer-vision',
+      ['computer vision', 'cv', 'ocr', 'компьютерное зрение']],
+    ['NLP', 'nlp', ['nlp']],
+    ['RAG и векторный поиск', 'rag',
+      ['rag', 'faiss', 'embeddings', 'rag и векторный поиск']],
+    ['Чат-боты', 'chatbots',
+      ['telegram', 'чат-бот', 'чат-боты', 'chatbot']],
+    ['Другое', 'other',
+      ['node', 'node.js', 'sqlite', 'streamlit', 'другое']],
+  ]
+  const map: Record<string, { name: string; slug: string }> = {}
+  for (const [name, slug, aliases] of groups) {
+    for (const alias of aliases) map[alias] = { name, slug }
+  }
+  // Выгрузка в kz-режиме содержит казахские подписи — принимаем их обратно,
+  // иначе повторный импорт создаст дубликат технологии рядом с русской
+  for (const [slug, label] of Object.entries(TECHNOLOGY_LABELS)) {
+    for (const alias of [label.ru, label.kz]) {
+      map[alias.trim().toLowerCase()] ??= { name: label.ru, slug }
+    }
+  }
+  return map
+}
+
 export async function importProjectsFromRows(
   prisma: PrismaClient,
   rows: RawRow[],
@@ -260,39 +294,7 @@ export async function importProjectsFromRows(
     return resolved || null
   }
 
-  // ── Нормализация технологий ──────────────────────────────
-  // Известные алиасы сводим к обобщённым группам (см. prisma/seed.ts),
-  // чтобы импорт из Excel не плодил дубликаты вида AI / ИИ / GPT / Claude.
-  // Неизвестные названия создаются как есть.
-  const TECH_ALIASES: Record<string, { name: string; slug: string }> = (() => {
-    const groups: [string, string, string[]][] = [
-      ['Генеративный ИИ (LLM)', 'gen-ai',
-        ['ai', 'ии', 'llm', 'gpt', 'chatgpt', 'claude', 'gemini', 'groq', 'llama', 'mistral', 'openai', 'edenai', 'генеративный ии', 'генеративный ии (llm)']],
-      ['Машинное обучение', 'machine-learning',
-        ['machine learning', 'ml', 'машинное обучение']],
-      ['Компьютерное зрение', 'computer-vision',
-        ['computer vision', 'cv', 'ocr', 'компьютерное зрение']],
-      ['NLP', 'nlp', ['nlp']],
-      ['RAG и векторный поиск', 'rag',
-        ['rag', 'faiss', 'embeddings', 'rag и векторный поиск']],
-      ['Чат-боты', 'chatbots',
-        ['telegram', 'чат-бот', 'чат-боты', 'chatbot']],
-      ['Другое', 'other',
-        ['node', 'node.js', 'sqlite', 'streamlit', 'другое']],
-    ]
-    const map: Record<string, { name: string; slug: string }> = {}
-    for (const [name, slug, aliases] of groups) {
-      for (const alias of aliases) map[alias] = { name, slug }
-    }
-    // Выгрузка в kz-режиме содержит казахские подписи — принимаем их обратно,
-    // иначе повторный импорт создаст дубликат технологии рядом с русской
-    for (const [slug, label] of Object.entries(TECHNOLOGY_LABELS)) {
-      for (const alias of [label.ru, label.kz]) {
-        map[alias.trim().toLowerCase()] ??= { name: label.ru, slug }
-      }
-    }
-    return map
-  })()
+  const TECH_ALIASES = buildTechAliasMap()
 
   async function technologyConnect(names: string[]) {
     const uniqueNames = [...new Set(names)]
