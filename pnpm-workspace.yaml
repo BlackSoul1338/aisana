@@ -6,3 +6,9 @@ allowBuilds:
   '@prisma/engines': true
   prisma: true
   esbuild: true
+
+# Патчи зависимостей, которые приходят транзитивно через next/react-simple-maps.
+overrides:
+  postcss@<=8.5.22: 8.5.33
+  d3-color@<3.1.0: 3.1.1
+  zod@<4.6.6: 4.6.7

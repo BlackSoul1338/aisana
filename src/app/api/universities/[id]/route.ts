@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { UserRole } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
-import { PUBLISHED_PROJECTS_RELATION, withoutIntegrationFlag, withoutLeadContacts } from '@/lib/publication'
+import { PUBLISHED_PROJECTS_RELATION, withoutIntegrationFlag, withoutLeadContacts, withoutModerationNote } from '@/lib/publication'
 import { canAccessUniversity, requireApiRole, requireApiUser } from '@/lib/auth'
 import { deleteUpload } from '@/lib/uploads'
 import { invalidateSearchIndex } from '@/lib/search/store'
@@ -31,7 +31,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     if (!university) return NextResponse.json({ error: 'Не найдено' }, { status: 404 })
     return NextResponse.json({
       ...university,
-      projects: university.projects.map(project => withoutIntegrationFlag(withoutLeadContacts(user, project))),
+      projects: university.projects.map(project => withoutModerationNote(withoutIntegrationFlag(withoutLeadContacts(user, project)))),
     })
   } catch {
     return NextResponse.json({ error: 'Ошибка' }, { status: 500 })
@@ -50,6 +50,12 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ error: parsed.error }, { status: 400 })
     }
     const data = parsed.data
+    if (data.regionId) {
+      const region = await prisma.region.findUnique({ where: { id: data.regionId }, select: { id: true } })
+      if (!region) {
+        return NextResponse.json({ error: 'Регион не найден' }, { status: 400 })
+      }
+    }
     const university = await prisma.university.update({
       where: { id },
       data: providedFields(data),
@@ -78,8 +84,12 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       select: { agentPassportPdf: true, files: { select: { url: true } } },
     })
 
-    await prisma.project.deleteMany({ where: { universityId: id } })
-    await prisma.university.delete({ where: { id } })
+    // Проекты и вуз удаляем одной транзакцией: иначе сбой второго запроса
+    // оставит проекты без вуза-владельца.
+    await prisma.$transaction([
+      prisma.project.deleteMany({ where: { universityId: id } }),
+      prisma.university.delete({ where: { id } }),
+    ])
 
     for (const p of projects) {
       await deleteUpload(p.agentPassportPdf)

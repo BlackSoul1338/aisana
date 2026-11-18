@@ -1,6 +1,4 @@
-// ISR: страница отдаётся из кэша мгновенно и пересобирается в фоне
-// не чаще раза в 60 секунд — изменения из админки появляются с задержкой до минуты
-export const revalidate = 60
+export const dynamic = 'force-dynamic'
 
 import { prisma } from '@/lib/prisma'
 import { PUBLISHED_ONLY } from '@/lib/publication'
@@ -23,7 +21,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     `${t('universities', 'metaAiProjects', lang)} ${uni.shortName || uni.name} (${uni.region.name})`
   )
   return {
-    title: uni.shortName ? `${uni.shortName} — ${uni.name}` : uni.name,
+    title: uni.shortName ? `${uni.shortName} - ${uni.name}` : uni.name,
     description,
     openGraph: { title: uni.name, description },
   }
@@ -95,9 +93,9 @@ export default async function UniversityPage({ params }: { params: Promise<{ id:
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
           {[
             { icon: MapPin, label: t('universities', 'regionLabel', lang), value: lang === 'kz' && university.region.nameKz ? university.region.nameKz : university.region.name },
-            { icon: User, label: t('universities', 'rector', lang), value: university.rector || '—' },
-            { icon: Mail, label: 'Email', value: university.email || '—' },
-            { icon: Globe, label: t('universities', 'website', lang), value: university.website?.replace('https://', '') || '—' },
+            { icon: User, label: t('universities', 'rector', lang), value: university.rector || '-' },
+            { icon: Mail, label: 'Email', value: university.email || '-' },
+            { icon: Globe, label: t('universities', 'website', lang), value: university.website?.replace('https://', '') || '-' },
           ].map(item => (
             <div key={item.label} className="bg-slate-50 rounded-lg p-3">
               <div className="flex items-center gap-1.5 text-xs text-slate-400 mb-1">

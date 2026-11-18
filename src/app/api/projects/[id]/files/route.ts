@@ -29,7 +29,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     where: { projectId: id },
     orderBy: { createdAt: 'asc' },
   })
-  return NextResponse.json(files)
+  // Список зависит от прав пользователя — кэшировать его нельзя
+  return NextResponse.json(files, { headers: { 'Cache-Control': 'private, no-store' } })
 }
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {

@@ -220,20 +220,20 @@ export const aiSearchSchema = z.object({
 function issueMessage(issue: z.ZodIssue): string {
   switch (issue.code) {
     case 'invalid_type':
-      return issue.received === 'undefined' ? 'поле обязательно' : 'неверный тип значения'
-    case 'invalid_enum_value':
-      return `допустимые значения: ${issue.options.join(', ')}`
+      return issue.input === undefined ? 'поле обязательно' : 'неверный тип значения'
+    case 'invalid_value':
+      return `допустимые значения: ${issue.values.join(', ')}`
     case 'too_small':
-      if (issue.type === 'string') {
+      if (issue.origin === 'string') {
         return issue.minimum === 1 ? 'значение не может быть пустым' : `минимум ${issue.minimum} символов`
       }
       return `минимум ${issue.minimum}`
     case 'too_big':
-      if (issue.type === 'string') return `максимум ${issue.maximum} символов`
-      if (issue.type === 'array') return `максимум ${issue.maximum} элементов`
+      if (issue.origin === 'string') return `максимум ${issue.maximum} символов`
+      if (issue.origin === 'array') return `максимум ${issue.maximum} элементов`
       return `максимум ${issue.maximum}`
-    case 'invalid_string':
-      return issue.validation === 'email' ? 'некорректный адрес почты' : 'некорректное значение'
+    case 'invalid_format':
+      return issue.format === 'email' ? 'некорректный адрес почты' : 'некорректное значение'
     default:
       return 'некорректное значение'
   }

@@ -1,7 +1,6 @@
 'use client'
 
 import { createContext, useContext, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import type { Lang } from '@/lib/i18n'
 import { translations } from '@/lib/i18n'
 
@@ -21,15 +20,18 @@ export function LangProvider({ children, initialLang = 'ru' }: { children: React
   // Начальный язык отдаёт сервер по cookie 'lang' — первый рендер совпадает
   // с SSR, русская вспышка при кэшированном казахском не возникает.
   const [lang, setLangState] = useState<Lang>(initialLang)
-  const router = useRouter()
 
   function setLang(l: Lang) {
+    if (l === lang) return
     setLangState(l)
+    try {
+      localStorage.setItem('lang', l)
+    } catch {}
     document.cookie = `lang=${l}; path=/; max-age=31536000; samesite=lax`
     document.documentElement.lang = l === 'kz' ? 'kk' : 'ru'
-    // Серверные компоненты читают язык из cookie — без refresh смена
-    // применится только после полной перезагрузки (так и было).
-    router.refresh()
+    // Серверные компоненты читают язык из cookie — для полной и синхронной
+    // смены языка на всей странице (включая RSC и метатеги) перезагружаем окно
+    window.location.reload()
   }
 
   function t(section: string, key: string): string {

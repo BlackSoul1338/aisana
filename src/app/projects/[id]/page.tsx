@@ -1,6 +1,4 @@
-// ISR: страница отдаётся из кэша мгновенно и пересобирается в фоне
-// не чаще раза в 60 секунд — изменения из админки появляются с задержкой до минуты
-export const revalidate = 60
+export const dynamic = 'force-dynamic'
 
 import { prisma } from '@/lib/prisma'
 import type { Metadata } from 'next'

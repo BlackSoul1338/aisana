@@ -93,7 +93,8 @@ export default function KazakhstanMap({ regions }: Props) {
       <ComposableMap
         projection="geoMercator"
         projectionConfig={{ scale: 1100, center: [67, 48] }}
-        style={{ width: '100%', height: '100%' }}
+        style={{ width: '100%', height: '100%', overflow: 'visible' }}
+        className="filter drop-shadow-[0_12px_24px_rgba(15,23,42,0.08)] drop-shadow-[0_2px_6px_rgba(15,23,42,0.04)] dark:drop-shadow-none"
       >
         <ZoomableGroup zoom={1} minZoom={0.8} maxZoom={6}>
           <Geographies geography={GEO_URL}>
@@ -107,7 +108,7 @@ export default function KazakhstanMap({ regions }: Props) {
                     geography={geo}
                     fill={isHovered ? '#f59e0b' : (region ? getColor(region.projectCount) : 'var(--map-0)')}
                     stroke="var(--map-stroke)"
-                    strokeWidth={0.8}
+                    strokeWidth={1}
                     style={{
                       default: { outline: 'none', transition: 'fill 0.2s ease' },
                       hover: { outline: 'none', fill: '#f59e0b', cursor: 'pointer' },

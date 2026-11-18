@@ -37,7 +37,7 @@ export function MapTooltip({ x, y, region }: Props) {
           </div>
           <div className="flex justify-between gap-6">
             <span className="text-slate-500 dark:text-white/60 text-xs">{t('home', 'tooltipProj')}</span>
-            <span className="text-blue-300 font-medium text-xs tabular-nums">{region.projectCount}</span>
+            <span className="text-blue-600 dark:text-blue-300 font-medium text-xs tabular-nums">{region.projectCount}</span>
           </div>
         </div>
         <p className="text-slate-400 dark:text-white/40 text-xs mt-2.5 border-t border-slate-200 dark:border-white/10 pt-2">

@@ -132,6 +132,17 @@ export function withoutIntegrationFlag<T extends { availableForIntegration: bool
   return rest
 }
 
+/**
+ * Комментарий модератора — внутренняя переписка с вузом. В ответы API он не
+ * попадает: проект читают внешние клиенты и роли, которым он не адресован.
+ */
+export function withoutModerationNote<T extends { moderationNote: string | null }>(
+  project: T,
+): Omit<T, 'moderationNote'> {
+  const { moderationNote: _note, ...rest } = project
+  return rest
+}
+
 export const PUBLICATION_BADGE: Record<PublicationStatus, string> = {
   DRAFT: 'bg-slate-100 text-slate-600 border-slate-200',
   REVIEW: 'bg-amber-100 text-amber-700 border-amber-200',

@@ -23,10 +23,10 @@ export function MapOverlay({ stats }: Props) {
 
           {/* Заголовок */}
           <div className="max-w-[22rem] text-center sm:absolute sm:left-1/2 sm:top-4 sm:max-w-none sm:-translate-x-1/2">
-            <p className="text-[10px] font-medium uppercase leading-tight tracking-[0.12em] text-slate-500 dark:text-white/50 sm:text-xs sm:tracking-[0.2em]">
+            <p className="text-[10px] font-semibold uppercase leading-tight tracking-[0.12em] text-slate-600 dark:text-white/60 sm:text-xs sm:tracking-[0.2em]">
               {t('home', 'ministry')}
             </p>
-            <h1 className="mt-0.5 text-base font-bold tracking-wide text-slate-800 dark:text-white sm:mt-1 sm:text-lg">
+            <h1 className="mt-0.5 text-base font-bold tracking-wide text-slate-900 dark:text-white sm:mt-1 sm:text-lg">
               {t('home', 'title')}
             </h1>
           </div>
@@ -53,7 +53,7 @@ export function MapOverlay({ stats }: Props) {
 
       {/* Легенда: на мобильных компактнее и в два столбца, чтобы не занимать пол-экрана */}
       <div className="pointer-events-none absolute bottom-4 right-3 z-20 rounded-xl border border-slate-200 bg-white/90 p-3 shadow-lg backdrop-blur-sm dark:border-white/10 dark:bg-[#0d1b3e]/90 dark:shadow-none sm:bottom-6 sm:right-4 sm:p-4">
-        <p className="mb-2 text-[10px] font-medium uppercase tracking-wider text-slate-500 dark:text-white/60 sm:mb-3 sm:text-xs">
+        <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-600 dark:text-white/70 sm:mb-3 sm:text-xs">
           {t('home', 'legendTitle')}
         </p>
         <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 sm:grid-cols-1 sm:gap-2">
@@ -65,8 +65,13 @@ export function MapOverlay({ stats }: Props) {
             { label: '30+', color: 'var(--map-4)' },
           ].map(item => (
             <div key={item.label} className="flex items-center gap-2">
-              <div className="h-3 w-3 shrink-0 rounded-sm sm:h-4 sm:w-4" style={{ backgroundColor: item.color }} />
-              <span className="text-[11px] text-slate-600 dark:text-white/70 sm:text-xs">{item.label}</span>
+              <div
+                className="h-3 w-3 shrink-0 rounded-sm border border-slate-300 dark:border-white/20 sm:h-4 sm:w-4"
+                style={{ backgroundColor: item.color }}
+              />
+              <span className="text-[11px] font-medium text-slate-700 dark:text-white/80 sm:text-xs">
+                {item.label}
+              </span>
             </div>
           ))}
         </div>

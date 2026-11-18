@@ -164,7 +164,7 @@ export function ProjectForm({ universities, technologies, project, defaultUniver
         ))}
       </div>
 
-      {/* Main info + category + tech + results + materials + tags — all in one submit */}
+      {/* Main info, category, tech, results, materials, tags in one submit */}
       <form onSubmit={handleSubmit} className={tab === 'main' ? 'space-y-6' : 'hidden'}>
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">{error}</div>
@@ -191,7 +191,7 @@ export function ProjectForm({ universities, technologies, project, defaultUniver
               <select name="universityId" defaultValue={project?.universityId || defaultUniversityId || ''} required className={inputCls}>
                 <option value="">{t('users', 'selectUni')}</option>
                 {universities.map(u => (
-                  <option key={u.id} value={u.id}>{u.shortName ? `${u.shortName} — ` : ''}{u.name}</option>
+                  <option key={u.id} value={u.id}>{u.shortName ? `${u.shortName} - ` : ''}{u.name}</option>
                 ))}
               </select>
             </div>
@@ -324,7 +324,7 @@ export function ProjectForm({ universities, technologies, project, defaultUniver
         </div>
       </form>
 
-      {/* Passport tab — only meaningful once the project exists */}
+      {/* Passport tab: only meaningful once the project exists */}
       {tab === 'passport' && (
         <div>
           {isEdit ? (
@@ -346,7 +346,7 @@ export function ProjectForm({ universities, technologies, project, defaultUniver
         </div>
       )}
 
-      {/* Files tab — same story, needs an existing project id */}
+      {/* Files tab: same story, needs an existing project id */}
       {tab === 'files' && (
         <div>
           {isEdit ? (

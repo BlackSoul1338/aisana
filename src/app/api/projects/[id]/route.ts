@@ -7,7 +7,7 @@ import { deleteUpload } from '@/lib/uploads'
 import { invalidateSearchIndex, reclassifyProject } from '@/lib/search/store'
 import { audit } from '@/lib/audit'
 import { parseBody, projectSchema } from '@/lib/schemas'
-import { canModerate, withoutIntegrationFlag, withoutLeadContacts } from '@/lib/publication'
+import { canModerate, withoutIntegrationFlag, withoutLeadContacts, withoutModerationNote } from '@/lib/publication'
 import { publicationBlocker } from '@/lib/project-completeness'
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -29,7 +29,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ error: 'Не найдено' }, { status: 404 })
     }
 
-    return NextResponse.json(withoutIntegrationFlag(withoutLeadContacts(user, project)))
+    return NextResponse.json(withoutModerationNote(withoutIntegrationFlag(withoutLeadContacts(user, project))))
   } catch {
     return NextResponse.json({ error: 'Ошибка' }, { status: 500 })
   }
@@ -62,6 +62,14 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     }
     if (!canAccessUniversity(user, universityId)) {
       return NextResponse.json({ error: 'Недостаточно прав для этого вуза' }, { status: 403 })
+    }
+
+    const universityExists = await prisma.university.findUnique({
+      where: { id: universityId },
+      select: { id: true },
+    })
+    if (!universityExists) {
+      return NextResponse.json({ error: 'Вуз не найден' }, { status: 400 })
     }
 
     // Карточка уже на проверке или опубликована — вуз не может сохранить её
@@ -111,7 +119,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     await audit(user, 'UPDATE', 'project', project.id, project.title)
     revalidatePath(`/projects/${project.id}`)
     revalidatePath(`/universities/${project.universityId}`)
-    return NextResponse.json(withoutIntegrationFlag(project))
+    return NextResponse.json(withoutModerationNote(withoutIntegrationFlag(project)))
   } catch {
     return NextResponse.json({ error: 'Ошибка обновления' }, { status: 500 })
   }

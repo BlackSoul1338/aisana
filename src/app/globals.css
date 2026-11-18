@@ -32,13 +32,11 @@
     @apply border-border;
   }
   html {
-    /* Matches the map page background so route transitions
-       never show a flash of plain white before content paints. */
-    background-color: #0d1b3e;
+    background-color: #f8fafc;
   }
   body {
     @apply text-foreground;
-    background-color: #0d1b3e;
+    background-color: #f8fafc;
   }
   html.dark {
     background-color: #0f172a;
@@ -162,22 +160,23 @@
 .dark .border-violet-100, .dark .border-violet-200 { border-color: rgba(167, 139, 250, 0.35); }
 
 .dark .bg-sky-50 { background-color: rgba(56, 189, 248, 0.12); }
+.dark .bg-sky-100 { background-color: rgba(56, 189, 248, 0.16); }
 .dark .text-sky-600, .dark .text-sky-700 { color: #7dd3fc; }
-.dark .border-sky-100 { border-color: rgba(56, 189, 248, 0.35); }
+.dark .border-sky-100, .dark .border-sky-200 { border-color: rgba(56, 189, 248, 0.35); }
 
 .dark .bg-purple-100 { background-color: rgba(192, 132, 252, 0.16); }
 .dark .text-purple-700 { color: #d8b4fe; }
 .dark .bg-pink-50 { background-color: rgba(244, 114, 182, 0.12); }
 .dark .text-pink-600, .dark .text-pink-700 { color: #f9a8d4; }
 
-/* Палитра карты: светлая тема — мягкий ряд blue-300..600, тёмная — как раньше */
+/* Палитра карты: светлая тема — контрастная и читаемая градация, тёмная — неоновая */
 :root {
   --map-0: #e2e8f0;
-  --map-1: #93c5fd;
-  --map-2: #60a5fa;
-  --map-3: #3b82f6;
-  --map-4: #2563eb;
-  --map-stroke: #ffffff;
+  --map-1: #60a5fa;
+  --map-2: #3b82f6;
+  --map-3: #2563eb;
+  --map-4: #1d4ed8;
+  --map-stroke: #94a3b8;
 }
 .dark {
   --map-0: #1e3a5f;
@@ -197,6 +196,29 @@
 }
 .dark ::-webkit-scrollbar-thumb:hover {
   @apply bg-slate-500;
+}
+
+/* Выпадающие списки: гармоничная стрелка с выверенным отступом от правого края */
+select {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2364748b' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 0.25rem center;
+  background-repeat: no-repeat;
+  background-size: 1.25rem 1.25rem;
+  padding-right: 2rem !important;
+  cursor: pointer;
+}
+
+.dark select {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2394a3b8' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+}
+
+/* Нативный список опций не наследует тему в Chromium — задаём явно */
+.dark select option {
+  background-color: #1e293b;
+  color: #f1f5f9;
 }
 
 /* Kazakhstan government design system */

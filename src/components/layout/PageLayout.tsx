@@ -17,7 +17,7 @@ export function PageLayout({ children }: { children: React.ReactNode }) {
         <div className="container max-w-7xl mx-auto px-4">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs text-slate-400">
             <div className="flex flex-col md:flex-row items-center gap-1 md:gap-3 text-center md:text-left">
-              <p>© 2026 АО «НАРИ «QazInnovations»</p>
+              <p>{t('footer', 'copyright')}</p>
               <span className="hidden md:inline text-slate-200">·</span>
               <p className="text-slate-300">{t('footer', 'portal')}</p>
             </div>

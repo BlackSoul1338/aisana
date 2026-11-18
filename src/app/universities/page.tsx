@@ -73,7 +73,7 @@ export default async function UniversitiesPage({ searchParams }: { searchParams:
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
   const hasFilters = Boolean(sp.q || sp.region || sp.has || sp.type)
 
-  const select = 'border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white min-w-0'
+  const select = 'border border-slate-200 rounded-lg pl-3 pr-10 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white min-w-0'
 
   return (
     <PageLayout>

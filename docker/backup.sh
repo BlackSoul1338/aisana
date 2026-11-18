@@ -36,6 +36,15 @@ purge_llm_cache() {
   echo "[$(date '+%F %T')] кэш ИИ: удалено просроченных записей — $count"
 }
 
+# Просроченные сессии: вход по ним уже невозможен, но строки копятся.
+# Таблицу читают на каждый запрос, поэтому чистим её вместе с кэшем.
+purge_sessions() {
+  count=$(psql -h db -U postgres -d ai_map_kz -tAc \
+    "WITH deleted AS (DELETE FROM sessions WHERE expires <= now() RETURNING 1) SELECT count(*) FROM deleted") \
+    || return 1
+  echo "[$(date '+%F %T')] сессии: удалено просроченных — $count"
+}
+
 if [ "${1:-}" = "once" ]; then
   do_backup
   exit 0
@@ -46,5 +55,6 @@ fi
 while true; do
   do_backup || echo "[$(date '+%F %T')] ОШИБКА БЭКАПА — повтор через сутки"
   purge_llm_cache || echo "[$(date '+%F %T')] ОШИБКА ЧИСТКИ КЭША ИИ — не критично"
+  purge_sessions || echo "[$(date '+%F %T')] ОШИБКА ЧИСТКИ СЕССИЙ — не критично"
   sleep "$INTERVAL_SECONDS"
 done

@@ -130,7 +130,7 @@ export default async function ProjectsPage({ searchParams }: { searchParams: Pro
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
   const hasFilters = Object.entries(sp).some(([key, value]) => key !== 'page' && Boolean(value))
 
-  const select = 'border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white min-w-0'
+  const select = 'border border-slate-200 rounded-lg pl-3 pr-10 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white min-w-0'
 
   return (
     <PageLayout>
@@ -176,7 +176,7 @@ export default async function ProjectsPage({ searchParams }: { searchParams: Pro
         </select>
         <select name="university" defaultValue={sp.university || ''} className={select}>
           <option value="">{t('projects', 'allUniversities', lang)}</option>
-          {universities.map(u => <option key={u.id} value={u.id}>{u.shortName ? `${u.shortName} — ${u.name}` : u.name}</option>)}
+          {universities.map(u => <option key={u.id} value={u.id}>{u.shortName ? `${u.shortName} - ${u.name}` : u.name}</option>)}
         </select>
         <select name="region" defaultValue={sp.region || ''} className={select}>
           <option value="">{t('projects', 'allRegions', lang)}</option>

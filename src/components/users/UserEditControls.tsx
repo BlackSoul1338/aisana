@@ -137,7 +137,7 @@ export function UserEditControls({ user, universities, isSelf = false, isLastAdm
               <div>
                 <h2 className="font-bold text-slate-800">{t('users', 'deleteUser')}</h2>
                 <p className="text-sm text-slate-500 mt-1">
-                  <span className="font-medium text-slate-700">{user.email}</span> — {t('users', 'deleteUserText')}
+                  <span className="font-medium text-slate-700">{user.email}</span> - {t('users', 'deleteUserText')}
                 </p>
               </div>
             </div>
@@ -236,7 +236,7 @@ export function UserEditControls({ user, universities, isSelf = false, isLastAdm
                   <select name="universityId" defaultValue={user.universityId || ''} className={inputCls}>
                     <option value="">{t('users', 'selectUni')}</option>
                     {universities.map(u => (
-                      <option key={u.id} value={u.id}>{u.shortName ? `${u.shortName} — ` : ''}{u.name}</option>
+                      <option key={u.id} value={u.id}>{u.shortName ? `${u.shortName} - ` : ''}{u.name}</option>
                     ))}
                   </select>
                 </div>

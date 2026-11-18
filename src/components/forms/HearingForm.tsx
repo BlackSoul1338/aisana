@@ -100,7 +100,7 @@ export function HearingForm({ projects, hearing, defaultProjectId }: Props) {
             <option value="">{t('hearings', 'selectProject')}</option>
             {projects.map(p => (
               <option key={p.id} value={p.id}>
-                {p.university.shortName || p.university.name} — {p.title}
+                {p.university.shortName || p.university.name} - {p.title}
               </option>
             ))}
           </select>
