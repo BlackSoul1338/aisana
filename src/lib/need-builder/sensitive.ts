@@ -18,7 +18,7 @@ const PHONE = /(?<![\d])(?:\+7|8)[\s(-]*\d{3}[\s)-]*\d{3}[\s-]*\d{2}[\s-]*\d{2}(
 // нормализуя их до проверки — «851231 4006 76» тоже ИИН.
 const TWELVE_DIGITS = /(?<![\d])(?:\d[\s-]?){11}\d(?![\d])/g
 const CARD = /(?<!\d)(?:\d[ -]?){12,18}\d(?!\d)/g
-// Кандидат в казахстанский IBAN: KZ + 2 цифры + 16 буквенно-цифровых, разделители допустимы.
+// Кандидат в казахстанский IBAN: KZ + 5 цифр + 13 буквенно-цифровых, разделители допустимы.
 const IBAN_KZ = /(?<![A-Za-z0-9])KZ(?:[\s-]?[A-Z0-9]){18}(?![A-Za-z0-9])/gi
 
 /**
@@ -57,10 +57,11 @@ export function luhn(digits: string): boolean {
   return sum % 10 === 0
 }
 
-/** IBAN (ISO 13616): mod-97-10 первых 4 символов в конце, буквы → A=10…Z=35. */
+/** IBAN (ISO 13616): mod-97-10, первые 4 символа в конце, буквы → A=10…Z=35.
+ *  Казахстан: KZ + 2 цифры контроля + 3 цифры банка + 13 буквенно-цифровых (20 знаков). */
 export function isValidIbanKz(raw: string): boolean {
   const iban = raw.replace(/[\s-]/g, '').toUpperCase()
-  if (!/^KZ\d{2}[A-Z0-9]{16}$/.test(iban)) return false
+  if (!/^KZ\d{5}[A-Z0-9]{13}$/.test(iban)) return false
   const rearranged = iban.slice(4) + iban.slice(0, 4)
   let remainder = 0
   for (const ch of rearranged) {
