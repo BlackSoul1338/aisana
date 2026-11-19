@@ -141,7 +141,11 @@ export function getClientIp(
   request: NextRequest | { headers: { get(name: string): string | null } }
 ): string {
   const forwarded = request?.headers?.get?.('x-forwarded-for')
-  const raw = forwarded ? forwarded.split(',')[0].trim() : request?.headers?.get?.('x-real-ip')?.trim()
+  // Доверяем только крайней правой записи: её добавил ближайший к нам прокси
+  // (на Render — балансировщик). Всё левее контролирует клиент и может
+  // подделать, чтобы разнести лимит по поддельным адресам.
+  const parts = forwarded ? forwarded.split(',') : null
+  const raw = parts ? parts[parts.length - 1].trim() : request?.headers?.get?.('x-real-ip')?.trim()
   if (!raw) return 'unknown'
 
   // Удаляем пробельные и управляющие символы

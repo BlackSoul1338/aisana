@@ -15,9 +15,9 @@ describe('refundRateLimit', () => {
 })
 
 describe('getClientIp', () => {
-  it('извлекает первый IP из x-forwarded-for', () => {
+  it('извлекает крайнюю правую запись x-forwarded-for (её добавил ближайший прокси)', () => {
     const req = { headers: new Headers({ 'x-forwarded-for': '203.0.113.195, 70.41.3.18' }) }
-    expect(getClientIp(req)).toBe('203.0.113.195')
+    expect(getClientIp(req)).toBe('70.41.3.18')
   })
 
   it('использует x-real-ip при отсутствии x-forwarded-for', () => {
