@@ -15,26 +15,24 @@ export function PageLayout({ children }: { children: React.ReactNode }) {
       </main>
       <footer className="border-t border-slate-200 bg-white py-5">
         <div className="container max-w-7xl mx-auto px-4">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 text-xs text-slate-400">
-            {/* kz-строки длиннее ru: до lg складываем в столбик, иначе рваные переносы */}
-            <div className="flex flex-col lg:flex-row flex-wrap items-center gap-1 lg:gap-3 text-center lg:text-left">
+          {/* kz-строки длиннее ru: до xl — согласованный центрированный столбик,
+              от xl — ряд. Точки-разделители убраны: при переносе они «повисали». */}
+          <div className="flex flex-col items-center gap-2 text-center text-xs text-slate-400 xl:flex-row xl:items-center xl:justify-between xl:text-left">
+            <div className="flex flex-col items-center gap-1 xl:flex-row xl:items-center xl:gap-3">
               <p>{t('footer', 'copyright')}</p>
-              <span className="hidden lg:inline text-slate-200">·</span>
               <p className="text-slate-300">{t('footer', 'portal')}</p>
             </div>
 
-            <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
+            <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
               <Link href="/contacts" className="hover:text-slate-600 transition-colors">
                 {t('footer', 'contacts')}
               </Link>
-              <span className="text-slate-200">·</span>
               <a
                 href="/docs/instrukciya-dlya-vuzov.docx"
                 className="hover:text-slate-600 transition-colors"
               >
                 {t('footer', 'instruction')}
               </a>
-              <span className="text-slate-200">·</span>
               <p>
                 {t('footer', 'madeBy')}:{' '}
                 <span className="text-slate-500 font-medium">Дюсенов Адилет Болатулы</span>
