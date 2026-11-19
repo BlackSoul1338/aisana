@@ -55,7 +55,7 @@ export default async function AssistantPage() {
                   <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${need.status === BusinessNeedStatus.SENT ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'}`}>
                     {need.status === BusinessNeedStatus.SENT ? t('solutions', 'sent', lang) : t('solutions', 'inProgress', lang)}
                   </span>
-                  <span className="hidden shrink-0 text-xs text-slate-400 sm:inline">{formatDateLong(need.updatedAt)}</span>
+                  <span className="hidden shrink-0 text-xs text-slate-400 sm:inline">{formatDateLong(need.updatedAt, lang)}</span>
                 </Link>
               )
             })}

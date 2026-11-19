@@ -55,7 +55,8 @@ export function LoginForm({ nextPath = '/admin' }: Props) {
         <label className="mb-1 block text-sm font-medium text-slate-700">{t('login', 'email')}</label>
         <input
           name="email"
-          type="email"
+          type="text"
+          inputMode="email"
           required
           autoComplete="email"
           className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"

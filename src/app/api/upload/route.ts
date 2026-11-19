@@ -17,8 +17,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Слишком много файлов. Повторите через минуту.' }, { status: 429 })
     }
 
-    // Дешёвый precheck до чтения тела: дороже MAX+запас multipart просто не принимаем
-    const contentLength = Number(request.headers.get('content-length') ?? 0)
+    // Дешёвый precheck до чтения тела: дороже MAX+запас multipart просто не принимаем.
+    // Без Content-Length (chunked) formData() буферизовал бы тело целиком до проверки
+    // размера — требуем объявленный размер, браузеры его шлют.
+    const declaredLength = request.headers.get('content-length')
+    if (!declaredLength) {
+      return NextResponse.json({ error: 'Не указан размер тела запроса (Content-Length)' }, { status: 411 })
+    }
+    const contentLength = Number(declaredLength)
     if (contentLength > MAX_UPLOAD_BYTES + 16 * 1024) {
       const limitMb = Math.round(MAX_UPLOAD_BYTES / 1024 / 1024)
       return NextResponse.json({ error: `Файл больше ${limitMb}MB` }, { status: 413 })

@@ -106,9 +106,9 @@ export default async function AdminRequestsPage({
                   <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
                     {requestTypeLabel(item.type, lang)}
                   </span>
-                  <span className="text-xs text-slate-400">{formatDateLong(item.createdAt)}</span>
+                  <span className="text-xs text-slate-400">{formatDateLong(item.createdAt, lang)}</span>
                   {item.forwardedAt && (
-                    <span className="text-xs text-slate-400">{t('requestsAdmin', 'forwardedAt', lang)} {formatDateLong(item.forwardedAt)}</span>
+                    <span className="text-xs text-slate-400">{t('requestsAdmin', 'forwardedAt', lang)} {formatDateLong(item.forwardedAt, lang)}</span>
                   )}
                 </div>
 

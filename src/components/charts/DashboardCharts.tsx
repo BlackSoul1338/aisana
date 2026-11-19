@@ -268,7 +268,7 @@ export function DashboardCharts({
           оставалась без названия — выглядело как пропавшие данные.
         */}
         <ResponsiveContainer width="100%" height={Math.max(300, byRegion.length * 26 + 40)}>
-          <BarChart data={byRegion} layout="vertical" margin={{ left: 0, right: 20 }}>
+          <BarChart data={byRegion.map(r => ({ ...r, name: lang === 'kz' && r.nameKz ? r.nameKz : r.name }))} layout="vertical" margin={{ left: 0, right: 20 }}>
             <CartesianGrid strokeDasharray="3 3" horizontal={false} />
             <XAxis type="number" tick={{ fontSize: 11 }} allowDecimals={false} />
             <YAxis type="category" dataKey="name" width={170} interval={0} tick={{ fontSize: 11 }}

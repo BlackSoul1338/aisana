@@ -7,6 +7,8 @@
  * она говорит только о том, насколько подробно компания описала свою задачу.
  */
 
+import { t } from '../i18n'
+
 export type NeedFieldKey = 'task' | 'problem' | 'goal' | 'data' | 'environment' | 'integrations' | 'scale'
 export type FieldStatus = 'ok' | 'weak' | 'missing'
 
@@ -30,32 +32,17 @@ export const READY_THRESHOLD = 80
 /** Жёсткий предел ходов диалога: защита от бесконечной переписки и расхода квоты. */
 export const MAX_TURNS = 12
 
-export const FIELD_TITLES: Record<NeedFieldKey, string> = {
-  task: 'Задача и процесс',
-  problem: 'Проблема сейчас',
-  goal: 'Ожидаемый результат',
-  data: 'Доступные данные',
-  environment: 'Где должно работать',
-  integrations: 'Интеграции',
-  scale: 'Масштаб и сроки',
-}
-
 export const NOT_SPECIFIED = 'не указано'
 export const NOT_SPECIFIED_KZ = 'көрсетілмеген'
 
-/** Казахские подписи полей — для интерфейса на kz. */
-export const FIELD_TITLES_KZ: Record<NeedFieldKey, string> = {
-  task: 'Тапсырма және процесс',
-  problem: 'Қазіргі мәселе',
-  goal: 'Күтілетін нәтиже',
-  data: 'Қолжетімді деректер',
-  environment: 'Қайда жұмыс істеу керек',
-  integrations: 'Интеграциялар',
-  scale: 'Масштаб және мерзімі',
+/** Подписи полей — один словарь в i18n (need.field*), чтобы ru/kz не разъезжались. */
+export const NEED_FIELD_I18N: Record<NeedFieldKey, string> = {
+  task: 'fieldTask', problem: 'fieldProblem', goal: 'fieldGoal', data: 'fieldData',
+  environment: 'fieldEnvironment', integrations: 'fieldIntegrations', scale: 'fieldScale',
 }
 
 export function fieldTitle(key: NeedFieldKey, lang: 'ru' | 'kz'): string {
-  return lang === 'kz' ? FIELD_TITLES_KZ[key] : FIELD_TITLES[key]
+  return t('need', NEED_FIELD_I18N[key], lang)
 }
 
 export type RawField = { key: NeedFieldKey; status: FieldStatus; value: string; quote: string; quoteVerified: boolean }

@@ -4,12 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { AlertCircle, Building2, CheckCircle2, Circle, Loader2, Send, Sparkles } from 'lucide-react'
-import { MAX_TURNS, READY_THRESHOLD, type NeedFieldKey } from '@/lib/need-builder/readiness'
-
-const FIELD_TITLES_KEYS: Record<NeedFieldKey, string> = {
-  task: 'fieldTask', problem: 'fieldProblem', goal: 'fieldGoal', data: 'fieldData',
-  environment: 'fieldEnvironment', integrations: 'fieldIntegrations', scale: 'fieldScale',
-}
+import { MAX_TURNS, NEED_FIELD_I18N, READY_THRESHOLD, type NeedFieldKey } from '@/lib/need-builder/readiness'
 import { QUICK_REPLIES } from '@/lib/need-builder/questions'
 import { useLang } from '@/context/LangContext'
 import type { FieldChange } from '@/lib/need-builder/diff'
@@ -202,7 +197,7 @@ function NeedCard({ need, changes }: { need: NeedView | null; changes: FieldChan
                 <span className="mt-0.5">{STATUS_ICON[field.status]}</span>
                 <div className="min-w-0 flex-1">
                   <p className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-slate-400">
-                    {t('need', FIELD_TITLES_KEYS[field.key as NeedFieldKey])}
+                    {t('need', NEED_FIELD_I18N[field.key as NeedFieldKey])}
                     {change && change.delta > 0 && (
                       <span className="rounded-full bg-emerald-50 px-1.5 text-[10px] font-semibold normal-case text-emerald-600">+{change.delta}</span>
                     )}

@@ -14,7 +14,7 @@ interface Props {
 }
 
 export function ProjectStatsTab({ viewCount, searchHitCount, createdAt, updatedAt, status, launchDate }: Props) {
-  const { t } = useLang()
+  const { t, lang } = useLang()
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -32,13 +32,13 @@ export function ProjectStatsTab({ viewCount, searchHitCount, createdAt, updatedA
         <div className="bg-slate-50 rounded-xl p-5 border border-slate-100">
           <Calendar size={20} className="text-slate-400 mb-2" />
           <div className="text-sm font-semibold text-slate-700">{t('project', 'statAdded')}</div>
-          <div className="text-xs text-slate-500 mt-1">{formatDateLong(createdAt)}</div>
+          <div className="text-xs text-slate-500 mt-1">{formatDateLong(createdAt, lang)}</div>
         </div>
 
         <div className="bg-slate-50 rounded-xl p-5 border border-slate-100">
           <TrendingUp size={20} className="text-slate-400 mb-2" />
           <div className="text-sm font-semibold text-slate-700">{t('project', 'statUpdated')}</div>
-          <div className="text-xs text-slate-500 mt-1">{formatDateLong(updatedAt)}</div>
+          <div className="text-xs text-slate-500 mt-1">{formatDateLong(updatedAt, lang)}</div>
         </div>
       </div>
 
@@ -54,7 +54,7 @@ export function ProjectStatsTab({ viewCount, searchHitCount, createdAt, updatedA
             <div className="space-y-4">
               <div>
                 <p className="text-xs text-slate-400">{t('project', 'projectLaunch')}</p>
-                <p className="text-sm font-medium text-slate-700">{formatDateLong(launchDate)}</p>
+                <p className="text-sm font-medium text-slate-700">{formatDateLong(launchDate, lang)}</p>
               </div>
               <div>
                 <p className="text-xs text-slate-400">{t('project', 'currentStatus')}</p>

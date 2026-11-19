@@ -3,6 +3,7 @@ import { requireApiRole } from '@/lib/auth'
 import { rateLimit, refundRateLimit } from '@/lib/rate-limit'
 import { NeedError, takeTurn } from '@/lib/need-builder/service'
 import { needMessageSchema, parseBody } from '@/lib/schemas'
+import { t } from '@/lib/i18n'
 import { NEED_ROLES, TURNS_PER_HOUR, needErrorResponse } from '../../shared'
 
 export const maxDuration = 60
@@ -18,7 +19,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     if (!parsed.success) return NextResponse.json({ error: parsed.error }, { status: 400 })
 
     if (!rateLimit(`need:turn:${user.id}`, TURNS_PER_HOUR, 60 * 60 * 1000).ok) {
-      return NextResponse.json({ error: 'Слишком много сообщений за час. Попробуйте позже.' }, { status: 429 })
+      return NextResponse.json({ error: t('apiErrors', 'turnsPerHour', lang) }, { status: 429 })
     }
 
     const { id } = await params
@@ -29,6 +30,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       throw error
     }
   } catch (error) {
-    return needErrorResponse(error, 'Не удалось обработать сообщение', lang)
+    return needErrorResponse(error, t('apiErrors', 'turnFailed', lang), lang)
   }
 }

@@ -22,15 +22,24 @@ RUN pnpm exec prisma generate
 # ничего не удаляет и не «синхронизирует» молча (в отличие от db push --accept-data-loss).
 #
 # Первый запуск на СУЩЕСТВУЮЩЕЙ базе (созданной раньше через db push):
-# deploy упадёт с P3005 («база не пустая») — тогда помечаем baseline 0_init
-# как уже применённую (resolve --applied) и повторяем deploy.
+# deploy упадёт с P3005 («база не пустая») — только в этом случае помечаем
+# baseline 0_init как уже применённую (resolve --applied) и повторяем deploy.
+# Любая другая ошибка (права, сеть, pgcrypto) — выходим без baseline:
+# иначе на свежей или чужой базе можно пометить 0_init применённой без таблиц.
 # На свежей базе deploy просто применит 0_init и создаст схему.
 CMD sh -c " \
   echo '⏳ Applying migrations (prisma migrate deploy)...' && \
-  if ! pnpm exec prisma migrate deploy; then \
-    echo '⚠️  Deploy failed — baselining existing database (0_init)...' && \
-    pnpm exec prisma migrate resolve --applied 0_init && \
-    pnpm exec prisma migrate deploy; \
+  if ! out=$(pnpm exec prisma migrate deploy 2>&1); then \
+    echo \"$out\"; \
+    case \"$out\" in \
+      *P3005*) \
+        echo '⚠️  База не пустая (P3005) — baselining 0_init и повтор deploy...' && \
+        pnpm exec prisma migrate resolve --applied 0_init && \
+        pnpm exec prisma migrate deploy ;; \
+      *) \
+        echo '❌ Deploy упал не из-за P3005 — baseline не делаем, чтобы не испортить базу.'; \
+        exit 1 ;; \
+    esac; \
   fi && \
   echo '🌱 Running seed (regions + technologies + admin only)...' && \
   pnpm exec tsx prisma/seed.ts && \

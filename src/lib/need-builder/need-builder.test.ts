@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { FIELD_ORDER, scoreFields, type FieldStatus, type NeedFieldKey, type RawField } from './readiness'
+import { t } from '@/lib/i18n'
+import { FIELD_ORDER, NEED_FIELD_I18N, fieldTitle, scoreFields, type FieldStatus, type NeedFieldKey, type RawField } from './readiness'
 import { normalize, quoteFound, verifyAnalysis, type AiAnalysis } from './quotes'
 import { QUICK_REPLIES, selectQuestions } from './questions'
 import { fieldChanges } from './diff'
 import { findSensitive, isValidIbanKz, isValidIin, luhn } from './sensitive'
-import { MATCH_MIN_SCORE, needQuery } from './match'
+import { MATCH_MIN_SCORE, matchProjects, needQuery } from './match'
 import { indexProject, searchIndex } from '@/lib/search/engine'
+import { invalidateSearchIndex } from '@/lib/search/store'
 import { needSummary } from './summary'
 
 const raw = (statuses: Partial<Record<NeedFieldKey, FieldStatus>>): RawField[] =>
@@ -114,6 +116,24 @@ describe('персональные данные', () => {
     expect(findSensitive('Бюджет 1 500 000 000 000 тенге')).toEqual([])
   })
 
+  it('подписи полей — один словарь i18n на обоих языках', () => {
+    for (const key of FIELD_ORDER) {
+      expect(fieldTitle(key, 'ru')).toBe(t('need', NEED_FIELD_I18N[key], 'ru'))
+      expect(fieldTitle(key, 'kz')).toBe(t('need', NEED_FIELD_I18N[key], 'kz'))
+    }
+  })
+
+  it('ловит номера с точками, подчёркиваниями, двойными пробелами, телефон без плюса и полноширинные цифры', () => {
+    expect(findSensitive('ИИН 851231.400676').map(f => f.kind)).toEqual(['iin'])
+    expect(findSensitive('ИИН 851231_4006_76').map(f => f.kind)).toEqual(['iin'])
+    expect(findSensitive('ИИН 851231  4006  76').map(f => f.kind)).toEqual(['iin'])
+    expect(findSensitive('тел 7 707 123 45 67').map(f => f.kind)).toEqual(['phone'])
+    expect(findSensitive('тел 8.707.123.45.67').map(f => f.kind)).toEqual(['phone'])
+    expect(findSensitive('карта 4111.1111.1111.1111').map(f => f.kind)).toEqual(['card'])
+    expect(findSensitive('IBAN KZ86_125K_ZT50_0410_0100').map(f => f.kind)).toEqual(['iban'])
+    expect(findSensitive('ИИН ８５１２３１４００６７６').map(f => f.kind)).toEqual(['iin'])
+  })
+
   it('находит ИИН, записанный с разделителями, и IBAN Казахстана по mod-97-10', () => {
     expect(isValidIbanKz('KZ86125KZT5004100100')).toBe(true)
     expect(isValidIbanKz('KZ86125KZT5004100101')).toBe(false)
@@ -183,5 +203,30 @@ describe('подборка по потребности', () => {
 
   it('порог отсекает случайные совпадения: для кофеен решений нет', () => {
     expect(match('12 кофеен заказывают выпечку у поставщика вручную каждый вечер по опыту управляющего. Сократить списания выпечки без потери продаж.')).toEqual([])
+  })
+})
+
+describe('подборка ищет по каталогу опубликованных, а не по витрине', () => {
+  it('проект без флага витрины попадает в подборку, черновик — нет', async () => {
+    const rows = [
+      { id: 'mining', title: 'Предиктивная диагностика горного оборудования', category: 'ANALYTICS', tags: ['горнодобывающая промышленность'],
+        description: 'Модель по данным вибрации и температуры прогнозирует отказы конвейеров и дробилок.',
+        publication: 'PUBLISHED', availableForIntegration: false },
+      { id: 'draft', title: 'Предиктивная диагностика горного оборудования (черновик)', category: 'ANALYTICS', tags: ['горнодобывающая промышленность'],
+        description: 'Модель по данным вибрации и температуры прогнозирует отказы конвейеров и дробилок.',
+        publication: 'DRAFT', availableForIntegration: true },
+    ]
+    // Мини-база: применяет where буквально, чтобы тест ловил именно фильтр в matchProjects
+    const db = {
+      project: {
+        findMany: async ({ where }: any) => rows.filter(r =>
+          (!where.publication || r.publication === where.publication) &&
+          (!where.id || where.id.in.includes(r.id)) &&
+          (where.availableForIntegration === undefined || r.availableForIntegration === where.availableForIntegration)),
+      },
+    } as any
+    invalidateSearchIndex()
+    const matches = await matchProjects(db, 'прогнозирует отказы конвейеров и дробилок по данным вибрации и температуры')
+    expect(matches.map(m => m.id)).toEqual(['mining'])
   })
 })

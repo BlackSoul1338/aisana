@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic'
 
 import { prisma } from '@/lib/prisma'
+import { ProjectStatus } from '@prisma/client'
 import { PUBLISHED_ONLY } from '@/lib/publication'
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
@@ -13,16 +14,17 @@ export async function generateMetadata({ params }: { params: Promise<{ code: str
   // и во вкладке браузера мелькало «Регион не найден», хотя страница открывалась.
   const region = await prisma.region.findFirst({
     where: { code: code.toUpperCase() },
-    select: { name: true },
+    select: { name: true, nameKz: true },
   })
   // Несуществующий код — сразу отдаём страницу «не найдено»,
   // чтобы во вкладке не появлялся заголовок «Регион не найден»
   if (!region) notFound()
-  const description = `${t('region', 'metaDesc', lang)} ${region.name}: ${t('region', 'metaSuffix', lang)}`
+  const title = lang === 'kz' && region.nameKz ? region.nameKz : region.name
+  const description = `${t('region', 'metaDesc', lang)} ${title}: ${t('region', 'metaSuffix', lang)}`
   return {
-    title: region.name,
+    title,
     description,
-    openGraph: { title: region.name, description },
+    openGraph: { title, description },
   }
 }
 import { PageLayout } from '@/components/layout/PageLayout'
@@ -30,7 +32,7 @@ import Link from 'next/link'
 import { ArrowLeft, Building2, FolderKanban, CheckCircle } from 'lucide-react'
 import { ProjectCard } from '@/components/ui/project-card'
 import { requireUser } from '@/lib/auth'
-import { plural } from '@/lib/plural'
+import { pluralUnit } from '@/lib/plural'
 import { t } from '@/lib/i18n'
 import { getRequestLang } from '@/lib/i18n-server'
 
@@ -59,9 +61,14 @@ export default async function RegionPage({ params }: { params: Promise<{ code: s
   if (!region) notFound()
 
   const totalProjects = region.universities.reduce((s, u) => s + u._count.projects, 0)
-  const implementedCount = region.universities.reduce(
-    (s, u) => s + u.projects.filter(p => p.status === 'IMPLEMENTED' || p.status === 'SCALED').length, 0
-  )
+  // Считаем по всей базе, а не по срезу take:6 — иначе «Внедрено» занижено
+  const implementedCount = await prisma.project.count({
+    where: {
+      ...PUBLISHED_ONLY,
+      status: { in: [ProjectStatus.IMPLEMENTED, ProjectStatus.SCALED] },
+      university: { region: { code: code.toUpperCase() } },
+    },
+  })
   const allRecentProjects = region.universities.flatMap(u => u.projects)
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .slice(0, 6)
@@ -106,7 +113,7 @@ export default async function RegionPage({ params }: { params: Promise<{ code: s
               </div>
               <div className="mt-3 flex items-center gap-1.5 text-xs text-slate-500">
                 <FolderKanban size={12} className="text-blue-400" />
-                <span className="font-semibold text-slate-700">{uni._count.projects}</span> {lang === 'kz' ? 'жоба' : plural(uni._count.projects, 'проект', 'проекта', 'проектов')}
+                <span className="font-semibold text-slate-700">{uni._count.projects}</span> {pluralUnit(uni._count.projects, lang, 'unitProject')}
               </div>
             </div>
           </Link>

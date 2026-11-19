@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { X } from 'lucide-react'
+import { useLang } from '@/context/LangContext'
 
 interface Toast {
   id: string
@@ -10,13 +11,16 @@ interface Toast {
 }
 
 let toastListeners: ((toast: Toast) => void)[] = []
+// Счётчик, а не Date.now(): два тоста в одну миллисекунду не должны делить id
+let nextToastId = 0
 
 export function showToast(message: string, type: Toast['type'] = 'info') {
-  const toast: Toast = { id: Date.now().toString(), message, type }
+  const toast: Toast = { id: String(++nextToastId), message, type }
   toastListeners.forEach(fn => fn(toast))
 }
 
 export function Toaster() {
+  const { t } = useLang()
   const [toasts, setToasts] = useState<Toast[]>([])
 
   useEffect(() => {
@@ -45,6 +49,7 @@ export function Toaster() {
           <span className="flex-1">{toast.message}</span>
           <button
             onClick={() => setToasts(prev => prev.filter(t => t.id !== toast.id))}
+            aria-label={t('common', 'close')}
             className="text-white/70 hover:text-white"
           >
             <X size={14} />

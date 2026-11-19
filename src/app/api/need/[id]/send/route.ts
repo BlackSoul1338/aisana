@@ -4,6 +4,7 @@ import { rateLimit } from '@/lib/rate-limit'
 import { audit } from '@/lib/audit'
 import { sendNeed } from '@/lib/need-builder/service'
 import { needSendSchema, parseBody } from '@/lib/schemas'
+import { t } from '@/lib/i18n'
 import { NEED_ROLES, needErrorResponse } from '../../shared'
 
 /** Отправка потребности оператору запросом «Консультация». */
@@ -18,10 +19,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     // Общий счётчик с запросами из карточки проекта
     if (!rateLimit(`requests:sent:${user.id}`, 10, 24 * 60 * 60 * 1000).ok) {
-      return NextResponse.json(
-        { error: 'Слишком много запросов за сутки. Напишите оператору через «Контакты».' },
-        { status: 429 },
-      )
+      return NextResponse.json({ error: t('apiErrors', 'requestsPerDay', lang) }, { status: 429 })
     }
 
     const { id } = await params
@@ -30,6 +28,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       `Консультация из помощника подбора${projectTitle ? `: ${projectTitle}` : ''}`)
     return NextResponse.json({ id: requestId }, { status: 201 })
   } catch (error) {
-    return needErrorResponse(error, 'Не удалось отправить запрос', lang)
+    return needErrorResponse(error, t('need', 'sendRequestFailed', lang), lang)
   }
 }

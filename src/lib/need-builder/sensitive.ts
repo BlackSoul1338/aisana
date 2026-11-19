@@ -4,8 +4,9 @@
  * Найденное не маскируется, а останавливает отправку: текст с ПДн не уходит
  * во внешнюю модель, и цитаты сверяются с тем же текстом, что видела модель.
  * Контрольные суммы отсекают бюджеты, артикулы, БИН и прочие длинные числа;
- * разделители внутри номеров нормализуются до проверки. IBAN Казахстана —
- * с проверкой mod-97-10 (ISO 13616).
+ * разделители внутри номеров (пробелы, точки, дефисы, подчёркивания, до двух
+ * подряд) нормализуются до проверки, полноширинные цифры — через NFKC.
+ * IBAN Казахстана — с проверкой mod-97-10 (ISO 13616).
  */
 
 export type SensitiveKind = 'email' | 'phone' | 'iin' | 'card' | 'iban'
@@ -13,13 +14,14 @@ export type Finding = { kind: SensitiveKind; excerpt: string }
 
 // Домен без точки тоже считаем адресом: в базе есть учётки вида user@host
 const EMAIL = /[\p{L}\p{N}._%+-]+@[\p{L}\p{N}](?:[\p{L}\p{N}.-]*[\p{L}\p{N}])?/gu
-const PHONE = /(?<![\d])(?:\+7|8)[\s(-]*\d{3}[\s)-]*\d{3}[\s-]*\d{2}[\s-]*\d{2}(?![\d])/g
+// Телефон: +7, 8 или 7 без плюса; разделители — пробелы, точки, скобки, дефисы.
+const PHONE = /(?<![\d])(?:\+7|8|7)[\s.(-]*\d{3}[\s.)-]*\d{3}[\s.-]*\d{2}[\s.-]*\d{2}(?![\d])/g
 // ИИН: 12 цифр с контрольной цифрой; разделители внутри номера допускаем,
-// нормализуя их до проверки — «851231 4006 76» тоже ИИН.
-const TWELVE_DIGITS = /(?<![\d])(?:\d[\s-]?){11}\d(?![\d])/g
-const CARD = /(?<!\d)(?:\d[ -]?){12,18}\d(?!\d)/g
+// нормализуя их до проверки — «851231 4006 76» и «851231.400676» тоже ИИН.
+const TWELVE_DIGITS = /(?<![\d])(?:\d[\s._-]{0,2}){11}\d(?![\d])/g
+const CARD = /(?<!\d)(?:\d[\s._-]{0,2}){12,18}\d(?!\d)/g
 // Кандидат в казахстанский IBAN: KZ + 5 цифр + 13 буквенно-цифровых, разделители допустимы.
-const IBAN_KZ = /(?<![A-Za-z0-9])KZ(?:[\s-]?[A-Z0-9]){18}(?![A-Za-z0-9])/gi
+const IBAN_KZ = /(?<![A-Za-z0-9])KZ(?:[\s._-]{0,2}[A-Z0-9]){18}(?![A-Za-z0-9])/gi
 
 /**
  * ИИН: 12 цифр, первые шесть — дата рождения ГГММДД, последняя — контрольная.
@@ -60,7 +62,7 @@ export function luhn(digits: string): boolean {
 /** IBAN (ISO 13616): mod-97-10, первые 4 символа в конце, буквы → A=10…Z=35.
  *  Казахстан: KZ + 2 цифры контроля + 3 цифры банка + 13 буквенно-цифровых (20 знаков). */
 export function isValidIbanKz(raw: string): boolean {
-  const iban = raw.replace(/[\s-]/g, '').toUpperCase()
+  const iban = raw.replace(/[\s._-]/g, '').toUpperCase()
   if (!/^KZ\d{5}[A-Z0-9]{13}$/.test(iban)) return false
   const rearranged = iban.slice(4) + iban.slice(0, 4)
   let remainder = 0
@@ -74,12 +76,15 @@ export function isValidIbanKz(raw: string): boolean {
 
 const mask = (s: string) => (s.length <= 4 ? '****' : `${s.slice(0, 2)}${'*'.repeat(Math.max(3, s.length - 4))}${s.slice(-2)}`)
 
-export function findSensitive(text: string): Finding[] {
+export function findSensitive(rawText: string): Finding[] {
+  // Полноширинные и другие совместимые цифры/пробелы сводим к ASCII,
+  // иначе «８５１２３１…» обходил бы все регулярки ниже.
+  const text = rawText.normalize('NFKC')
   const out: Finding[] = []
   for (const m of text.matchAll(EMAIL)) out.push({ kind: 'email', excerpt: mask(m[0]) })
   for (const m of text.matchAll(PHONE)) out.push({ kind: 'phone', excerpt: mask(m[0].replace(/\D/g, '')) })
   for (const m of text.matchAll(TWELVE_DIGITS)) {
-    const digits = m[0].replace(/[\s-]/g, '')
+    const digits = m[0].replace(/[\s._-]/g, '')
     if (isValidIin(digits)) out.push({ kind: 'iin', excerpt: mask(digits) })
   }
   for (const m of text.matchAll(CARD)) {
@@ -87,7 +92,7 @@ export function findSensitive(text: string): Finding[] {
     if (digits.length >= 13 && digits.length <= 19 && luhn(digits)) out.push({ kind: 'card', excerpt: mask(digits) })
   }
   for (const m of text.matchAll(IBAN_KZ)) {
-    if (isValidIbanKz(m[0])) out.push({ kind: 'iban', excerpt: mask(m[0].replace(/[\s-]/g, '')) })
+    if (isValidIbanKz(m[0])) out.push({ kind: 'iban', excerpt: mask(m[0].replace(/[\s._-]/g, '')) })
   }
   return out
 }

@@ -3,6 +3,7 @@ import { requireApiRole } from '@/lib/auth'
 import { rateLimit, refundRateLimit } from '@/lib/rate-limit'
 import { NeedError, createNeed } from '@/lib/need-builder/service'
 import { needMessageSchema, parseBody } from '@/lib/schemas'
+import { t } from '@/lib/i18n'
 import { NEED_ROLES, TURNS_PER_HOUR, needErrorResponse } from './shared'
 
 // Цепочка моделей с таймаутом на каждую; на Vercel без этого функцию оборвёт раньше
@@ -19,7 +20,7 @@ export async function POST(request: NextRequest) {
     if (!parsed.success) return NextResponse.json({ error: parsed.error }, { status: 400 })
 
     if (!rateLimit(`need:turn:${user.id}`, TURNS_PER_HOUR, 60 * 60 * 1000).ok) {
-      return NextResponse.json({ error: 'Слишком много сообщений за час. Попробуйте позже.' }, { status: 429 })
+      return NextResponse.json({ error: t('apiErrors', 'turnsPerHour', lang) }, { status: 429 })
     }
 
     try {
@@ -30,6 +31,6 @@ export async function POST(request: NextRequest) {
       throw error
     }
   } catch (error) {
-    return needErrorResponse(error, 'Не удалось начать подбор', lang)
+    return needErrorResponse(error, t('apiErrors', 'startFailed', lang), lang)
   }
 }

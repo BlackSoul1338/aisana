@@ -5,7 +5,7 @@ import { FolderKanban } from 'lucide-react'
 import { useLang } from '@/context/LangContext'
 import { AutoSubmitForm } from '@/components/ui/AutoSubmitForm'
 import { Pagination } from '@/components/admin/Pagination'
-import { plural } from '@/lib/plural'
+import { pluralUnit } from '@/lib/plural'
 import { technologyLabel } from '@/lib/technologies'
 import { SolutionCard, type SolutionProject } from './SolutionCard'
 
@@ -21,9 +21,7 @@ interface Props {
 /** Клиентская часть витрины: язык берётся из cookie 'lang' через LangContext. */
 export function SolutionsView({ projects, total, page, pageSize, tech, technologies }: Props) {
   const { lang, t } = useLang()
-  const count = lang === 'ru'
-    ? `${total} ${plural(total, 'решение', 'решения', 'решений')}`
-    : `${total} шешім`
+  const count = `${total} ${pluralUnit(total, lang, 'unitSolution')}`
 
   return (
     <div>

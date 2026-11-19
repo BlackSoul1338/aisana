@@ -1,7 +1,7 @@
 import type { PrismaClient } from '@prisma/client'
 import { loadSearchIndex } from '@/lib/search/store'
 import { searchIndex } from '@/lib/search/engine'
-import { SHOWCASE_WHERE } from '@/lib/publication'
+import { PUBLISHED_ONLY } from '@/lib/publication'
 import { NOT_SPECIFIED, type FieldState, type NeedFieldKey } from './readiness'
 
 /** По этим полям ищется решение: остальные (контур, интеграции, масштаб) в карточках проектов не описаны. */
@@ -33,17 +33,17 @@ export type NeedMatch = {
   reason: string
 }
 
-/** Подборка из витрины решений. Ранжирует тот же поиск, что и каталог. */
+/** Подборка из каталога опубликованных решений. Ранжирует тот же поиск, что и каталог; флаг витрины на неё не влияет. */
 export async function matchProjects(db: PrismaClient, query: string): Promise<NeedMatch[]> {
   if (!query.trim()) return []
   const index = await loadSearchIndex(db)
-  // Считаем весь каталог: срез до фильтра по витрине выбрал бы пять проектов
-  // без флага и подборка осталась бы пустой при сильных совпадениях ниже.
+  // Флаг витрины управляет только показом на /business/solutions: подборка ищет
+  // по всем опубликованным, иначе с пустой витриной она не находила бы ничего.
   const hits = searchIndex(index, query, { limit: index.length, minScore: MATCH_MIN_SCORE }).hits
   if (!hits.length) return []
 
   const projects = await db.project.findMany({
-    where: { id: { in: hits.map(h => h.id) }, ...SHOWCASE_WHERE },
+    where: { id: { in: hits.map(h => h.id) }, ...PUBLISHED_ONLY },
     select: { id: true, title: true, university: { select: { name: true, shortName: true } } },
   })
   const byId = new Map(projects.map(p => [p.id, p]))

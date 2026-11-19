@@ -11,7 +11,8 @@ import { FolderKanban, Plus } from 'lucide-react'
 import { Prisma, ProjectCategory, ProjectIndustry, ProjectStatus } from '@prisma/client'
 import { CATEGORY_LABELS, STATUS_LABELS } from '@/types'
 import { INDUSTRIES } from '@/lib/industries'
-import { plural } from '@/lib/plural'
+import { pluralUnit } from '@/lib/plural'
+import { technologyLabel } from '@/lib/technologies'
 import { canWriteContent, requireUser } from '@/lib/auth'
 import { t } from '@/lib/i18n'
 import { getRequestLang } from '@/lib/i18n-server'
@@ -138,7 +139,7 @@ export default async function ProjectsPage({ searchParams }: { searchParams: Pro
         <div>
           <h1 className="text-2xl font-bold text-slate-800">{t('projects', 'title', lang)}</h1>
           <p className="text-slate-500 mt-1">
-            {hasFilters ? `${t('projects', 'found', lang)}: ` : ''}{total} {lang === 'kz' ? 'жоба' : plural(total, 'проект', 'проекта', 'проектов')}
+            {hasFilters ? `${t('projects', 'found', lang)}: ` : ''}{total} {pluralUnit(total, lang, 'unitProject')}
             {sp.q?.trim() ? <> {t('projects', 'forQuery', lang)} «{sp.q.trim()}»</> : null}
           </p>
         </div>
@@ -184,7 +185,7 @@ export default async function ProjectsPage({ searchParams }: { searchParams: Pro
         </select>
         <select name="tech" defaultValue={sp.tech || ''} className={select}>
           <option value="">{t('projects', 'allTech', lang)}</option>
-          {technologies.map(t => <option key={t.id} value={t.slug}>{t.name}</option>)}
+          {technologies.map(tech => <option key={tech.id} value={tech.slug}>{technologyLabel(tech, lang)}</option>)}
         </select>
         <select name="sort" defaultValue={sp.sort || ''} className={select}>
           <option value="">{sp.q?.trim() ? t('projects', 'relevant', lang) : t('projects', 'sortNewest', lang)}</option>

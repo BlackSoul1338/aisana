@@ -6,9 +6,11 @@ import { rateLimit } from '@/lib/rate-limit'
 import { audit } from '@/lib/audit'
 import { REQUEST_TYPE_LABELS } from '@/lib/integration-requests'
 import { integrationRequestCreateSchema, parseBody } from '@/lib/schemas'
+import { t } from '@/lib/i18n'
 
 /** Запрос компании по решению из каталога. Попадает в очередь оператора. */
 export async function POST(request: NextRequest) {
+  const lang = request.cookies.get('lang')?.value === 'kz' ? 'kz' : 'ru'
   try {
     const { user, response } = await requireApiRole(request, [UserRole.BUSINESS_REP])
     if (response) return response
@@ -25,15 +27,12 @@ export async function POST(request: NextRequest) {
       select: { id: true, title: true, publication: true },
     })
     if (!project || project.publication !== PublicationStatus.PUBLISHED) {
-      return NextResponse.json({ error: 'Проект не найден' }, { status: 404 })
+      return NextResponse.json({ error: t('apiErrors', 'projectNotFound', lang) }, { status: 404 })
     }
 
     // Лимит считаем после проверки формы: опечатка не должна съедать квоту
     if (!rateLimit(`requests:sent:${user.id}`, 10, 24 * 60 * 60 * 1000).ok) {
-      return NextResponse.json(
-        { error: 'Слишком много запросов за сутки. Напишите оператору через «Контакты».' },
-        { status: 429 }
-      )
+      return NextResponse.json({ error: t('apiErrors', 'requestsPerDay', lang) }, { status: 429 })
     }
 
     const created = await prisma.integrationRequest.create({
@@ -55,6 +54,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(created, { status: 201 })
   } catch (error) {
     console.error('Integration request create error:', error)
-    return NextResponse.json({ error: 'Не удалось отправить запрос' }, { status: 500 })
+    return NextResponse.json({ error: t('need', 'sendRequestFailed', lang) }, { status: 500 })
   }
 }

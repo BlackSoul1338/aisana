@@ -15,10 +15,11 @@ export function PageLayout({ children }: { children: React.ReactNode }) {
       </main>
       <footer className="border-t border-slate-200 bg-white py-5">
         <div className="container max-w-7xl mx-auto px-4">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs text-slate-400">
-            <div className="flex flex-col md:flex-row items-center gap-1 md:gap-3 text-center md:text-left">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 text-xs text-slate-400">
+            {/* kz-строки длиннее ru: до lg складываем в столбик, иначе рваные переносы */}
+            <div className="flex flex-col lg:flex-row flex-wrap items-center gap-1 lg:gap-3 text-center lg:text-left">
               <p>{t('footer', 'copyright')}</p>
-              <span className="hidden md:inline text-slate-200">·</span>
+              <span className="hidden lg:inline text-slate-200">·</span>
               <p className="text-slate-300">{t('footer', 'portal')}</p>
             </div>
 

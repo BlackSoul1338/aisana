@@ -23,7 +23,7 @@ export function ReindexButton() {
       const res = await fetch('/api/admin/reindex', { method: 'POST' })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || t('admin', 'reindexFailed'))
-      setResult(`${t('admin', 'reindexDonePrefix')}: ${data.projects} ${t('admin', 'reindexProjects')}, ${data.topics} ${t('admin', 'reindexTopics')} ${t('admin', 'reindexIn')} ${data.durationMs} мс`)
+      setResult(`${t('admin', 'reindexDonePrefix')}: ${data.projects} ${t('admin', 'reindexProjects')}, ${data.topics} ${t('admin', 'reindexTopics')} ${t('admin', 'reindexIn')} ${data.durationMs} ${t('common', 'ms')}`)
       router.refresh()
     } catch (err: any) {
       setResult(err.message)

@@ -66,7 +66,7 @@ export default async function BusinessRequestsPage() {
                 <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
                   {requestTypeLabel(request.type, lang)}
                 </span>
-                <span className="text-xs text-slate-400">{formatDateLong(request.createdAt)}</span>
+                <span className="text-xs text-slate-400">{formatDateLong(request.createdAt, lang)}</span>
               </div>
 
               {request.project ? (

@@ -6,7 +6,7 @@ import { Pagination } from '@/components/admin/Pagination'
 import Link from 'next/link'
 import { Building2, FolderKanban, MapPin, ExternalLink, Plus } from 'lucide-react'
 import { Prisma, UniversityType } from '@prisma/client'
-import { plural } from '@/lib/plural'
+import { pluralUnit } from '@/lib/plural'
 import { requireUser } from '@/lib/auth'
 import { canModerate } from '@/lib/publication'
 import { t } from '@/lib/i18n'
@@ -82,8 +82,8 @@ export default async function UniversitiesPage({ searchParams }: { searchParams:
           <h1 className="text-2xl font-bold text-slate-800">{t('universities', 'title', lang)}</h1>
           <p className="text-slate-500 mt-1">
             {hasFilters
-              ? <>{t('universities', 'found', lang)}: {total} {lang === 'kz' ? 'ЖОО' : plural(total, 'вуз', 'вуза', 'вузов')}</>
-              : <>{totalAll} {lang === 'kz' ? 'ЖОО' : plural(totalAll, 'вуз', 'вуза', 'вузов')}, {t('universities', 'withProjects', lang)}: {withProjects}</>}
+              ? <>{t('universities', 'found', lang)}: {total} {pluralUnit(total, lang, 'unitUniversity')}</>
+              : <>{totalAll} {pluralUnit(totalAll, lang, 'unitUniversity')}, {t('universities', 'withProjects', lang)}: {withProjects}</>}
           </p>
         </div>
         {canModerate(user) && (
@@ -162,7 +162,7 @@ export default async function UniversitiesPage({ searchParams }: { searchParams:
                     {uni._count.projects > 0 ? (
                       <>
                         <span className="font-semibold text-slate-700">{uni._count.projects}</span>
-                        <span className="text-slate-400">{lang === 'kz' ? 'жоба' : plural(uni._count.projects, 'проект', 'проекта', 'проектов')}</span>
+                        <span className="text-slate-400">{pluralUnit(uni._count.projects, lang, 'unitProject')}</span>
                       </>
                     ) : (
                       <span className="text-slate-400">{t('universities', 'noProjects', lang)}</span>

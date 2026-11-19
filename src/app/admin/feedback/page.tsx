@@ -95,7 +95,7 @@ export default async function AdminFeedbackPage({
                 <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${TOPIC_COLORS[item.topic]}`}>
                   {TOPIC_LABELS[item.topic]}
                 </span>
-                <span className="text-xs text-slate-400">{formatDateLong(item.createdAt)}</span>
+                <span className="text-xs text-slate-400">{formatDateLong(item.createdAt, lang)}</span>
                 <div className="ml-auto">
                   <FeedbackStatusControl id={item.id} status={item.status} />
                 </div>

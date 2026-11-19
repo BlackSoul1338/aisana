@@ -214,7 +214,7 @@ export function ProjectForm({ universities, technologies, project, defaultUniver
 
             <div>
               <label className={labelCls}>{t('projectForm', 'teamSize')}</label>
-              <input name="teamSize" type="number" min="1" defaultValue={project?.teamSize || ''} className={inputCls} />
+              <input name="teamSize" type="number" min="0" defaultValue={project?.teamSize || ''} className={inputCls} />
             </div>
           </div>
         </section>

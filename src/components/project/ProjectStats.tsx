@@ -26,7 +26,10 @@ export function ProjectStats({ projectId, viewCount, searchHitCount }: Props) {
     if (alreadyViewed) return
 
     fetch(`/api/projects/${projectId}/view`, { method: 'POST' })
-      .then(res => res.ok ? res.json() : null)
+      .then(res => {
+        if (!res.ok) throw new Error('view not counted')
+        return res.json()
+      })
       .then(() => {
         sessionStorage.setItem(sessionKey, '1')
         setDisplayCount(prev => prev + 1) // only bump UI once the request actually succeeded

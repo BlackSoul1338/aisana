@@ -36,10 +36,10 @@ export function formatDate(date: Date | string | null | undefined): string {
   })
 }
 
-/** Дата словами: «11 ноября 2026». */
-export function formatDateLong(date: Date | string | null | undefined): string {
+/** Дата словами: «11 ноября 2026» / kz — «11 қараша 2026». */
+export function formatDateLong(date: Date | string | null | undefined, lang: 'ru' | 'kz' = 'ru'): string {
   if (!date) return '—'
-  return new Date(date).toLocaleDateString('ru-RU', {
+  return new Date(date).toLocaleDateString(lang === 'kz' ? 'kk-KZ' : 'ru-RU', {
     timeZone: TIME_ZONE,
     day: 'numeric',
     month: 'long',
