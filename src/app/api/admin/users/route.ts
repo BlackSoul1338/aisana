@@ -75,28 +75,41 @@ export async function PATCH(request: NextRequest) {
     const updateData: Record<string, any> = {}
     if (name !== undefined) updateData.name = name || null
     if (email) updateData.email = email.trim().toLowerCase()
-    // Компанию можно править без смены роли; при смене роли ниже она пересчитывается
-    if (organization !== undefined) updateData.organization = organization
-    if (universityId !== undefined) updateData.universityId = universityId || null
-
-    // Роль уже проверена схемой userUpdateSchema — enum из ролей
-    if (role) {
-      if (role === UserRole.BUSINESS_REP && !organization) {
-        return NextResponse.json({ error: 'Для представителя бизнеса нужно указать компанию' }, { status: 400 })
-      }
-      updateData.role = role
-      updateData.universityId = role === UserRole.UNIVERSITY_REP ? (universityId || null) : null
-      updateData.organization = role === UserRole.BUSINESS_REP ? organization : null
-    }
 
     if (password) {
       updateData.password = await bcrypt.hash(password, 10)
     }
 
     const result = await prisma.$transaction(async (tx) => {
-      if (universityId) {
+      const target = await tx.user.findUnique({
+        where: { id },
+        select: { role: true, universityId: true, organization: true },
+      })
+      if (!target) return { error: 'Пользователь не найден', status: 404 }
+
+      // Роль, вуз и компания проверяются вместе: PATCH присылает часть полей,
+      // и по отдельности «organization: null» у бизнеса или «universityId: null»
+      // у вуза оставили бы роль без обязательной привязки.
+      const nextRole = role ?? target.role
+      const nextUniversityId = nextRole === UserRole.UNIVERSITY_REP
+        ? (universityId !== undefined ? universityId || null : target.universityId)
+        : null
+      const nextOrganization = nextRole === UserRole.BUSINESS_REP
+        ? (organization !== undefined ? organization : target.organization)
+        : null
+      if (nextRole === UserRole.UNIVERSITY_REP && !nextUniversityId) {
+        return { error: 'Для представителя вуза нужно указать университет', status: 400 }
+      }
+      if (nextRole === UserRole.BUSINESS_REP && !nextOrganization) {
+        return { error: 'Для представителя бизнеса нужно указать компанию', status: 400 }
+      }
+      if (role) updateData.role = nextRole
+      updateData.universityId = nextUniversityId
+      updateData.organization = nextOrganization
+
+      if (nextUniversityId) {
         const university = await tx.university.findUnique({
-          where: { id: universityId },
+          where: { id: nextUniversityId },
           select: { id: true },
         })
         if (!university) {
@@ -106,8 +119,7 @@ export async function PATCH(request: NextRequest) {
 
       // Prevent demoting the last remaining admin (including yourself)
       if (role && role !== UserRole.ADMIN) {
-        const target = await tx.user.findUnique({ where: { id }, select: { role: true } })
-        if (target?.role === UserRole.ADMIN) {
+        if (target.role === UserRole.ADMIN) {
           const adminCount = await tx.user.count({ where: { role: UserRole.ADMIN } })
           if (adminCount <= 1) {
             return {

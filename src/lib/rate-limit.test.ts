@@ -30,6 +30,16 @@ describe('getClientIp', () => {
     expect(getClientIp({ headers: new Headers({ 'x-forwarded-for': '   ' }) })).toBe('unknown')
   })
 
+  it('пропускает пустые сегменты цепочки и доходит до x-real-ip', () => {
+    const trailing = { headers: new Headers({ 'x-forwarded-for': '203.0.113.195, ' }) }
+    expect(getClientIp(trailing)).toBe('203.0.113.195')
+
+    const emptyFirst = {
+      headers: new Headers({ 'x-forwarded-for': ', ', 'x-real-ip': '198.51.100.1' }),
+    }
+    expect(getClientIp(emptyFirst)).toBe('198.51.100.1')
+  })
+
   it('очищает пробелы и управляющие символы', () => {
     const req = { headers: new Headers({ 'x-forwarded-for': '  192.168.1.1\r\n\t  ' }) }
     expect(getClientIp(req)).toBe('192.168.1.1')

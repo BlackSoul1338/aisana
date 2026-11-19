@@ -91,11 +91,3 @@ export function findSensitive(text: string): Finding[] {
   }
   return out
 }
-
-export const SENSITIVE_LABELS: Record<SensitiveKind, string> = {
-  email: 'адрес почты',
-  phone: 'номер телефона',
-  iin: 'ИИН',
-  card: 'номер карты',
-  iban: 'IBAN / расчётный счёт',
-}

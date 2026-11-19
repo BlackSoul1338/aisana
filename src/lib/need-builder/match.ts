@@ -37,7 +37,9 @@ export type NeedMatch = {
 export async function matchProjects(db: PrismaClient, query: string): Promise<NeedMatch[]> {
   if (!query.trim()) return []
   const index = await loadSearchIndex(db)
-  const hits = searchIndex(index, query, { limit: MATCH_LIMIT, minScore: MATCH_MIN_SCORE }).hits
+  // Считаем весь каталог: срез до фильтра по витрине выбрал бы пять проектов
+  // без флага и подборка осталась бы пустой при сильных совпадениях ниже.
+  const hits = searchIndex(index, query, { limit: index.length, minScore: MATCH_MIN_SCORE }).hits
   if (!hits.length) return []
 
   const projects = await db.project.findMany({
@@ -55,5 +57,5 @@ export async function matchProjects(db: PrismaClient, query: string): Promise<Ne
       score: hit.score,
       reason: hit.debug.reason,
     }]
-  })
+  }).slice(0, MATCH_LIMIT)
 }

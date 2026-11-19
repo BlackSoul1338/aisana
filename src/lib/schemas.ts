@@ -251,7 +251,9 @@ export type ParsedBody<T> =
   | { success: false; error: string }
 
 export function parseBody<T extends z.ZodTypeAny>(schema: T, body: unknown): ParsedBody<z.infer<T>> {
-  const result = schema.safeParse(body)
+  // zod 4 отдаёт issue.input только по запросу; без этого «неверный тип»
+  // неотличим от отсутствующего поля и любая ошибка читается как «обязательно»
+  const result = schema.safeParse(body, { reportInput: true })
   if (result.success) return { success: true, data: result.data }
 
   const issue = result.error.issues[0]

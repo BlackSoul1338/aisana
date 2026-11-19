@@ -10,7 +10,9 @@ import { NextRequest, NextResponse } from 'next/server'
  * То есть это удобная переадресация на вход, а не единственная защита.
  */
 
-const SESSION_COOKIE = '__Host-ai_map_sess'
+// Имя повторяет SESSION_COOKIE из src/lib/auth.ts: edge-рантайм не тянет
+// prisma и bcrypt, поэтому общий модуль здесь не подключить.
+const SESSION_COOKIE = process.env.NODE_ENV === 'production' ? '__Host-ai_map_sess' : 'ai_map_sess'
 
 /** Пути, доступные без входа. Точное совпадение либо префикс с «/». */
 const PUBLIC_PATHS = [

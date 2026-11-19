@@ -6,7 +6,13 @@ import { UserRole } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { canModerate } from '@/lib/publication'
 
-export const SESSION_COOKIE = '__Host-ai_map_sess'
+/**
+ * Имя cookie сессии и флаг Secure должны совпадать: браузер отбрасывает
+ * `__Host-` без Secure и по http, поэтому в разработке имя обычное.
+ * Прод по требованиям работает только через TLS (см. docker-compose.yml).
+ */
+const SECURE_COOKIE = process.env.NODE_ENV === 'production'
+export const SESSION_COOKIE = SECURE_COOKIE ? '__Host-ai_map_sess' : 'ai_map_sess'
 export const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 30
 
 export type AuthUser = NonNullable<Awaited<ReturnType<typeof getCurrentUser>>>

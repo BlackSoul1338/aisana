@@ -42,12 +42,20 @@ purge_llm_cache() {
 
 # Просроченные сессии: вход по ним уже невозможен, но строки копятся.
 # Таблицу читают на каждый запрос, поэтому чистим её вместе с кэшем.
-# Журнал аудита: год хранения и дальше — строки никому не нужны
+#
+# Журнал аудита: срок хранения - политика заказчика, поэтому по умолчанию
+# записи не удаляются. Чистка включается AUDIT_RETENTION_DAYS (дни) и идёт
+# только после успешного дампа: без копии удалённое не восстановить.
 purge_audit_logs() {
+  [ -n "${AUDIT_RETENTION_DAYS:-}" ] || return 0
+  if ! [ "$AUDIT_RETENTION_DAYS" -ge 1 ] 2>/dev/null; then
+    echo "[$(date '+%F %T')] аудит: AUDIT_RETENTION_DAYS должно быть целым числом дней — чистка пропущена"
+    return 1
+  fi
   count=$(psql -h db -U postgres -d ai_map_kz -tAc \
-    "WITH deleted AS (DELETE FROM audit_logs WHERE created_at <= now() - interval '365 days' RETURNING 1) SELECT count(*) FROM deleted") \
+    "WITH deleted AS (DELETE FROM audit_logs WHERE \"createdAt\" <= now() - make_interval(days => $AUDIT_RETENTION_DAYS) RETURNING 1) SELECT count(*) FROM deleted") \
     || return 1
-  echo "[$(date '+%F %T')] аудит: удалено старше года — $count"
+  echo "[$(date '+%F %T')] аудит: удалено старше $AUDIT_RETENTION_DAYS дн. — $count"
 }
 
 purge_sessions() {
@@ -65,9 +73,12 @@ fi
 # Первый бэкап сразу при старте, дальше по интервалу.
 # Ошибка одного прогона не убивает цикл — следующая попытка через сутки.
 while true; do
-  do_backup || echo "[$(date '+%F %T')] ОШИБКА БЭКАПА — повтор через сутки"
+  if do_backup; then
+    purge_audit_logs || echo "[$(date '+%F %T')] ОШИБКА ЧИСТКИ АУДИТА — не критично"
+  else
+    echo "[$(date '+%F %T')] ОШИБКА БЭКАПА — повтор через сутки"
+  fi
   purge_llm_cache || echo "[$(date '+%F %T')] ОШИБКА ЧИСТКИ КЭША ИИ — не критично"
   purge_sessions || echo "[$(date '+%F %T')] ОШИБКА ЧИСТКИ СЕССИЙ — не критично"
-  purge_audit_logs || echo "[$(date '+%F %T')] ОШИБКА ЧИСТКИ АУДИТА — не критично"
   sleep "$INTERVAL_SECONDS"
 done

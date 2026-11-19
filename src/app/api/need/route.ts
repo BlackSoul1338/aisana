@@ -10,6 +10,7 @@ export const maxDuration = 60
 
 /** Новая потребность с первым сообщением компании. */
 export async function POST(request: NextRequest) {
+  const lang = request.cookies.get('lang')?.value === 'kz' ? 'kz' : 'ru'
   try {
     const { user, response } = await requireApiRole(request, NEED_ROLES)
     if (response) return response
@@ -22,13 +23,13 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      const result = await createNeed(user.id, parsed.data.text, request.cookies.get('lang')?.value === 'kz' ? 'kz' : 'ru')
+      const result = await createNeed(user.id, parsed.data.text, lang)
       return NextResponse.json(result, { status: 201 })
     } catch (error) {
       if (error instanceof NeedError) refundRateLimit(`need:turn:${user.id}`)
       throw error
     }
   } catch (error) {
-    return needErrorResponse(error, 'Не удалось начать подбор')
+    return needErrorResponse(error, 'Не удалось начать подбор', lang)
   }
 }

@@ -9,6 +9,7 @@ export const maxDuration = 60
 
 /** Ответ компании на вопросы помощника. Потребность видит только автор. */
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const lang = request.cookies.get('lang')?.value === 'kz' ? 'kz' : 'ru'
   try {
     const { user, response } = await requireApiRole(request, NEED_ROLES)
     if (response) return response
@@ -22,13 +23,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     const { id } = await params
     try {
-      const lang = request.cookies.get('lang')?.value === 'kz' ? 'kz' : 'ru'
       return NextResponse.json(await takeTurn(id, user.id, parsed.data.text, lang))
     } catch (error) {
       if (error instanceof NeedError) refundRateLimit(`need:turn:${user.id}`)
       throw error
     }
   } catch (error) {
-    return needErrorResponse(error, 'Не удалось обработать сообщение')
+    return needErrorResponse(error, 'Не удалось обработать сообщение', lang)
   }
 }

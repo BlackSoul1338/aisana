@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server'
 import { UserRole } from '@prisma/client'
 import { NeedError } from '@/lib/need-builder/service'
-import { SENSITIVE_LABELS } from '@/lib/need-builder/sensitive'
 import { MAX_TURNS } from '@/lib/need-builder/readiness'
+import { t, type Lang } from '@/lib/i18n'
 
 /** Помощник — для компаний; модераторы могут проверить его работу на себе. */
 export const NEED_ROLES = [UserRole.BUSINESS_REP, UserRole.ADMIN, UserRole.EDITOR]
@@ -10,7 +10,7 @@ export const NEED_ROLES = [UserRole.BUSINESS_REP, UserRole.ADMIN, UserRole.EDITO
 /** Ходов в час на пользователя: каждый ход — вызов модели и расход общей квоты Gemini. */
 export const TURNS_PER_HOUR = 30
 
-export function needErrorResponse(error: unknown, fallback: string) {
+export function needErrorResponse(error: unknown, fallback: string, lang: Lang) {
   if (error instanceof NeedError) {
     switch (error.code) {
       case 'not_found':
@@ -28,11 +28,14 @@ export function needErrorResponse(error: unknown, fallback: string) {
         return NextResponse.json({
           error: 'Помощник сейчас не может разобрать сообщение. Попробуйте позже или отправьте запрос оператору — он уточнит задачу сам.',
         }, { status: 503 })
-      case 'sensitive':
+      case 'sensitive': {
+        const kinds = [...new Set(error.findings.map(f => f.kind))]
+        const labels = kinds.map(kind => t('sensitive', kind, lang)).join(', ')
         return NextResponse.json({
-          error: `Уберите из сообщения персональные данные (${[...new Set(error.findings.map(f => SENSITIVE_LABELS[f.kind]))].join(', ')}): текст передаётся внешней модели. Контакты оператор возьмёт из вашей учётной записи.`,
+          error: `${t('need', 'sensitivePre', lang)}${labels}${t('need', 'sensitivePost', lang)}`,
           findings: error.findings,
         }, { status: 422 })
+      }
     }
   }
   console.error(fallback, error)

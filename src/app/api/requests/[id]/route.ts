@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { IntegrationRequestStatus, UserRole } from '@prisma/client'
+import { IntegrationRequestStatus, PublicationStatus, UserRole } from '@prisma/client'
 import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { requireApiRole } from '@/lib/auth'
@@ -51,9 +51,11 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       }
       const project = await prisma.project.findUnique({
         where: { id: input.projectId },
-        select: { id: true, title: true, universityId: true },
+        select: { id: true, title: true, universityId: true, publication: true },
       })
-      if (!project) return NextResponse.json({ error: 'Проект не найден' }, { status: 400 })
+      if (!project || project.publication !== PublicationStatus.PUBLISHED) {
+        return NextResponse.json({ error: 'Проект не найден' }, { status: 400 })
+      }
       data.project = { connect: { id: project.id } }
       scope = { ...existing, projectId: project.id, project: { universityId: project.universityId } }
       changes.push(`проект: ${project.title}`)
@@ -66,6 +68,14 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       data.status = input.status
       if (input.status === IntegrationRequestStatus.SENT_TO_UNIVERSITY && !existing.forwardedAt) {
         data.forwardedAt = new Date()
+      }
+      // Возврат до передачи снимает отметку: иначе вуз продолжает видеть
+      // запрос и может писать ответ по запросу, который у него отозвали.
+      if (
+        (input.status === IntegrationRequestStatus.NEW || input.status === IntegrationRequestStatus.IN_REVIEW) &&
+        existing.forwardedAt
+      ) {
+        data.forwardedAt = null
       }
       changes.push(`статус: ${REQUEST_STATUS_LABELS[input.status]}`)
     }

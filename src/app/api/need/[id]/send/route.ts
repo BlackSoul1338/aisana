@@ -8,6 +8,7 @@ import { NEED_ROLES, needErrorResponse } from '../../shared'
 
 /** Отправка потребности оператору запросом «Консультация». */
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const lang = request.cookies.get('lang')?.value === 'kz' ? 'kz' : 'ru'
   try {
     const { user, response } = await requireApiRole(request, NEED_ROLES)
     if (response) return response
@@ -24,12 +25,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     }
 
     const { id } = await params
-    const lang = request.cookies.get('lang')?.value === 'kz' ? 'kz' : 'ru'
     const { requestId, projectTitle } = await sendNeed(id, user, parsed.data, lang)
     await audit(user, 'CREATE', 'integration_request', requestId,
       `Консультация из помощника подбора${projectTitle ? `: ${projectTitle}` : ''}`)
     return NextResponse.json({ id: requestId }, { status: 201 })
   } catch (error) {
-    return needErrorResponse(error, 'Не удалось отправить запрос')
+    return needErrorResponse(error, 'Не удалось отправить запрос', lang)
   }
 }

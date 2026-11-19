@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { UserRole } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { requireApiRole, requireApiUser } from '@/lib/auth'
-import { visibleProjectsWhere, withoutIntegrationFlag, withoutLeadContacts } from '@/lib/publication'
+import { visibleProjectsWhere, withoutIntegrationFlag, withoutLeadContacts, withoutModerationNote } from '@/lib/publication'
 import { audit } from '@/lib/audit'
 import { parseBody, hearingSchema } from '@/lib/schemas'
 
@@ -64,7 +64,7 @@ export async function GET(request: NextRequest) {
     })
     return NextResponse.json(hearings.map(hearing => ({
       ...hearing,
-      project: withoutIntegrationFlag(withoutLeadContacts(user, hearing.project)),
+      project: withoutIntegrationFlag(withoutModerationNote(withoutLeadContacts(user, hearing.project))),
     })))
   } catch {
     return NextResponse.json({ error: 'Ошибка загрузки' }, { status: 500 })
