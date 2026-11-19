@@ -55,3 +55,6 @@ docs/
 # Выгрузки из легаси-эпохи: хранилище теперь в uploads_data / Blob
 public/uploads/
 backups/
+.vscode/
+!docs/acceptance.md
+!docs/tempusersrender.md
