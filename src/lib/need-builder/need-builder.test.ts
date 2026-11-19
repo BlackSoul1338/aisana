@@ -3,7 +3,7 @@ import { FIELD_ORDER, scoreFields, type FieldStatus, type NeedFieldKey, type Raw
 import { normalize, quoteFound, verifyAnalysis, type AiAnalysis } from './quotes'
 import { QUICK_REPLIES, selectQuestions } from './questions'
 import { fieldChanges } from './diff'
-import { findSensitive, isValidIin, luhn } from './sensitive'
+import { findSensitive, isValidIbanKz, isValidIin, luhn } from './sensitive'
 import { MATCH_MIN_SCORE, needQuery } from './match'
 import { indexProject, searchIndex } from '@/lib/search/engine'
 import { needSummary } from './summary'
@@ -111,6 +111,17 @@ describe('персональные данные', () => {
 
   it('бюджеты, артикулы и случайные длинные числа не считаются персональными данными', () => {
     expect(findSensitive('Бюджет 150000000000 тенге, артикул 123456789012, заказ 4111111111111112')).toEqual([])
+    expect(findSensitive('Бюджет 1 500 000 000 000 тенге')).toEqual([])
+  })
+
+  it('находит ИИН, записанный с разделителями, и IBAN Казахстана по mod-97-10', () => {
+    expect(isValidIbanKz('KZ86125KZT5004100100')).toBe(true)
+    expect(isValidIbanKz('KZ86125KZT5004100101')).toBe(false)
+    expect(findSensitive('ИИН 851231 4006 76').map(f => f.kind)).toEqual(['iin'])
+    expect(findSensitive('и и н: 851231-4006-76').map(f => f.kind)).toEqual(['iin'])
+    expect(findSensitive('Реквизиты: KZ86125KZT5004100100 — казначейство').map(f => f.kind)).toEqual(['iban'])
+    expect(findSensitive('IBAN KZ86 125K ZT50 0410 0100').map(f => f.kind)).toEqual(['iban'])
+    expect(findSensitive('IBAN KZ86 125K ZT50 0410 0101')).toEqual([])
   })
 })
 
