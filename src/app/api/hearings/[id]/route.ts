@@ -45,11 +45,20 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ error: parsed.error }, { status: 400 })
     }
     const data = parsed.data
+    const date = new Date(data.date)
+    if (Number.isNaN(date.getTime())) {
+      return NextResponse.json({ error: 'Некорректная дата' }, { status: 400 })
+    }
+    const project = await prisma.project.findUnique({ where: { id: data.projectId }, select: { id: true } })
+    if (!project) {
+      return NextResponse.json({ error: 'Проект не найден' }, { status: 400 })
+    }
+
     const hearing = await prisma.hearing.update({
       where: { id },
       data: {
         projectId: data.projectId,
-        date: new Date(data.date),
+        date,
         commission: data.commission || [],
         remarks: data.remarks || null,
         recommendations: data.recommendations || null,
@@ -59,7 +68,10 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     })
     await audit(user, 'UPDATE', 'hearing', hearing.id)
     return NextResponse.json(hearing)
-  } catch {
+  } catch (error: any) {
+    if (error?.code === 'P2025') {
+      return NextResponse.json({ error: 'Не найдено' }, { status: 404 })
+    }
     return NextResponse.json({ error: 'Ошибка обновления' }, { status: 500 })
   }
 }
@@ -73,7 +85,10 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     await prisma.hearing.delete({ where: { id } })
     await audit(user, 'DELETE', 'hearing', id)
     return NextResponse.json({ success: true })
-  } catch {
+  } catch (error: any) {
+    if (error?.code === 'P2025') {
+      return NextResponse.json({ error: 'Не найдено' }, { status: 404 })
+    }
     return NextResponse.json({ error: 'Ошибка удаления' }, { status: 500 })
   }
 }

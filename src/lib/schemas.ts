@@ -105,7 +105,9 @@ export const projectSchema = z.object({
   leadName: shortText(EXCEL_CELL_MAX),
   leadEmail: z.union([z.string().trim().email().max(255), z.literal(''), z.null()]).optional(),
   teamSize: z.coerce.number().int().min(0).max(10_000).nullish(),
-  launchDate: z.union([z.string().trim().max(40), z.null()]).optional(),
+  launchDate: z.union([z.string().trim().max(40), z.null()])
+    .refine(value => !value || !Number.isNaN(new Date(value).getTime()), 'некорректная дата')
+    .optional(),
   category: z.nativeEnum(ProjectCategory).optional(),
   status: z.nativeEnum(ProjectStatus).optional(),
   // Пустая строка из <select> — «не выбрано»
@@ -182,7 +184,7 @@ export const bulkPublicationSchema = z.object({
 export const userCreateSchema = z.object({
   email: z.string().trim().email().max(255),
   name: shortText(200),
-  password: z.string().min(6).max(200),
+  password: z.string().min(10).max(200),
   role: z.enum(['ADMIN', 'EDITOR', 'UNIVERSITY_REP', 'VIEWER', 'BUSINESS']),
   universityId: z.union([z.string().trim().max(64), z.null()]).optional(),
   organization: shortText(200),
@@ -192,7 +194,7 @@ export const userUpdateSchema = z.object({
   id: z.string().trim().min(1).max(64),
   email: z.union([z.string().trim().email().max(255), z.literal('')]).optional(),
   name: z.union([z.string().trim().max(200), z.null()]).optional(),
-  password: z.union([z.string().min(6).max(200), z.literal('')]).optional(),
+  password: z.union([z.string().min(10).max(200), z.literal('')]).optional(),
   role: z.enum(['ADMIN', 'EDITOR', 'UNIVERSITY_REP', 'VIEWER', 'BUSINESS']).optional(),
   organization: z.union([z.string().trim().max(200), z.null()]).optional(),
   universityId: z.union([z.string().trim().max(64), z.null()]).optional(),

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { revalidatePath } from 'next/cache'
-import { PublicationStatus, UserRole } from '@prisma/client'
+import { ProjectCategory, ProjectStatus, PublicationStatus, UserRole } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { PUBLISHED_ONLY, canModerate } from '@/lib/publication'
 import { invalidateSearchIndex, loadSearchIndex, reclassifyProject } from '@/lib/search/store'
@@ -29,6 +29,25 @@ export async function POST(request: NextRequest) {
 
     if (!canAccessUniversity(user, universityId)) {
       return NextResponse.json({ error: 'Недостаточно прав для этого вуза' }, { status: 403 })
+    }
+
+    const universityExists = await prisma.university.findUnique({
+      where: { id: universityId },
+      select: { id: true },
+    })
+    if (!universityExists) {
+      return NextResponse.json({ error: 'Вуз не найден' }, { status: 400 })
+    }
+
+    const techIds = data.technologyIds ? [...new Set(data.technologyIds)] : []
+    if (techIds.length) {
+      const existingTechs = await prisma.technology.findMany({
+        where: { id: { in: techIds } },
+        select: { id: true },
+      })
+      if (existingTechs.length !== techIds.length) {
+        return NextResponse.json({ error: 'Технология не найдена' }, { status: 400 })
+      }
     }
 
     // Модерация: представитель вуза создаёт черновик — на портал проект
@@ -72,8 +91,8 @@ export async function POST(request: NextRequest) {
         videoUrl: data.videoUrl || null,
         documentation: data.documentation || null,
         tags: data.tags || [],
-        technologies: data.technologyIds?.length
-          ? { connect: data.technologyIds.map((id: string) => ({ id })) }
+        technologies: techIds.length
+          ? { connect: techIds.map((id: string) => ({ id })) }
           : undefined,
       },
     })
@@ -103,11 +122,20 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status')
     const category = searchParams.get('category')
 
+    // Фильтры приходят извне: неизвестное значение раньше уходило в Prisma
+    // как есть и давало 500 вместо понятного 400.
+    if (status && !(status in ProjectStatus)) {
+      return NextResponse.json({ error: 'Некорректный статус' }, { status: 400 })
+    }
+    if (category && !(category in ProjectCategory)) {
+      return NextResponse.json({ error: 'Некорректная категория' }, { status: 400 })
+    }
+
     const projects = await prisma.project.findMany({
       where: {
         ...PUBLISHED_ONLY,
-        ...(status ? { status: status as any } : {}),
-        ...(category ? { category: category as any } : {}),
+        ...(status ? { status: status as ProjectStatus } : {}),
+        ...(category ? { category: category as ProjectCategory } : {}),
       },
       include: {
         university: { include: { region: true } },

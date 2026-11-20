@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { UserRole } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
+import { PUBLISHED_ONLY } from '@/lib/publication'
 import { requireApiRole, requireApiUser } from '@/lib/auth'
 import { audit } from '@/lib/audit'
 import { parseBody, universitySchema } from '@/lib/schemas'
@@ -16,6 +17,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: parsed.error }, { status: 400 })
     }
     const data = parsed.data
+
+    const region = await prisma.region.findUnique({ where: { id: data.regionId }, select: { id: true } })
+    if (!region) {
+      return NextResponse.json({ error: 'Регион не найден' }, { status: 400 })
+    }
 
     const university = await prisma.university.create({
       data: {
@@ -48,7 +54,8 @@ export async function GET(request: NextRequest) {
     if (response) return response
 
     const universities = await prisma.university.findMany({
-      include: { region: true, _count: { select: { projects: true } } },
+      // Внешний счётчик не должен раскрывать черновики: считаем опубликованные
+      include: { region: true, _count: { select: { projects: { where: PUBLISHED_ONLY } } } },
       orderBy: { name: 'asc' },
     })
     return NextResponse.json(universities)

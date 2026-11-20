@@ -1,6 +1,8 @@
 import { del } from '@vercel/blob'
-import path from 'path'
+import type { UserRole } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
+import { canViewProjectContent } from '@/lib/publication'
+import { uploadFilename } from '@/lib/file-url'
 
 /**
  * Идентификатор Blob-хранилища. Vercel подставляет переменную сам, когда store
@@ -23,6 +25,40 @@ export const MAX_UPLOAD_BYTES = 4 * 1024 * 1024
 export const BLOB_PREFIX = 'uploads'
 
 /**
+ * Можно ли привязать ссылку на загрузку к проекту пользователя.
+ *
+ * Файл, уже привязанный к чужому черновику, привязывать нельзя: иначе
+ * представитель вуза подставлял бы чужой /uploads/... в свой проект и
+ * открывал его через проверку владельца в /uploads/[filename].
+ * Свежая загрузка ссылок ещё не имеет — её разрешаем, а имя файла содержит
+ * криптографический случайный суффикс, поэтому угадать его нельзя.
+ */
+export async function canAttachUpload(
+  user: { role: UserRole; universityId?: string | null },
+  url: string,
+): Promise<boolean> {
+  const filename = uploadFilename(url)
+  if (!filename) return true
+
+  const suffix = `/uploads/${filename}`
+  const [asFiles, asPassports] = await Promise.all([
+    prisma.projectFile.findMany({
+      where: { url: { endsWith: suffix } },
+      select: { project: { select: { universityId: true, publication: true } } },
+    }),
+    prisma.project.findMany({
+      where: { agentPassportPdf: { endsWith: suffix } },
+      select: { universityId: true, publication: true },
+    }),
+  ])
+  const owners = [...asFiles.map(file => file.project), ...asPassports]
+
+  // Ни одной привязки — это только что загруженный файл.
+  if (owners.length === 0) return true
+  return owners.some(owner => canViewProjectContent(user, owner))
+}
+
+/**
  * Удаляет ранее загруженный файл из Blob-хранилища.
  *
  * Реагирует только на наши собственные ссылки вида /uploads/xxx.pdf.
@@ -39,10 +75,9 @@ export const BLOB_PREFIX = 'uploads'
  * не найдутся — это ожидаемо и просто попадёт в лог.
  */
 export async function deleteUpload(url: string | null | undefined): Promise<void> {
-  if (!url || !url.startsWith('/uploads/')) return
-
-  // path.basename защищает от path traversal (../../etc/passwd не пройдёт).
-  const filename = path.basename(url)
+  // uploadFilename понимает и относительный /uploads/имя.pdf, и полный адрес
+  // портала; внешние ссылки (Google Диск и прочее) не трогает.
+  const filename = uploadFilename(url)
   if (!filename) return
 
   // На файл ещё есть ссылка — не удаляем. Проверяем и вкладку

@@ -3,7 +3,7 @@ import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { canAccessUniversity, requireApiRole, requireApiUser } from '@/lib/auth'
 import { canViewProjectContent } from '@/lib/publication'
-import { deleteUpload } from '@/lib/uploads'
+import { canAttachUpload, deleteUpload } from '@/lib/uploads'
 import { isAllowedFileUrl } from '@/lib/file-url'
 import { audit } from '@/lib/audit'
 import { parseBody, passportSchema } from '@/lib/schemas'
@@ -55,6 +55,12 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         { error: 'Ссылка должна начинаться с http(s):// или быть загруженным файлом (/uploads/)' },
         { status: 400 }
       )
+    }
+
+    // Чужой /uploads/... нельзя привязать к своему проекту: проверка
+    // владельца в /uploads/[filename] иначе отдала бы чужой черновик.
+    if (url && !(await canAttachUpload(user, url))) {
+      return NextResponse.json({ error: 'Файл принадлежит другому проекту' }, { status: 403 })
     }
 
     const project = await prisma.project.update({

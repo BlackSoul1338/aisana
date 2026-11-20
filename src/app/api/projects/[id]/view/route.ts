@@ -1,21 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { getClientIp, isFirstInWindow, rateLimit } from '@/lib/rate-limit'
+import { isFirstInWindow, rateLimit } from '@/lib/rate-limit'
+import { requireApiUser } from '@/lib/auth'
+import { canViewProjectContent } from '@/lib/publication'
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { id } = await params
-    const ip = getClientIp(request)
+    const { user, response } = await requireApiUser(request)
+    if (response) return response
 
-    // Общий предохранитель: не более 60 запросов к счётчику с одного IP в минуту
-    if (!rateLimit(`view:rl:${ip}`, 60, 60 * 1000).ok) {
+    const { id } = await params
+
+    // Общий предохранитель: не более 60 запросов к счётчику с одного пользователя в минуту
+    if (!rateLimit(`view:rl:${user.id}`, 60, 60 * 1000).ok) {
       return NextResponse.json({ ok: false })
     }
 
-    // Серверная дедупликация: один IP засчитывается для проекта
+    // Счётчик — часть карточки: чужой черновик по id не должен ни открываться,
+    // ни накручивать статистику.
+    const project = await prisma.project.findUnique({
+      where: { id },
+      select: { universityId: true, publication: true },
+    })
+    if (!project || !canViewProjectContent(user, project)) {
+      return NextResponse.json({ ok: false }, { status: 404 })
+    }
+
+    // Серверная дедупликация: один пользователь засчитывается для проекта
     // не чаще одного раза в час (sessionStorage на клиенте — лишь UX-слой,
     // накрутка через curl теперь не работает).
-    if (!isFirstInWindow(`view:${ip}:${id}`, 60 * 60 * 1000)) {
+    if (!isFirstInWindow(`view:${user.id}:${id}`, 60 * 60 * 1000)) {
       return NextResponse.json({ ok: true, counted: false })
     }
 

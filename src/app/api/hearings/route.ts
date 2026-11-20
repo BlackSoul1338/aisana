@@ -18,10 +18,21 @@ export async function POST(request: NextRequest) {
     }
     const data = parsed.data
 
+    // Внешние id и дата раньше уходили в Prisma как есть: опечатка в id или
+    // неразбираемая дата давали 500 вместо 400.
+    const date = new Date(data.date)
+    if (Number.isNaN(date.getTime())) {
+      return NextResponse.json({ error: 'Некорректная дата' }, { status: 400 })
+    }
+    const project = await prisma.project.findUnique({ where: { id: data.projectId }, select: { id: true } })
+    if (!project) {
+      return NextResponse.json({ error: 'Проект не найден' }, { status: 400 })
+    }
+
     const hearing = await prisma.hearing.create({
       data: {
         projectId: data.projectId,
-        date: new Date(data.date),
+        date,
         commission: data.commission || [],
         remarks: data.remarks || null,
         recommendations: data.recommendations || null,

@@ -41,11 +41,11 @@ export async function GET(request: NextRequest) {
         orderBy: { createdAt: 'desc' },
       }),
       prisma.region.findMany({
-        include: { universities: { include: { _count: { select: { projects: true } } } } },
+        include: { universities: { include: { _count: { select: { projects: { where: PUBLISHED_ONLY } } } } } },
         orderBy: { name: 'asc' },
       }),
       prisma.technology.findMany({
-        include: { _count: { select: { projects: true } } },
+        include: { _count: { select: { projects: { where: PUBLISHED_ONLY } } } },
         orderBy: { projects: { _count: 'desc' } },
       }),
     ])

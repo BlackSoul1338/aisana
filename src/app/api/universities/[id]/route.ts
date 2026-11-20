@@ -47,6 +47,12 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ error: parsed.error }, { status: 400 })
     }
     const data = parsed.data
+    if (data.regionId) {
+      const region = await prisma.region.findUnique({ where: { id: data.regionId }, select: { id: true } })
+      if (!region) {
+        return NextResponse.json({ error: 'Регион не найден' }, { status: 400 })
+      }
+    }
     const university = await prisma.university.update({
       where: { id },
       data: providedFields(data),
@@ -75,8 +81,12 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       select: { agentPassportPdf: true, files: { select: { url: true } } },
     })
 
-    await prisma.project.deleteMany({ where: { universityId: id } })
-    await prisma.university.delete({ where: { id } })
+    // Проекты и вуз удаляем одной транзакцией: иначе сбой второго запроса
+    // оставит проекты без вуза-владельца.
+    await prisma.$transaction([
+      prisma.project.deleteMany({ where: { universityId: id } }),
+      prisma.university.delete({ where: { id } }),
+    ])
 
     for (const p of projects) {
       await deleteUpload(p.agentPassportPdf)
