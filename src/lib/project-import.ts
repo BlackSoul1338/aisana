@@ -6,6 +6,7 @@ import { canModerate } from '@/lib/publication'
 import { DESCRIPTION_PLACEHOLDER, isDescriptionEmpty } from '@/lib/project-completeness'
 import { isAllowedFileUrl } from '@/lib/file-url'
 import { canAttachUpload } from '@/lib/uploads'
+import { TECHNOLOGY_LABELS } from '@/lib/technologies'
 
 type RawRow = Record<string, unknown>
 
@@ -224,6 +225,13 @@ export function buildTechAliasMap(): Record<string, { name: string; slug: string
   const map: Record<string, { name: string; slug: string }> = {}
   for (const [name, slug, aliases] of groups) {
     for (const alias of aliases) map[alias] = { name, slug }
+  }
+  // Выгрузка в kz-режиме содержит казахские подписи — принимаем их обратно,
+  // иначе повторный импорт создаст дубликат технологии рядом с русской
+  for (const [slug, label] of Object.entries(TECHNOLOGY_LABELS)) {
+    for (const alias of [label.ru, label.kz]) {
+      map[alias.trim().toLowerCase()] ??= { name: label.ru, slug }
+    }
   }
   return map
 }

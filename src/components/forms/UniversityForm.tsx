@@ -2,10 +2,12 @@
 
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
+import { useLang } from '@/context/LangContext'
 
 interface Region {
   id: string
   name: string
+  nameKz?: string | null
   code: string
 }
 
@@ -29,14 +31,8 @@ interface Props {
   university?: University
 }
 
-const TYPES = [
-  { value: 'STATE', label: 'Государственный' },
-  { value: 'PRIVATE', label: 'Частный' },
-  { value: 'NATIONAL', label: 'Национальный' },
-  { value: 'RESEARCH', label: 'Исследовательский' },
-]
-
 export function UniversityForm({ regions, university }: Props) {
+  const { t, lang } = useLang()
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -73,7 +69,7 @@ export function UniversityForm({ regions, university }: Props) {
 
       if (!res.ok) {
         const err = await res.json()
-        throw new Error(err.error || 'Ошибка сохранения')
+        throw new Error(err.error || t('universityForm', 'saveFailed'))
       }
 
       // Нативный переход: возврат в список — явное подтверждение сохранения
@@ -110,14 +106,14 @@ export function UniversityForm({ regions, university }: Props) {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="md:col-span-2">
-          {field('Полное название', 'name', university?.name, true)}
+          {field(t('universityForm', 'fullName'), 'name', university?.name, true)}
         </div>
-        {field('Название на казахском', 'nameKz', university?.nameKz)}
-        {field('Аббревиатура (КазНУ, НУ...)', 'shortName', university?.shortName)}
+        {field(t('universityForm', 'nameKz'), 'nameKz', university?.nameKz)}
+        {field(t('universityForm', 'shortName'), 'shortName', university?.shortName)}
 
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-1">
-            Регион <span className="text-red-500">*</span>
+            {t('universities', 'regionLabel')} <span className="text-red-500">*</span>
           </label>
           <select
             name="regionId"
@@ -125,33 +121,34 @@ export function UniversityForm({ regions, university }: Props) {
             required
             className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
           >
-            <option value="">— Выберите регион —</option>
+            <option value="">{t('universityForm', 'selectRegion')}</option>
             {regions.map(r => (
-              <option key={r.id} value={r.id}>{r.name}</option>
+              <option key={r.id} value={r.id}>{lang === 'kz' && r.nameKz ? r.nameKz : r.name}</option>
             ))}
           </select>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Тип</label>
+          <label className="block text-sm font-medium text-slate-700 mb-1">{t('universityForm', 'typeLabel')}</label>
           <select
             name="type"
             defaultValue={university?.type || 'STATE'}
             className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
           >
-            {TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+            {([['typeState', 'STATE'], ['typePrivate', 'PRIVATE'], ['typeNational', 'NATIONAL'], ['typeResearch', 'RESEARCH']] as const).map(([key, value]) =>
+              <option key={value} value={value}>{t('universities', key)}</option>)}
           </select>
         </div>
 
-        {field('Ректор', 'rector', university?.rector)}
-        {field('Адрес', 'address', university?.address)}
-        {field('Сайт', 'website', university?.website, false, 'url')}
-        {field('Email', 'email', university?.email, false, 'email')}
-        {field('Телефон', 'phone', university?.phone, false, 'tel')}
+        {field(t('universities', 'rector'), 'rector', university?.rector)}
+        {field(t('universityForm', 'address'), 'address', university?.address)}
+        {field(t('universities', 'website'), 'website', university?.website, false, 'url')}
+        {field(t('login', 'email'), 'email', university?.email, false, 'email')}
+        {field(t('universityForm', 'phone'), 'phone', university?.phone, false, 'tel')}
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-slate-700 mb-1">Описание</label>
+        <label className="block text-sm font-medium text-slate-700 mb-1">{t('universityForm', 'desc')}</label>
         <textarea
           name="description"
           defaultValue={university?.description || ''}
@@ -166,14 +163,14 @@ export function UniversityForm({ regions, university }: Props) {
           disabled={loading}
           className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-6 py-2.5 rounded-lg text-sm font-medium transition-colors"
         >
-          {loading ? 'Сохранение...' : isEdit ? 'Сохранить изменения' : 'Создать вуз'}
+          {loading ? t('universityForm', 'saving') : isEdit ? t('universityForm', 'saveChanges') : t('universityForm', 'createUni')}
         </button>
         <button
           type="button"
           onClick={() => router.back()}
           className="border border-slate-200 text-slate-600 hover:bg-slate-50 px-6 py-2.5 rounded-lg text-sm font-medium transition-colors"
         >
-          Отмена
+          {t('common', 'cancel')}
         </button>
       </div>
     </form>

@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react'
 import { Loader2, ShieldAlert } from 'lucide-react'
+import { useLang } from '@/context/LangContext'
 
 interface Props {
   open: boolean
@@ -25,6 +26,7 @@ interface Props {
 export function ConfirmDialog({
   open, title, children, confirmLabel, busyLabel, danger, busy, error, onConfirm, onCancel,
 }: Props) {
+  const { t } = useLang()
   useEffect(() => {
     if (!open) return
     const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape' && !busy) onCancel() }
@@ -69,7 +71,7 @@ export function ConfirmDialog({
             disabled={busy}
             className="flex-1 border border-slate-200 text-slate-600 hover:bg-slate-50 py-2.5 rounded-lg text-sm font-medium transition-colors"
           >
-            Отмена
+            {t('common', 'cancel')}
           </button>
         </div>
       </div>

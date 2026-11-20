@@ -44,7 +44,7 @@ export default async function HomePage() {
   const { regions, stats } = await cached('map-page', 60_000, getMapData)
 
   return (
-    <div className="flex flex-col h-screen bg-[#0d1b3e] overflow-hidden">
+    <div className="flex flex-col h-screen overflow-hidden bg-slate-100 dark:bg-[#0d1b3e]">
       <Navbar />
       <main className="flex-1 relative overflow-hidden">
         {/* Background grid */}

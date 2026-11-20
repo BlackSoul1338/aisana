@@ -129,7 +129,7 @@ async function getDashboardData() {
     stages: [...stageMap].map(([status, row]) => ({ status, ...row })),
     byIndustry: [...industryMap].map(([industry, count]) => ({ industry, count })),
     technologies: technologies
-      .map(tech => ({ name: tech.name, count: tech._count.projects }))
+      .map(tech => ({ slug: tech.slug, name: tech.name, count: tech._count.projects }))
       .filter(tech => tech.count > 0),
     topViewed,
     topSearched,

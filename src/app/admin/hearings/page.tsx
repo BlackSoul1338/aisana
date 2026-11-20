@@ -4,10 +4,11 @@ import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
 import { Plus, Pencil } from 'lucide-react'
 import { DeleteHearingButton } from '../universities/DeleteButton'
-import { HEARING_DECISION_LABELS } from '@/types'
 import { HearingDecision, UserRole } from '@prisma/client'
 import { formatDate } from '@/lib/utils'
 import { requireRole } from '@/lib/auth'
+import { t } from '@/lib/i18n'
+import { getRequestLang } from '@/lib/i18n-server'
 
 const DECISION_COLORS: Record<HearingDecision, string> = {
   PENDING: 'bg-slate-100 text-slate-600',
@@ -19,6 +20,7 @@ const DECISION_COLORS: Record<HearingDecision, string> = {
 
 export default async function AdminHearingsPage() {
   await requireRole([UserRole.ADMIN, UserRole.EDITOR], '/admin/hearings')
+  const lang = await getRequestLang()
 
   const hearings = await prisma.hearing.findMany({
     include: {
@@ -30,13 +32,13 @@ export default async function AdminHearingsPage() {
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-bold text-slate-800">Заслушивания ({hearings.length})</h1>
+        <h1 className="text-xl font-bold text-slate-800">{t('hearings', 'title', lang)} ({hearings.length})</h1>
         <Link
           href="/admin/hearings/new"
           className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
         >
           <Plus size={15} />
-          Добавить
+          {t('hearings', 'add', lang)}
         </Link>
       </div>
 
@@ -44,10 +46,10 @@ export default async function AdminHearingsPage() {
         <table className="w-full text-sm">
           <thead className="bg-slate-50 border-b border-slate-200">
             <tr>
-              <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">Дата</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">Проект</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">Решение</th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wide">Действия</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">{t('hearings', 'date', lang)}</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">{t('adminProjects', 'colProject', lang)}</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">{t('hearings', 'decision', lang)}</th>
+              <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wide">{t('users', 'colActions', lang)}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -60,7 +62,7 @@ export default async function AdminHearingsPage() {
                 </td>
                 <td className="px-4 py-3">
                   <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${DECISION_COLORS[h.decision]}`}>
-                    {HEARING_DECISION_LABELS[h.decision]}
+                    {t('hearings', h.decision, lang)}
                   </span>
                 </td>
                 <td className="px-4 py-3">
@@ -69,7 +71,7 @@ export default async function AdminHearingsPage() {
                       href={`/admin/hearings/${h.id}/edit`}
                       className="flex items-center gap-1 text-xs text-slate-500 hover:text-blue-600 border border-slate-200 hover:border-blue-300 px-2.5 py-1.5 rounded-lg transition-colors"
                     >
-                      <Pencil size={12} /> Изменить
+                      <Pencil size={12} /> {t('common', 'edit', lang)}
                     </Link>
                     <DeleteHearingButton id={h.id} />
                   </div>
@@ -79,7 +81,7 @@ export default async function AdminHearingsPage() {
           </tbody>
         </table>
         {hearings.length === 0 && (
-          <div className="text-center py-12 text-slate-400">Нет заслушиваний</div>
+          <div className="text-center py-12 text-slate-400">{t('hearings', 'empty', lang)}</div>
         )}
       </div>
     </div>

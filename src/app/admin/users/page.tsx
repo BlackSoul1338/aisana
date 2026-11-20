@@ -9,16 +9,10 @@ import { UserCreateForm } from '@/components/users/UserCreateForm'
 import { UserEditControls } from '@/components/users/UserEditControls'
 import { ListFilters } from '@/components/admin/ListFilters'
 import { Pagination } from '@/components/admin/Pagination'
+import { t } from '@/lib/i18n'
+import { getRequestLang } from '@/lib/i18n-server'
 
 const PAGE_SIZE = 25
-
-const ROLE_LABELS: Record<UserRole, string> = {
-  ADMIN: 'Администратор',
-  EDITOR: 'Редактор',
-  UNIVERSITY_REP: 'Представитель вуза',
-  VIEWER: 'Просмотр',
-  BUSINESS: 'Партнёр',
-}
 
 const ROLE_COLORS: Record<UserRole, string> = {
   ADMIN: 'bg-red-100 text-red-700',
@@ -45,12 +39,13 @@ interface SearchParams {
 }
 
 export default async function AdminUsersPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
+  const lang = await getRequestLang()
   const currentUser = await requireRole([UserRole.ADMIN], '/admin/users')
   const params = await searchParams
   const page = Math.max(1, parseInt(params.page || '1', 10) || 1)
 
   const where: Prisma.UserWhereInput = {
-    ...(params.role && params.role in ROLE_LABELS ? { role: params.role as UserRole } : {}),
+    ...(params.role && Object.values(UserRole).includes(params.role as UserRole) ? { role: params.role as UserRole } : {}),
     ...(params.universityId ? { universityId: params.universityId } : {}),
     ...(params.login === 'never' ? { lastLoginAt: null } : {}),
     ...(params.login === 'done' ? { lastLoginAt: { not: null } } : {}),
@@ -61,6 +56,7 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
             { email: { contains: params.q, mode: 'insensitive' } },
             { university: { name: { contains: params.q, mode: 'insensitive' } } },
             { university: { shortName: { contains: params.q, mode: 'insensitive' } } },
+            { organization: { contains: params.q, mode: 'insensitive' } },
           ],
         }
       : {}),
@@ -93,14 +89,14 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
     <div className="space-y-4">
       <div>
         <h1 className="text-xl font-bold text-slate-800">
-          Пользователи ({hasFilters ? `${total} из ${totalAll}` : totalAll})
+          {t('users', 'title', lang)} ({hasFilters ? `${total} ${t('users', 'of', lang)} ${totalAll}` : totalAll})
         </h1>
         <p className="mt-1 text-sm text-slate-500">
-          Аккаунты для администраторов, редакторов и представителей вузов.
-          {neverCount > 0 && <> Без входов: <span className="font-medium text-slate-700">{neverCount}</span>.</>}
+          {t('users', 'subtitle', lang)}
+          {neverCount > 0 && <> {t('users', 'noLogins', lang)}: <span className="font-medium text-slate-700">{neverCount}</span>.</>}
         </p>
         <p className="mt-1 text-xs text-slate-400">
-          Входы до 13.11.2026 восстановлены по сессиям и журналу действий и могут быть неполными.
+          {t('users', 'noLoginsNote', lang)}
         </p>
       </div>
 
@@ -108,9 +104,9 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
       <details className="group rounded-xl border border-slate-200 bg-white">
         <summary className="flex cursor-pointer list-none items-center gap-2 px-5 py-3.5 text-sm font-medium text-blue-700 hover:bg-slate-50 rounded-xl">
           <UserPlus size={16} />
-          Новый пользователь
-          <span className="ml-auto text-xs font-normal text-slate-400 group-open:hidden">развернуть</span>
-          <span className="ml-auto hidden text-xs font-normal text-slate-400 group-open:inline">свернуть</span>
+          {t('users', 'newUser', lang)}
+          <span className="ml-auto text-xs font-normal text-slate-400 group-open:hidden">{t('users', 'expand', lang)}</span>
+          <span className="ml-auto hidden text-xs font-normal text-slate-400 group-open:inline">{t('users', 'collapse', lang)}</span>
         </summary>
         <div className="border-t border-slate-100 p-6">
           <UserCreateForm universities={universities} />
@@ -120,31 +116,31 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
       <ListFilters
         basePath="/admin/users"
         values={params as Record<string, string | undefined>}
-        searchPlaceholder="Имя, почта или вуз…"
+        searchPlaceholder={t('users', 'searchPlaceholder', lang)}
         filters={[
           {
             name: 'role',
-            label: 'Все роли',
-            options: Object.entries(ROLE_LABELS).map(([value, label]) => ({ value, label })),
+            label: t('users', 'allRoles', lang),
+            options: Object.values(UserRole).map(value => ({ value, label: t('role', value, lang) })),
           },
           {
             name: 'universityId',
-            label: 'Все вузы',
+            label: t('universities', 'allUniversities', lang),
             options: universities.map(u => ({ value: u.id, label: u.shortName || u.name })),
           },
           {
             name: 'login',
-            label: 'Любая активность',
+            label: t('users', 'anyActivity', lang),
             options: [
-              { value: 'never', label: 'Без входов' },
-              { value: 'done', label: 'Входили' },
+              { value: 'never', label: t('users', 'never', lang) },
+              { value: 'done', label: t('users', 'loggedIn', lang) },
             ],
           },
         ]}
         sortOptions={[
-          { value: 'newest', label: 'Сначала новые' },
-          { value: 'name', label: 'По имени А-Я' },
-          { value: 'login', label: 'По последнему входу' },
+          { value: 'newest', label: t('projects', 'sortNewest', lang) },
+          { value: 'name', label: t('users', 'sortName', lang) },
+          { value: 'login', label: t('users', 'sortLogin', lang) },
         ]}
       />
 
@@ -152,11 +148,11 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
         <table className="w-full min-w-[720px] text-sm">
           <thead className="border-b border-slate-200 bg-slate-50">
             <tr>
-              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500">Пользователь</th>
-              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500">Роль</th>
-              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500">Вуз</th>
-              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500">Последний вход</th>
-              <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-slate-500">Действия</th>
+              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500">{t('users', 'colUser', lang)}</th>
+              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500">{t('users', 'colRole', lang)}</th>
+              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500">{t('users', 'colUniOrg', lang)}</th>
+              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500">{t('users', 'colLastLogin', lang)}</th>
+              <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-slate-500">{t('users', 'colActions', lang)}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -169,28 +165,30 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
                 </td>
                 <td className="px-4 py-3">
                   <span className={`px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${ROLE_COLORS[user.role]}`}>
-                    {ROLE_LABELS[user.role]}
+                    {t('role', user.role, lang)}
                   </span>
                   {user.id === currentUser.id && (
-                    <span className="ml-2 text-[10px] text-slate-400 font-medium">(вы)</span>
+                    <span className="ml-2 text-[10px] text-slate-400 font-medium">({t('users', 'you', lang)})</span>
                   )}
                 </td>
                 <td className="px-4 py-3 text-xs">
                   {user.university ? (
                     <>
                       <p className="text-slate-600">{user.university.shortName || user.university.name}</p>
-                      <p className="text-slate-400">проектов: {user.university._count.projects}</p>
+                      <p className="text-slate-400">{t('users', 'uniProjects', lang)}: {user.university._count.projects}</p>
                     </>
+                  ) : user.organization ? (
+                    <p className="text-slate-600">{user.organization}</p>
                   ) : <span className="text-slate-400">—</span>}
                 </td>
                 <td className="px-4 py-3 text-xs whitespace-nowrap">
                   {user.lastLoginAt
                     ? <span className="text-slate-600">{formatDate(user.lastLoginAt)}</span>
-                    : <span className="text-amber-600">нет входов</span>}
+                    : <span className="text-amber-600">{t('users', 'neverLogin', lang)}</span>}
                 </td>
                 <td className="px-4 py-3 text-right">
                   <UserEditControls
-                    user={{ id: user.id, name: user.name, email: user.email, role: user.role, universityId: user.universityId }}
+                    user={{ id: user.id, name: user.name, email: user.email, role: user.role, universityId: user.universityId, organization: user.organization }}
                     universities={universities}
                     isSelf={user.id === currentUser.id}
                     isLastAdmin={user.role === UserRole.ADMIN && adminCount <= 1}
@@ -202,7 +200,7 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
         </table>
         {users.length === 0 && (
           <div className="py-12 text-center text-slate-400">
-            {hasFilters ? 'Никого не найдено по заданным фильтрам' : 'Нет пользователей'}
+            {hasFilters ? t('users', 'notFoundFiltered', lang) : t('users', 'empty', lang)}
           </div>
         )}
       </div>
@@ -213,6 +211,7 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
         totalItems={total}
         basePath="/admin/users"
         searchParams={params as Record<string, string | undefined>}
+        totalLabel={t('common', 'total', lang)}
       />
     </div>
   )

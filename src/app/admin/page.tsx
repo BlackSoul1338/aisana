@@ -6,11 +6,14 @@ import { ArrowRight, Building2, ClipboardCheck, FolderKanban, Mic, Plus } from '
 import { prisma } from '@/lib/prisma'
 import { requireUser } from '@/lib/auth'
 import { canModerate, PUBLISHED_ONLY } from '@/lib/publication'
+import { t } from '@/lib/i18n'
+import { getRequestLang } from '@/lib/i18n-server'
 import { ReindexButton } from '@/components/admin/ReindexButton'
 import { formatDate } from '@/lib/utils'
 
 export default async function AdminPage() {
   const user = await requireUser('/admin')
+  const lang = await getRequestLang()
   // VIEWER не имеет права видеть черновики чужих вузов: показываем ему
   // только опубликованное. Представитель вуза — проекты своего вуза.
   const projectWhere = user.role === UserRole.UNIVERSITY_REP
@@ -44,23 +47,23 @@ export default async function AdminPage() {
 
   const quickActions = [
     canModerate(user)
-      ? { href: '/admin/universities/new', label: 'Добавить вуз' }
+      ? { href: '/admin/universities/new', label: t('universities', 'addUni', lang) }
       : null,
     user.role !== UserRole.VIEWER
-      ? { href: '/admin/projects/new', label: 'Добавить проект' }
+      ? { href: '/admin/projects/new', label: t('projects', 'addProject', lang) }
       : null,
     user.role !== UserRole.VIEWER
-      ? { href: '/admin/import', label: 'Импорт из Excel' }
+      ? { href: '/admin/import', label: t('admin', 'importExcel', lang) }
       : null,
     canModerate(user)
-      ? { href: '/admin/hearings/new', label: 'Добавить заслушивание' }
+      ? { href: '/admin/hearings/new', label: t('admin', 'addHearingDash', lang) }
       : null,
   ].filter(Boolean) as { href: string; label: string }[]
 
   return (
     <div>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-xl font-bold text-slate-800">Обзор</h1>
+        <h1 className="text-xl font-bold text-slate-800">{t('admin', 'overview', lang)}</h1>
         {canModerate(user) && <ReindexButton />}
       </div>
 
@@ -72,10 +75,10 @@ export default async function AdminPage() {
             </div>
             <div className="min-w-0">
               <p className="text-sm font-medium text-amber-900">
-                Ждут проверки: {awaitingReview}
+                {t('admin', 'awaitingReview', lang)}: {awaitingReview}
               </p>
               <p className="text-xs text-amber-700">
-                Проекты вузов не появятся на портале, пока вы их не опубликуете
+                {t('admin', 'awaitingReviewHint', lang)}
               </p>
             </div>
             <ArrowRight size={16} className="ml-auto shrink-0 text-amber-600" />
@@ -85,9 +88,9 @@ export default async function AdminPage() {
 
       <div className="grid grid-cols-3 gap-4 mb-8">
         {[
-          { label: 'Вузов', value: universities, icon: Building2, href: '/admin/universities', color: 'text-blue-600 bg-blue-50', show: canModerate(user) },
-          { label: 'Проектов', value: projects, icon: FolderKanban, href: '/admin/projects', color: 'text-violet-600 bg-violet-50', show: true },
-          { label: 'Заслушиваний', value: hearings, icon: Mic, href: '/admin/hearings', color: 'text-emerald-600 bg-emerald-50', show: canModerate(user) },
+          { label: t('admin', 'statUni', lang), value: universities, icon: Building2, href: '/admin/universities', color: 'text-blue-600 bg-blue-50', show: canModerate(user) },
+          { label: t('admin', 'statProjects', lang), value: projects, icon: FolderKanban, href: '/admin/projects', color: 'text-violet-600 bg-violet-50', show: true },
+          { label: t('admin', 'statHearings', lang), value: hearings, icon: Mic, href: '/admin/hearings', color: 'text-emerald-600 bg-emerald-50', show: canModerate(user) },
         ].filter(item => item.show).map(item => (
           <Link key={item.label} href={item.href}>
             <div className="bg-white border border-slate-200 rounded-xl p-5 hover:border-slate-300 transition-all">
@@ -119,9 +122,9 @@ export default async function AdminPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white border border-slate-200 rounded-xl p-5">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-slate-700">Последние проекты</h2>
+            <h2 className="font-semibold text-slate-700">{t('admin', 'recentProjects', lang)}</h2>
             <Link href="/admin/projects" className="text-xs text-blue-600 hover:underline flex items-center gap-1">
-              Все <ArrowRight size={11} />
+              {t('common', 'all', lang)} <ArrowRight size={11} />
             </Link>
           </div>
           <div className="space-y-2">
@@ -136,16 +139,16 @@ export default async function AdminPage() {
                 <span className="text-xs text-slate-400 shrink-0 ml-2">{formatDate(project.createdAt)}</span>
               </div>
             ))}
-            {recentProjects.length === 0 && <p className="text-sm text-slate-400">Нет проектов</p>}
+            {recentProjects.length === 0 && <p className="text-sm text-slate-400">{t('common', 'noProjects', lang)}</p>}
           </div>
         </div>
 
         {canModerate(user) && (
           <div className="bg-white border border-slate-200 rounded-xl p-5">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="font-semibold text-slate-700">Последние заслушивания</h2>
+              <h2 className="font-semibold text-slate-700">{t('admin', 'recentHearings', lang)}</h2>
               <Link href="/admin/hearings" className="text-xs text-blue-600 hover:underline flex items-center gap-1">
-                Все <ArrowRight size={11} />
+                {t('common', 'all', lang)} <ArrowRight size={11} />
               </Link>
             </div>
             <div className="space-y-2">
@@ -160,7 +163,7 @@ export default async function AdminPage() {
                   <span className="text-xs text-slate-400 shrink-0 ml-2">{formatDate(hearing.date)}</span>
                 </div>
               ))}
-              {recentHearings.length === 0 && <p className="text-sm text-slate-400">Нет заслушиваний</p>}
+              {recentHearings.length === 0 && <p className="text-sm text-slate-400">{t('hearings', 'empty', lang)}</p>}
             </div>
           </div>
         )}

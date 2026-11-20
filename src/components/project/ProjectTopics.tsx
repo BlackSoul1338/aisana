@@ -1,4 +1,7 @@
+'use client'
+
 import { Sparkles } from 'lucide-react'
+import { useLang } from '@/context/LangContext'
 
 interface Topic {
   topic: string
@@ -18,14 +21,15 @@ function barColor(score: number): string {
  * и объяснением, почему проект отнесён к направлению.
  */
 export function ProjectTopics({ topics, labels }: { topics: Topic[]; labels: Record<string, string> }) {
+  const { t } = useLang()
   if (!topics.length) return null
 
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-6">
       <div className="mb-4 flex items-center gap-2">
         <Sparkles size={16} className="text-violet-500" />
-        <h2 className="font-semibold text-slate-800">Тематические направления</h2>
-        <span className="text-xs text-slate-400">определены автоматически</span>
+        <h2 className="font-semibold text-slate-800">{t('project', 'topicsTitle')}</h2>
+        <span className="text-xs text-slate-400">{t('project', 'topicsAuto')}</span>
       </div>
 
       <div className="space-y-4">

@@ -3,6 +3,7 @@
 import { useEffect } from 'react'
 import Link from 'next/link'
 import { AlertTriangle, RotateCcw, Home } from 'lucide-react'
+import { useLang } from '@/context/LangContext'
 
 export default function GlobalError({
   error,
@@ -11,6 +12,7 @@ export default function GlobalError({
   error: Error & { digest?: string }
   reset: () => void
 }) {
+  const { t } = useLang()
   useEffect(() => {
     // Log to console for now — swap for a real error tracker (Sentry etc.) later
     console.error('Unhandled app error:', error)
@@ -21,25 +23,25 @@ export default function GlobalError({
       <div className="w-16 h-16 rounded-2xl bg-red-100 flex items-center justify-center mb-5">
         <AlertTriangle size={28} className="text-red-500" />
       </div>
-      <h1 className="text-2xl font-bold text-slate-800 mb-2">Что-то пошло не так</h1>
+      <h1 className="text-2xl font-bold text-slate-800 mb-2">{t('system', 'errorTitle')}</h1>
       <p className="text-slate-500 max-w-md mb-2">
-        Произошла непредвиденная ошибка при загрузке страницы. Мы уже знаем об этом.
+        {t('system', 'errorText')}
       </p>
       {error.digest && (
-        <p className="text-xs text-slate-400 mb-8 font-mono">Код ошибки: {error.digest}</p>
+        <p className="text-xs text-slate-400 mb-8 font-mono">{t('system', 'errorCode')}: {error.digest}</p>
       )}
       <div className="flex gap-3">
         <button
           onClick={() => reset()}
           className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg text-sm font-medium transition-colors"
         >
-          <RotateCcw size={15} /> Попробовать снова
+          <RotateCcw size={15} /> {t('system', 'tryAgain')}
         </button>
         <Link
           href="/"
           className="flex items-center gap-2 border border-slate-200 hover:border-blue-300 text-slate-600 hover:text-blue-600 px-5 py-2.5 rounded-lg text-sm font-medium transition-colors"
         >
-          <Home size={15} /> На главную
+          <Home size={15} /> {t('system', 'notFoundHome')}
         </Link>
       </div>
     </div>

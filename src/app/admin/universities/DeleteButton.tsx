@@ -5,6 +5,7 @@ import { Trash2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { showToast } from '@/components/ui/toaster'
+import { useLang } from '@/context/LangContext'
 
 const BUTTON = 'flex items-center gap-1 text-xs text-red-500 hover:text-red-600 border border-red-100 hover:border-red-300 px-2.5 py-1.5 rounded-lg transition-colors disabled:opacity-50'
 
@@ -16,6 +17,7 @@ function DeleteButton({ url, title, done, children }: {
   done: string
   children: React.ReactNode
 }) {
+  const { t } = useLang()
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -28,7 +30,7 @@ function DeleteButton({ url, title, done, children }: {
       const res = await fetch(url, { method: 'DELETE' })
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
-        throw new Error(err.error || 'Ошибка удаления')
+        throw new Error(err.error || t('users', 'deleteFailed'))
       }
       setOpen(false)
       showToast(done, 'success')
@@ -44,13 +46,13 @@ function DeleteButton({ url, title, done, children }: {
     <>
       <button type="button" onClick={() => { setError(''); setOpen(true) }} className={BUTTON}>
         <Trash2 size={12} />
-        Удалить
+        {t('common', 'delete')}
       </button>
       <ConfirmDialog
         open={open}
         title={title}
-        confirmLabel="Удалить"
-        busyLabel="Удаление..."
+        confirmLabel={t('common', 'delete')}
+        busyLabel={t('users', 'deleting')}
         danger
         busy={busy}
         error={error}
@@ -64,29 +66,31 @@ function DeleteButton({ url, title, done, children }: {
 }
 
 export function DeleteUniversityButton({ id, name, projectCount }: { id: string; name: string; projectCount?: number }) {
+  const { t } = useLang()
   return (
-    <DeleteButton url={`/api/universities/${id}`} title="Удалить вуз?" done={`Вуз «${name}» удалён`}>
-      <span className="font-medium text-slate-700">{name}</span> будет удалён без возможности восстановления.{' '}
+    <DeleteButton url={`/api/universities/${id}`} title={t('delete', 'uniTitle')} done={`${t('delete', 'uniDone')} «${name}»`}>
+      <span className="font-medium text-slate-700">{name}</span> {t('delete', 'uniDeleteText')}{' '}
       {projectCount
-        ? <span className="font-medium text-red-600">Вместе с ним удалятся все его проекты: {projectCount}.</span>
-        : 'Вместе с ним удалятся все его проекты.'}
+        ? <span className="font-medium text-red-600">{t('delete', 'withProjects')}: {projectCount}.</span>
+        : t('delete', 'withProjects')}
     </DeleteButton>
   )
 }
 
 export function DeleteProjectButton({ id, name }: { id: string; name: string }) {
+  const { t } = useLang()
   return (
-    <DeleteButton url={`/api/projects/${id}`} title="Удалить проект?" done="Проект удалён">
-      Проект <span className="font-medium text-slate-700">«{name}»</span> будет удалён вместе с файлами и
-      заслушиваниями, без возможности восстановления.
+    <DeleteButton url={`/api/projects/${id}`} title={t('delete', 'projectTitle')} done={`${t('delete', 'projectDone')} «${name}»`}>
+      <span className="font-medium text-slate-700">«{name}»</span> {t('delete', 'projectDeleteText')}
     </DeleteButton>
   )
 }
 
 export function DeleteHearingButton({ id }: { id: string }) {
+  const { t } = useLang()
   return (
-    <DeleteButton url={`/api/hearings/${id}`} title="Удалить заслушивание?" done="Заслушивание удалено">
-      Запись о заслушивании будет удалена без возможности восстановления.
+    <DeleteButton url={`/api/hearings/${id}`} title={t('delete', 'hearingTitle')} done={t('delete', 'hearingDone')}>
+      {t('delete', 'hearingDeleteText')}
     </DeleteButton>
   )
 }

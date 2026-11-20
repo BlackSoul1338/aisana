@@ -2,12 +2,14 @@
 
 import { useState } from 'react'
 import { sanitizeNextPath } from '@/lib/file-url'
+import { useLang } from '@/context/LangContext'
 
 interface Props {
   nextPath?: string
 }
 
 export function LoginForm({ nextPath = '/admin' }: Props) {
+  const { t } = useLang()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const safeNextPath = sanitizeNextPath(nextPath)
@@ -30,7 +32,7 @@ export function LoginForm({ nextPath = '/admin' }: Props) {
 
       if (!response.ok) {
         const data = await response.json()
-        throw new Error(data.error || 'Не удалось войти')
+        throw new Error(data.error || t('login', 'failed'))
       }
 
       window.location.href = safeNextPath
@@ -50,19 +52,20 @@ export function LoginForm({ nextPath = '/admin' }: Props) {
       )}
 
       <div>
-        <label className="mb-1 block text-sm font-medium text-slate-700">Email</label>
+        <label className="mb-1 block text-sm font-medium text-slate-700">{t('login', 'email')}</label>
         <input
           name="email"
-          type="email"
+          type="text"
+          inputMode="email"
           required
           autoComplete="email"
           className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          placeholder="admin@qazinn.kz"
+          placeholder="you@example.com"
         />
       </div>
 
       <div>
-        <label className="mb-1 block text-sm font-medium text-slate-700">Пароль</label>
+        <label className="mb-1 block text-sm font-medium text-slate-700">{t('login', 'password')}</label>
         <input
           name="password"
           type="password"
@@ -77,7 +80,7 @@ export function LoginForm({ nextPath = '/admin' }: Props) {
         disabled={loading}
         className="w-full rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
       >
-        {loading ? 'Вход...' : 'Войти'}
+        {loading ? t('login', 'signingIn') : t('login', 'signIn')}
       </button>
     </form>
   )

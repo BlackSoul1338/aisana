@@ -5,6 +5,8 @@ import { UserRole } from '@prisma/client'
 import { ProjectForm } from '@/components/forms/ProjectForm'
 import { prisma } from '@/lib/prisma'
 import { requireRole } from '@/lib/auth'
+import { t } from '@/lib/i18n'
+import { getRequestLang } from '@/lib/i18n-server'
 
 export default async function NewProjectPage({
   searchParams,
@@ -12,6 +14,7 @@ export default async function NewProjectPage({
   searchParams: Promise<{ universityId?: string }>
 }) {
   const user = await requireRole([UserRole.ADMIN, UserRole.EDITOR, UserRole.UNIVERSITY_REP], '/admin/projects/new')
+  const lang = await getRequestLang()
   const { universityId } = await searchParams
   const universityWhere = user.role === UserRole.UNIVERSITY_REP
     ? { id: user.universityId || '__none__' }
@@ -29,7 +32,7 @@ export default async function NewProjectPage({
   return (
     <div>
       <BackButton fallback="/admin/projects" />
-      <h1 className="text-xl font-bold text-slate-800 mb-6">Добавить проект</h1>
+      <h1 className="text-xl font-bold text-slate-800 mb-6">{t('projects', 'addProject', lang)}</h1>
       <div className="bg-white border border-slate-200 rounded-xl p-6">
         <ProjectForm
           universities={universities}

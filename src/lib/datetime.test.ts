@@ -36,6 +36,7 @@ describe('форматирование дат по казахстанскому 
     vi.useFakeTimers()
     vi.setSystemTime(new Date('2026-11-10T20:00:00Z'))
     expect(formatDateInput(null)).toBe('2026-11-11')
+    expect(formatDateInput(undefined)).toBe('2026-11-11')
   })
 
   it('формат для поля даты — ГГГГ-ММ-ДД', () => {

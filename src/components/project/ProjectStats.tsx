@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { Eye, Search } from 'lucide-react'
+import { useLang } from '@/context/LangContext'
 
 interface Props {
   projectId: string
@@ -10,6 +11,7 @@ interface Props {
 }
 
 export function ProjectStats({ projectId, viewCount, searchHitCount }: Props) {
+  const { t } = useLang()
   const [displayCount, setDisplayCount] = useState(viewCount)
   const firedRef = useRef(false)
 
@@ -24,7 +26,10 @@ export function ProjectStats({ projectId, viewCount, searchHitCount }: Props) {
     if (alreadyViewed) return
 
     fetch(`/api/projects/${projectId}/view`, { method: 'POST' })
-      .then(res => res.ok ? res.json() : null)
+      .then(res => {
+        if (!res.ok) throw new Error('view not counted')
+        return res.json()
+      })
       .then(() => {
         sessionStorage.setItem(sessionKey, '1')
         setDisplayCount(prev => prev + 1) // only bump UI once the request actually succeeded
@@ -37,12 +42,12 @@ export function ProjectStats({ projectId, viewCount, searchHitCount }: Props) {
       <div className="flex items-center gap-1.5 text-xs text-slate-400">
         <Eye size={13} />
         <span className="font-medium text-slate-600">{displayCount}</span>
-        <span>просмотров</span>
+        <span>{t('project', 'viewsShort')}</span>
       </div>
       <div className="flex items-center gap-1.5 text-xs text-slate-400">
         <Search size={13} />
         <span className="font-medium text-slate-600">{searchHitCount}</span>
-        <span>в ИИ-поиске</span>
+        <span>{t('project', 'inAiSearch')}</span>
       </div>
     </div>
   )

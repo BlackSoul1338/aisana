@@ -7,9 +7,12 @@ import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 import { UserRole } from '@prisma/client'
 import { requireRole } from '@/lib/auth'
+import { t } from '@/lib/i18n'
+import { getRequestLang } from '@/lib/i18n-server'
 
 export default async function EditHearingPage({ params }: { params: Promise<{ id: string }> }) {
   await requireRole([UserRole.ADMIN, UserRole.EDITOR], '/admin/hearings')
+  const lang = await getRequestLang()
 
   const { id } = await params
   const [hearing, projects] = await Promise.all([
@@ -25,9 +28,9 @@ export default async function EditHearingPage({ params }: { params: Promise<{ id
   return (
     <div>
       <Link href="/admin/hearings" className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700 mb-6 transition-colors">
-        <ArrowLeft size={14} /> Назад
+        <ArrowLeft size={14} /> {t('admin', 'back', lang)}
       </Link>
-      <h1 className="text-xl font-bold text-slate-800 mb-6">Редактировать заслушивание</h1>
+      <h1 className="text-xl font-bold text-slate-800 mb-6">{t('hearings', 'editHearing', lang)}</h1>
       <div className="bg-white border border-slate-200 rounded-xl p-6">
         <HearingForm projects={projects} hearing={hearing as any} />
       </div>

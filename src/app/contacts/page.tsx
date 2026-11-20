@@ -2,19 +2,25 @@ import type { Metadata } from 'next'
 import { Building2, FileText, Mail, MessageSquare } from 'lucide-react'
 import { PageLayout } from '@/components/layout/PageLayout'
 import { FeedbackForm } from '@/components/contacts/FeedbackForm'
+import { t } from '@/lib/i18n'
+import { getRequestLang } from '@/lib/i18n-server'
 
-export const metadata: Metadata = {
-  title: 'Контакты',
-  description: 'Связаться с командой портала AiSana: доступ для вузов, добавление проектов, вопросы и сообщения об ошибках',
+export async function generateMetadata(): Promise<Metadata> {
+  const lang = await getRequestLang()
+  return {
+    title: t('contacts', 'metaTitle', lang),
+    description: t('contacts', 'metaDesc', lang),
+  }
 }
 
-export default function ContactsPage() {
+export default async function ContactsPage() {
+  const lang = await getRequestLang()
   return (
     <PageLayout>
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-slate-800">Контакты и обратная связь</h1>
+        <h1 className="text-2xl font-bold text-slate-800">{t('contacts', 'title', lang)}</h1>
         <p className="mt-1 text-sm text-slate-500">
-          Портал ведёт АО «НАРИ «QazInnovations» совместно с вузами Казахстана
+          {t('contacts', 'subtitle', lang)}
         </p>
       </div>
 
@@ -22,7 +28,7 @@ export default function ContactsPage() {
         <div className="rounded-xl border border-slate-200 bg-white p-6">
           <div className="mb-5 flex items-center gap-2">
             <MessageSquare size={18} className="text-blue-600" />
-            <h2 className="font-semibold text-slate-800">Написать нам</h2>
+            <h2 className="font-semibold text-slate-800">{t('contacts', 'writeTitle', lang)}</h2>
           </div>
           <FeedbackForm />
         </div>
@@ -31,9 +37,9 @@ export default function ContactsPage() {
           <div className="rounded-xl border border-slate-200 bg-white p-5">
             <div className="mb-3 flex items-center gap-2">
               <Building2 size={16} className="text-blue-600" />
-              <h2 className="text-sm font-semibold text-slate-800">Оператор портала</h2>
+              <h2 className="text-sm font-semibold text-slate-800">{t('contacts', 'operatorTitle', lang)}</h2>
             </div>
-            <p className="text-sm text-slate-600">АО «Национальное агентство по развитию инноваций «QazInnovations»</p>
+            <p className="text-sm text-slate-600">{t('contacts', 'operatorName', lang)}</p>
             <a
               href="mailto:info@qazinn.kz"
               className="mt-3 inline-flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-700"
@@ -45,25 +51,26 @@ export default function ContactsPage() {
           <div className="rounded-xl border border-blue-100 bg-blue-50 p-5">
             <div className="mb-2 flex items-center gap-2">
               <FileText size={16} className="text-blue-600" />
-              <h2 className="text-sm font-semibold text-slate-800">Представителям вузов</h2>
+              <h2 className="text-sm font-semibold text-slate-800">{t('contacts', 'forUni', lang)}</h2>
             </div>
             <p className="text-sm text-slate-600">
-              Как получить доступ, добавить проект и приложить документы — в инструкции.
+              {t('contacts', 'forUniText', lang)}
             </p>
             <a
               href="/docs/instrukciya-dlya-vuzov.docx"
               className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-blue-700 hover:text-blue-800"
             >
-              Скачать инструкцию
+              {t('contacts', 'downloadInstr', lang)}
             </a>
           </div>
 
           <div className="rounded-xl border border-slate-200 bg-white p-5">
-            <h2 className="mb-2 text-sm font-semibold text-slate-800">С чем обращаются чаще всего</h2>
+            <h2 className="mb-2 text-sm font-semibold text-slate-800">{t('contacts', 'faqTitle', lang)}</h2>
             <ul className="space-y-1.5 text-sm text-slate-600">
-              <li>· доступ к админ-панели для сотрудника вуза</li>
-              <li>· добавить или исправить проект</li>
-              <li>· ошибка или неточность на портале</li>
+              <li>· {t('contacts', 'faq1', lang)}</li>
+              <li>· {t('contacts', 'faq2', lang)}</li>
+              <li>· {t('contacts', 'faq3', lang)}</li>
+              <li>· {t('contacts', 'faq4', lang)}</li>
             </ul>
           </div>
         </div>

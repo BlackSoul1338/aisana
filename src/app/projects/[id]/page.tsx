@@ -1,13 +1,16 @@
-// ISR: страница отдаётся из кэша мгновенно и пересобирается в фоне
-// не чаще раза в 60 секунд — изменения из админки появляются с задержкой до минуты
-export const revalidate = 60
+export const dynamic = 'force-dynamic'
 
 import { prisma } from '@/lib/prisma'
 import type { Metadata } from 'next'
 import { metaDescription } from '@/lib/seo'
 import { PublicationStatus } from '@prisma/client'
+import { t } from '@/lib/i18n'
+import { getRequestLang } from '@/lib/i18n-server'
+import { technologyLabel } from '@/lib/technologies'
+import { tagLabel } from '@/lib/tags'
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const lang = await getRequestLang()
   const { id } = await params
   const project = await prisma.project.findUnique({
     where: { id },
@@ -24,7 +27,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   if (!project || project.publication !== PublicationStatus.PUBLISHED) notFound()
 
   const uni = project.university.shortName || project.university.name
-  const description = metaDescription(project.description, `ИИ-проект вуза ${uni}`)
+  const description = metaDescription(project.description, `${t('project', 'metaProject', lang)} ${uni}`)
   return {
     title: project.title,
     description,
@@ -34,7 +37,8 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 import { PageLayout } from '@/components/layout/PageLayout'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { requireUser } from '@/lib/auth'
+import { canAccessUniversity, requireUser } from '@/lib/auth'
+import { canModerate } from '@/lib/publication'
 import {
   ArrowLeft, Building2, User, Users, Calendar,
   Star, TrendingUp, Pencil, Mic, FileText, Layers, MapPin
@@ -43,8 +47,7 @@ import { industryLabel } from '@/lib/industries'
 import { StatusBadge } from '@/components/ui/status-badge'
 import { CategoryBadge } from '@/components/ui/category-badge'
 import { formatDateLong } from '@/lib/utils'
-import { HEARING_DECISION_LABELS } from '@/types'
-import { HearingDecision } from '@prisma/client'
+import { HearingDecision, UserRole } from '@prisma/client'
 import { ProjectTabs } from '@/components/project/ProjectTabs'
 import { AgentPassportViewer } from '@/components/project/AgentPassportViewer'
 import { ProjectFilesManager } from '@/components/project/ProjectFilesManager'
@@ -57,7 +60,6 @@ import { SimilarProjects } from '@/components/project/SimilarProjects'
 import { MarketAnalogs } from '@/components/project/MarketAnalogs'
 import { ContactTeam } from '@/components/project/ContactTeam'
 import { StartChat } from '@/components/business/StartChat'
-import { UserRole } from '@prisma/client'
 
 const HEARING_COLORS: Record<HearingDecision, string> = {
   PENDING:     'bg-slate-100 text-slate-600',
@@ -69,6 +71,7 @@ const HEARING_COLORS: Record<HearingDecision, string> = {
 
 export default async function ProjectPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
+  const lang = await getRequestLang()
 
   const project = await prisma.project.findUnique({
     where: { id },
@@ -88,7 +91,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
   // просмотр и редактирование — на /admin/projects/[id]/edit
   if (!project || project.publication !== PublicationStatus.PUBLISHED) notFound()
 
-  const topicLabels = Object.fromEntries(TOPICS.map(topic => [topic.id, topic.label]))
+  const topicLabels = Object.fromEntries(TOPICS.map(topic => [topic.id, lang === 'kz' ? topic.labelKz : topic.label]))
 
   // ── Overview tab ─────────────────────────────────────────
   const overviewContent = (
@@ -97,13 +100,13 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
         <p className="text-slate-600 leading-relaxed">{project.description}</p>
         {project.impact && (
           <div className="mt-4 p-4 bg-blue-50 border border-blue-100 rounded-lg">
-            <p className="text-xs font-semibold text-blue-600 uppercase tracking-wide mb-1">Влияние</p>
+            <p className="text-xs font-semibold text-blue-600 uppercase tracking-wide mb-1">{t('project', 'impact', lang)}</p>
             <p className="text-sm text-slate-700">{project.impact}</p>
           </div>
         )}
         {project.results && (
           <div className="mt-3 p-4 bg-emerald-50 border border-emerald-100 rounded-lg">
-            <p className="text-xs font-semibold text-emerald-600 uppercase tracking-wide mb-1">Результаты</p>
+            <p className="text-xs font-semibold text-emerald-600 uppercase tracking-wide mb-1">{t('project', 'results', lang)}</p>
             <p className="text-sm text-slate-700">{project.results}</p>
           </div>
         )}
@@ -111,12 +114,12 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
 
       {project.technologies.length > 0 && (
         <div className="bg-white border border-slate-200 rounded-xl p-5">
-          <h2 className="font-semibold text-slate-700 mb-3">Технологии</h2>
+          <h2 className="font-semibold text-slate-700 mb-3">{t('project', 'technologies', lang)}</h2>
           <div className="flex flex-wrap gap-2">
             {project.technologies.map(tech => (
               <Link key={tech.id} href={`/projects?tech=${tech.slug}`}
                 className="px-3 py-1.5 bg-slate-100 hover:bg-blue-100 hover:text-blue-700 text-slate-700 rounded-lg text-sm font-medium transition-colors">
-                {tech.name}
+                {technologyLabel(tech, lang)}
               </Link>
             ))}
           </div>
@@ -129,41 +132,43 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-semibold text-slate-700 flex items-center gap-2">
             <Mic size={16} className="text-slate-400" />
-            Заслушивания ({project.hearings.length})
+            {t('project', 'hearings', lang)} ({project.hearings.length})
           </h2>
-          <Link href={`/admin/hearings/new?projectId=${project.id}`}
-            className="text-sm text-blue-600 hover:text-blue-700 font-medium">
-            + Добавить
-          </Link>
+          {canModerate(user) && (
+            <Link href={`/admin/hearings/new?projectId=${project.id}`}
+              className="text-sm text-blue-600 hover:text-blue-700 font-medium">
+              {t('project', 'addHearing', lang)}
+            </Link>
+          )}
         </div>
         {project.hearings.length > 0 ? (
           <div className="space-y-3">
             {project.hearings.map(hearing => (
               <div key={hearing.id} className="border border-slate-100 rounded-lg p-4">
                 <div className="flex items-center justify-between gap-3 mb-2">
-                  <p className="text-sm font-medium text-slate-700">{formatDateLong(hearing.date)}</p>
+                  <p className="text-sm font-medium text-slate-700">{formatDateLong(hearing.date, lang)}</p>
                   <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${HEARING_COLORS[hearing.decision]}`}>
-                    {HEARING_DECISION_LABELS[hearing.decision]}
+                    {t('hearings', hearing.decision, lang)}
                   </span>
                 </div>
                 {hearing.remarks && (
                   <p className="text-xs text-slate-500 mt-1">
-                    <span className="font-medium text-slate-600">Замечания: </span>{hearing.remarks}
+                    <span className="font-medium text-slate-600">{t('hearings', 'remarks', lang)}: </span>{hearing.remarks}
                   </p>
                 )}
                 {hearing.recommendations && (
                   <p className="text-xs text-slate-500 mt-1">
-                    <span className="font-medium text-slate-600">Рекомендации: </span>{hearing.recommendations}
+                    <span className="font-medium text-slate-600">{t('hearings', 'recommendations', lang)}: </span>{hearing.recommendations}
                   </p>
                 )}
                 {hearing.commission.length > 0 && (
-                  <p className="text-xs text-slate-400 mt-2">Комиссия: {hearing.commission.join(', ')}</p>
+                  <p className="text-xs text-slate-400 mt-2">{t('hearings', 'commission', lang)}: {hearing.commission.join(', ')}</p>
                 )}
               </div>
             ))}
           </div>
         ) : (
-          <p className="text-slate-400 text-sm">Заслушивания ещё не проводились</p>
+          <p className="text-slate-400 text-sm">{t('project', 'noHearings', lang)}</p>
         )}
       </div>
       )}
@@ -176,13 +181,16 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
 
       {project.tags.length > 0 && (
         <div className="bg-white border border-slate-200 rounded-xl p-5">
-          <h2 className="font-semibold text-slate-700 mb-3">Теги</h2>
+          <h2 className="font-semibold text-slate-700 mb-3">{t('project', 'tags', lang)}</h2>
           <div className="flex flex-wrap gap-2">
-            {project.tags.map(tag => (
-              <span key={tag} className="px-2.5 py-1 bg-slate-100 text-slate-600 rounded-full text-xs">
-                #{tag}
-              </span>
-            ))}
+            {project.tags
+              .map(tag => tagLabel(tag, lang))
+              .filter((tag, i, all) => all.findIndex(t => t.toLocaleLowerCase('kk') === tag.toLocaleLowerCase('kk')) === i)
+              .map(tag => (
+                <span key={tag} className="px-2.5 py-1 bg-slate-100 text-slate-600 rounded-full text-xs">
+                  #{tag}
+                </span>
+              ))}
           </div>
         </div>
       )}
@@ -197,8 +205,8 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
           <FileText size={18} className="text-blue-600" />
         </div>
         <div>
-          <h2 className="font-semibold text-slate-800">Паспорт агента</h2>
-          <p className="text-xs text-slate-400 mt-0.5">PDF-документ с описанием ИИ-агента</p>
+          <h2 className="font-semibold text-slate-800">{t('project', 'passportTitle', lang)}</h2>
+          <p className="text-xs text-slate-400 mt-0.5">{t('project', 'passportDesc', lang)}</p>
         </div>
       </div>
       <AgentPassportViewer projectId={project.id} initialUrl={project.agentPassportPdf} />
@@ -209,9 +217,9 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
   const filesContent = (
     <div className="bg-white border border-slate-200 rounded-xl p-6">
       <div className="mb-5 pb-4 border-b border-slate-100">
-        <h2 className="font-semibold text-slate-800">Файлы и ссылки</h2>
+        <h2 className="font-semibold text-slate-800">{t('project', 'filesTitle', lang)}</h2>
         <p className="text-xs text-slate-400 mt-1">
-          Акты внедрения, презентации, документация, видеозаписи и внешние ссылки
+          {t('project', 'filesDesc', lang)}
         </p>
       </div>
       <ProjectFilesManager projectId={project.id} initialFiles={project.files as any} readonly />
@@ -234,7 +242,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
     <PageLayout>
       <Link href="/projects"
         className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700 mb-6 transition-colors">
-        <ArrowLeft size={14} /> Все проекты
+        <ArrowLeft size={14} /> {t('project', 'allProjects', lang)}
       </Link>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -246,21 +254,21 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
                 <CategoryBadge category={project.category} />
                 {project.isBestPractice && (
                   <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">
-                    <Star size={11} className="fill-amber-500 text-amber-500" /> Лучший проект
+                    <Star size={11} className="fill-amber-500 text-amber-500" /> {t('project', 'bestBadge', lang)}
                   </span>
                 )}
                 {project.isScalable && (
                   <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-violet-50 text-violet-700 border border-violet-200">
-                    <TrendingUp size={11} /> К тиражированию
+                    <TrendingUp size={11} /> {t('project', 'scalable', lang)}
                   </span>
                 )}
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 <ShareButton title={project.title} />
-                {user.role !== UserRole.BUSINESS && (
+                {canAccessUniversity(user, project.universityId) && (
                   <Link href={`/admin/projects/${project.id}/edit`}
                     className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-blue-600 transition-colors border border-slate-200 px-3 py-1.5 rounded-lg hover:border-blue-300">
-                    <Pencil size={13} /> Редактировать
+                    <Pencil size={13} /> {t('common', 'edit', lang)}
                   </Link>
                 )}
               </div>
@@ -285,26 +293,25 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
 
         <div className="space-y-4">
           <div className="bg-white border border-slate-200 rounded-xl p-5">
-            <h2 className="font-semibold text-slate-700 mb-4">Информация</h2>
+            <h2 className="font-semibold text-slate-700 mb-4">{t('project', 'info', lang)}</h2>
             <div className="space-y-3 text-sm">
               <div className="flex items-start gap-2.5">
                 <Building2 size={15} className="text-slate-400 mt-0.5 shrink-0" />
                 <div>
-                  <p className="text-xs text-slate-400">Вуз</p>
+                  <p className="text-xs text-slate-400">{t('project', 'university', lang)}</p>
                   <Link href={`/universities/${project.universityId}`}
                     className="font-medium text-blue-600 hover:underline">
                     {project.university.shortName || project.university.name}
                   </Link>
-                  <p className="text-xs text-slate-400">{project.university.region.name}</p>
+                  <p className="text-xs text-slate-400">{lang === 'kz' && project.university.region.nameKz ? project.university.region.nameKz : project.university.region.name}</p>
                 </div>
               </div>
               {project.leadName && (
                 <div className="flex items-start gap-2.5">
                   <User size={15} className="text-slate-400 mt-0.5 shrink-0" />
                   <div>
-                    <p className="text-xs text-slate-400">Руководитель</p>
+                    <p className="text-xs text-slate-400">{t('project', 'lead', lang)}</p>
                     <p className="font-medium text-slate-700">{project.leadName}</p>
-                    {/* Партнёр пишет команде через диалог: почту руководителя не раскрываем */}
                     {project.leadEmail && user.role !== UserRole.BUSINESS && <p className="text-xs text-slate-400">{project.leadEmail}</p>}
                   </div>
                 </div>
@@ -313,8 +320,8 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
                 <div className="flex items-start gap-2.5">
                   <Layers size={15} className="text-slate-400 mt-0.5 shrink-0" />
                   <div>
-                    <p className="text-xs text-slate-400">Отрасль</p>
-                    <p className="font-medium text-slate-700">{industryLabel(project.industry)}</p>
+                    <p className="text-xs text-slate-400">{t('project', 'industry', lang)}</p>
+                    <p className="font-medium text-slate-700">{industryLabel(project.industry, lang)}</p>
                   </div>
                 </div>
               )}
@@ -322,7 +329,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
                 <div className="flex items-start gap-2.5">
                   <MapPin size={15} className="text-slate-400 mt-0.5 shrink-0" />
                   <div>
-                    <p className="text-xs text-slate-400">Где внедрено</p>
+                    <p className="text-xs text-slate-400">{t('project', 'implementedWhere', lang)}</p>
                     <p className="font-medium text-slate-700">{project.implementedAt}</p>
                   </div>
                 </div>
@@ -331,8 +338,8 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
                 <div className="flex items-center gap-2.5">
                   <Users size={15} className="text-slate-400 shrink-0" />
                   <div>
-                    <p className="text-xs text-slate-400">Команда</p>
-                    <p className="font-medium text-slate-700">{project.teamSize} человек</p>
+                    <p className="text-xs text-slate-400">{t('project', 'team', lang)}</p>
+                    <p className="font-medium text-slate-700">{project.teamSize} {t('project', 'teamPeople', lang)}</p>
                   </div>
                 </div>
               )}
@@ -340,8 +347,8 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
                 <div className="flex items-center gap-2.5">
                   <Calendar size={15} className="text-slate-400 shrink-0" />
                   <div>
-                    <p className="text-xs text-slate-400">Дата запуска</p>
-                    <p className="font-medium text-slate-700">{formatDateLong(project.launchDate)}</p>
+                    <p className="text-xs text-slate-400">{t('project', 'launched', lang)}</p>
+                    <p className="font-medium text-slate-700">{formatDateLong(project.launchDate, lang)}</p>
                   </div>
                 </div>
               )}
@@ -368,11 +375,11 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
           {project.agentPassportPdf && (
             <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
               <p className="text-xs font-semibold text-blue-600 uppercase tracking-wide mb-2 flex items-center gap-1.5">
-                <FileText size={12} /> Паспорт агента
+                <FileText size={12} /> {t('project', 'passportTitle', lang)}
               </p>
               <a href={project.agentPassportPdf} target="_blank" rel="noopener noreferrer"
                 className="text-sm text-blue-700 hover:underline font-medium">
-                Открыть PDF →
+                {t('project', 'openPdf', lang)}
               </a>
             </div>
           )}

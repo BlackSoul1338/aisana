@@ -58,7 +58,7 @@ export function Navbar() {
           )}
           <div className="hidden md:block">
             <p className="text-white font-semibold text-sm leading-tight">AiSana</p>
-            <p className="text-white/50 text-[10px] leading-tight">Карта ИИ-решений · QazInnovations</p>
+            <p className="text-white/50 text-[10px] leading-tight">{t('nav', 'tagline')}</p>
           </div>
         </Link>
 
@@ -84,7 +84,7 @@ export function Navbar() {
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-amber-300/80 hover:text-amber-300 hover:bg-white/10 transition-all text-sm whitespace-nowrap border border-amber-400/20 ml-1"
             >
               <Sparkles size={14} className="shrink-0" />
-              <span>ИИ-поиск</span>
+              <span>{t('nav', 'aiSearch')}</span>
             </Link>
           )}
         </nav>
@@ -106,7 +106,7 @@ export function Navbar() {
           type="button"
           onClick={() => setMenuOpen(open => !open)}
           className="lg:hidden flex items-center justify-center w-9 h-9 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors shrink-0"
-          aria-label={menuOpen ? 'Закрыть меню' : 'Открыть меню'}
+          aria-label={menuOpen ? t('nav', 'menuClose') : t('nav', 'menuOpen')}
           aria-expanded={menuOpen}
         >
           {menuOpen ? <X size={18} /> : <Menu size={18} />}
@@ -134,7 +134,7 @@ export function Navbar() {
               className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-amber-300/90 hover:text-amber-300 hover:bg-white/10 transition-all text-sm border border-amber-400/20"
             >
               <Sparkles size={15} className="shrink-0" />
-              ИИ-поиск
+              {t('nav', 'aiSearch')}
             </Link>
           )}
         </nav>

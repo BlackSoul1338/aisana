@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Pencil, Trash2, X, Eye, EyeOff, ShieldAlert, Loader2 } from 'lucide-react'
 import { UserRole } from '@prisma/client'
+import { useLang } from '@/context/LangContext'
 
 interface University { id: string; name: string; shortName?: string | null }
 interface User {
@@ -12,6 +13,7 @@ interface User {
   email: string
   role: UserRole
   universityId?: string | null
+  organization?: string | null
 }
 
 interface Props {
@@ -21,15 +23,10 @@ interface Props {
   isLastAdmin?: boolean
 }
 
-const ROLE_OPTIONS = [
-  { value: 'ADMIN', label: 'Администратор' },
-  { value: 'EDITOR', label: 'Редактор' },
-  { value: 'UNIVERSITY_REP', label: 'Представитель вуза' },
-  { value: 'VIEWER', label: 'Просмотр' },
-  { value: 'BUSINESS', label: 'Партнёр' },
-]
+const ROLE_ORDER: UserRole[] = ['ADMIN', 'EDITOR', 'UNIVERSITY_REP', 'VIEWER', 'BUSINESS']
 
 export function UserEditControls({ user, universities, isSelf = false, isLastAdmin = false }: Props) {
+  const { t } = useLang()
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
@@ -55,6 +52,7 @@ export function UserEditControls({ user, universities, isSelf = false, isLastAdm
       email: g('email'),
       role: g('role'),
       universityId: g('universityId') || null,
+      organization: g('organization') || null,
     }
     const pw = g('password')
     if (pw) body.password = pw
@@ -67,7 +65,7 @@ export function UserEditControls({ user, universities, isSelf = false, isLastAdm
       })
       if (!res.ok) {
         const err = await res.json()
-        throw new Error(err.error || 'Ошибка')
+        throw new Error(err.error || t('users', 'genericError'))
       }
       setOpen(false)
       router.refresh()
@@ -88,7 +86,7 @@ export function UserEditControls({ user, universities, isSelf = false, isLastAdm
       })
       if (!res.ok) {
         const err = await res.json()
-        throw new Error(err.error || 'Ошибка удаления')
+        throw new Error(err.error || t('users', 'deleteFailed'))
       }
       router.refresh()
     } catch (err: any) {
@@ -105,25 +103,30 @@ export function UserEditControls({ user, universities, isSelf = false, isLastAdm
     <>
       <div className="flex items-center justify-end gap-2">
         <button
-          onClick={() => setOpen(true)}
+          onClick={() => {
+            setRole(user.role)
+            setError('')
+            setShowPassword(false)
+            setOpen(true)
+          }}
           className="flex items-center gap-1 text-xs text-slate-500 hover:text-blue-600 border border-slate-200 hover:border-blue-300 px-2.5 py-1.5 rounded-lg transition-colors"
         >
-          <Pencil size={12} /> Изменить
+          <Pencil size={12} /> {t('common', 'edit')}
         </button>
 
         {blockedFromDeletion ? (
           <span
-            title={isSelf ? 'Нельзя удалить собственный аккаунт' : 'Это последний администратор — удаление заблокировано'}
+            title={isSelf ? t('users', 'deleteSelf') : t('users', 'lastAdminDelete')}
             className="flex items-center gap-1 text-xs text-slate-300 border border-slate-100 px-2.5 py-1.5 rounded-lg cursor-not-allowed"
           >
-            <Trash2 size={12} /> Удалить
+            <Trash2 size={12} /> {t('common', 'delete')}
           </span>
         ) : (
           <button
             onClick={() => setConfirmingDelete(true)}
             className="flex items-center gap-1 text-xs text-red-500 hover:text-red-600 border border-red-100 hover:border-red-300 px-2.5 py-1.5 rounded-lg transition-colors"
           >
-            <Trash2 size={12} /> Удалить
+            <Trash2 size={12} /> {t('common', 'delete')}
           </button>
         )}
       </div>
@@ -137,9 +140,9 @@ export function UserEditControls({ user, universities, isSelf = false, isLastAdm
                 <ShieldAlert size={18} className="text-red-600" />
               </div>
               <div>
-                <h2 className="font-bold text-slate-800">Удалить пользователя?</h2>
+                <h2 className="font-bold text-slate-800">{t('users', 'deleteUser')}</h2>
                 <p className="text-sm text-slate-500 mt-1">
-                  Аккаунт <span className="font-medium text-slate-700">{user.email}</span> будет удалён без возможности восстановления.
+                  <span className="font-medium text-slate-700">{user.email}</span> - {t('users', 'deleteUserText')}
                 </p>
               </div>
             </div>
@@ -153,14 +156,14 @@ export function UserEditControls({ user, universities, isSelf = false, isLastAdm
                 className="flex-1 flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white py-2.5 rounded-lg text-sm font-medium transition-colors"
               >
                 {deleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
-                {deleting ? 'Удаление...' : 'Удалить'}
+                {deleting ? t('users', 'deleting') : t('common', 'delete')}
               </button>
               <button
                 onClick={() => { setConfirmingDelete(false); setError('') }}
                 disabled={deleting}
                 className="flex-1 border border-slate-200 text-slate-600 hover:bg-slate-50 py-2.5 rounded-lg text-sm font-medium transition-colors"
               >
-                Отмена
+                {t('common', 'cancel')}
               </button>
             </div>
           </div>
@@ -172,7 +175,7 @@ export function UserEditControls({ user, universities, isSelf = false, isLastAdm
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 p-6">
             <div className="flex items-center justify-between mb-5">
-              <h2 className="font-bold text-slate-800 text-lg">Редактировать пользователя</h2>
+              <h2 className="font-bold text-slate-800 text-lg">{t('users', 'editUser')}</h2>
               <button onClick={() => setOpen(false)} className="text-slate-400 hover:text-slate-600">
                 <X size={20} />
               </button>
@@ -185,31 +188,31 @@ export function UserEditControls({ user, universities, isSelf = false, isLastAdm
             {blockedFromDemotion && (
               <div className="mb-4 flex gap-2 bg-amber-50 border border-amber-200 text-amber-700 px-3 py-2 rounded-lg text-xs">
                 <ShieldAlert size={14} className="shrink-0 mt-0.5" />
-                Это последний администратор — роль нельзя изменить на другую, иначе никто не сможет управлять системой.
+                {t('users', 'lastAdminRole')}
               </div>
             )}
 
             <form onSubmit={handleSave} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Имя</label>
-                <input name="name" defaultValue={user.name || ''} className={inputCls} placeholder="Полное имя" />
+                <label className="block text-sm font-medium text-slate-700 mb-1">{t('users', 'name')}</label>
+                <input name="name" defaultValue={user.name || ''} className={inputCls} placeholder={t('users', 'namePlaceholder')} />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Email <span className="text-red-500">*</span></label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">{t('login', 'email')} <span className="text-red-500">*</span></label>
                 <input name="email" type="email" defaultValue={user.email} required className={inputCls} />
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Новый пароль
-                  <span className="text-slate-400 font-normal ml-1">(оставьте пустым чтобы не менять)</span>
+                  {t('users', 'newPassword')}
+                  <span className="text-slate-400 font-normal ml-1">{t('users', 'keepPassword')}</span>
                 </label>
                 <div className="relative">
                   <input
                     name="password"
                     type={showPassword ? 'text' : 'password'}
-                    minLength={6}
+                    minLength={10}
                     className={`${inputCls} pr-10`}
-                    placeholder="Минимум 6 символов"
+                    placeholder={t('users', 'minPassword')}
                   />
                   <button
                     type="button"
@@ -221,7 +224,7 @@ export function UserEditControls({ user, universities, isSelf = false, isLastAdm
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Роль</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">{t('users', 'roleLabel')}</label>
                 <select
                   name="role"
                   defaultValue={user.role}
@@ -229,18 +232,24 @@ export function UserEditControls({ user, universities, isSelf = false, isLastAdm
                   onChange={e => setRole(e.target.value as UserRole)}
                   className={`${inputCls} ${blockedFromDemotion ? 'opacity-60 cursor-not-allowed' : ''}`}
                 >
-                  {ROLE_OPTIONS.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
+                  {ROLE_ORDER.map(r => <option key={r} value={r}>{t('role', r)}</option>)}
                 </select>
               </div>
               {role === 'UNIVERSITY_REP' && (
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Вуз</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">{t('project', 'university')}</label>
                   <select name="universityId" defaultValue={user.universityId || ''} className={inputCls}>
-                    <option value="">— Выберите вуз —</option>
+                    <option value="">{t('users', 'selectUni')}</option>
                     {universities.map(u => (
-                      <option key={u.id} value={u.id}>{u.shortName ? `${u.shortName} — ` : ''}{u.name}</option>
+                      <option key={u.id} value={u.id}>{u.shortName ? `${u.shortName} - ` : ''}{u.name}</option>
                     ))}
                   </select>
+                </div>
+              )}
+              {role === 'BUSINESS' && (
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">{t('users', 'company')} <span className="text-red-500">*</span></label>
+                  <input name="organization" defaultValue={user.organization || ''} required maxLength={200} className={inputCls} placeholder={t('users', 'companyPlaceholder')} />
                 </div>
               )}
 
@@ -251,14 +260,14 @@ export function UserEditControls({ user, universities, isSelf = false, isLastAdm
                   className="flex-1 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white py-2.5 rounded-lg text-sm font-medium transition-colors"
                 >
                   {loading && <Loader2 size={14} className="animate-spin" />}
-                  {loading ? 'Сохранение...' : 'Сохранить'}
+                  {loading ? t('users', 'saving') : t('common', 'save')}
                 </button>
                 <button
                   type="button"
                   onClick={() => setOpen(false)}
                   className="flex-1 border border-slate-200 text-slate-600 hover:bg-slate-50 py-2.5 rounded-lg text-sm font-medium transition-colors"
                 >
-                  Отмена
+                  {t('common', 'cancel')}
                 </button>
               </div>
             </form>

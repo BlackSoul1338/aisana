@@ -10,6 +10,8 @@ import { ProjectFilesManager } from '@/components/project/ProjectFilesManager'
 import { INDUSTRIES } from '@/lib/industries'
 import { MIN_DESCRIPTION_LENGTH } from '@/lib/project-completeness'
 import { AiAssistPanel } from '@/components/forms/AiAssistPanel'
+import { technologyLabel } from '@/lib/technologies'
+import { useLang } from '@/context/LangContext'
 
 interface University { id: string; name: string; shortName?: string | null }
 interface Technology { id: string; name: string; slug: string }
@@ -45,33 +47,18 @@ interface Props {
   defaultUniversityId?: string
 }
 
-const CATEGORIES = [
-  { value: 'EDUCATION', label: 'Образование' },
-  { value: 'SCIENCE', label: 'Наука' },
-  { value: 'MANAGEMENT', label: 'Управление' },
-  { value: 'ANALYTICS', label: 'Аналитика' },
-  { value: 'GENERATIVE_AI', label: 'Генеративный ИИ' },
-  { value: 'COMPUTER_VISION', label: 'Компьютерное зрение' },
-  { value: 'ROBOTICS', label: 'Робототехника' },
-]
-
-const STATUSES = [
-  { value: 'IDEA', label: 'Идея' },
-  { value: 'PROTOTYPE', label: 'Прототип' },
-  { value: 'PILOT', label: 'Пилот' },
-  { value: 'IMPLEMENTED', label: 'Внедрено' },
-  { value: 'SCALED', label: 'Масштабировано' },
-]
-
+const CATEGORY_ORDER = ['EDUCATION', 'SCIENCE', 'MANAGEMENT', 'ANALYTICS', 'GENERATIVE_AI', 'COMPUTER_VISION', 'ROBOTICS'] as const
+const STATUS_ORDER = ['IDEA', 'PROTOTYPE', 'PILOT', 'IMPLEMENTED', 'SCALED'] as const
 const TABS = [
-  { id: 'main', label: 'Основное' },
-  { id: 'passport', label: 'Паспорт агента' },
-  { id: 'files', label: 'Файлы и ссылки' },
+  { id: 'main', key: 'mainTab' },
+  { id: 'passport', key: 'passportTitle' },
+  { id: 'files', key: 'filesTitle' },
 ] as const
 
 type TabId = typeof TABS[number]['id']
 
 export function ProjectForm({ universities, technologies, project, defaultUniversityId }: Props) {
+  const { t, lang } = useLang()
   const router = useRouter()
   const [tab, setTab] = useState<TabId>('main')
   const [loading, setLoading] = useState(false)
@@ -170,7 +157,7 @@ export function ProjectForm({ universities, technologies, project, defaultUniver
       })
       if (!res.ok) {
         const err = await res.json()
-        throw new Error(err.error || 'Ошибка сохранения')
+        throw new Error(err.error || t('universityForm', 'saveFailed'))
       }
 
       if (isEdit) {
@@ -199,23 +186,23 @@ export function ProjectForm({ universities, technologies, project, defaultUniver
     <div>
       {/* Tabs */}
       <div className="flex gap-1 border-b border-slate-200 mb-6">
-        {TABS.map(t => (
+        {TABS.map(tabItem => (
           <button
-            key={t.id}
+            key={tabItem.id}
             type="button"
-            onClick={() => setTab(t.id)}
+            onClick={() => setTab(tabItem.id)}
             className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px ${
-              tab === t.id
+              tab === tabItem.id
                 ? 'border-blue-500 text-blue-700'
                 : 'border-transparent text-slate-500 hover:text-slate-700'
             }`}
           >
-            {t.label}
+            {t('projectForm', tabItem.key)}
           </button>
         ))}
       </div>
 
-      {/* Main info + category + tech + results + materials + tags — all in one submit */}
+      {/* Main info, category, tech, results, materials, tags in one submit */}
       <form ref={formRef} onSubmit={handleSubmit} className={tab === 'main' ? 'space-y-6' : 'hidden'}>
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">{error}</div>
@@ -225,100 +212,100 @@ export function ProjectForm({ universities, technologies, project, defaultUniver
         <AiAssistPanel getValues={assistValues} applyText={applyText} applyTags={applyTags} />
 
         <section>
-          <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-4 pb-2 border-b border-slate-100">Основная информация</h2>
+          <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-4 pb-2 border-b border-slate-100">{t('projectForm', 'mainInfo')}</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="md:col-span-2">
-              <label className={labelCls}>Название проекта <span className="text-red-500">*</span></label>
+              <label className={labelCls}>{t('projectForm', 'title')} <span className="text-red-500">*</span></label>
               <input name="title" defaultValue={project?.title || ''} required className={inputCls} />
             </div>
 
             <div className="md:col-span-2">
-              <label className={labelCls}>Описание <span className="text-red-500">*</span></label>
+              <label className={labelCls}>{t('importSection', 'cPdesc')} <span className="text-red-500">*</span></label>
               <textarea name="description" defaultValue={project?.description || ''} required rows={4} className={`${inputCls} resize-none`}
-                placeholder="Что делает решение, для кого и какую задачу решает" />
-              <p className="text-xs text-slate-400 mt-1">Не короче {MIN_DESCRIPTION_LENGTH} символов. Карточку без описания нельзя отправить на проверку.</p>
+                placeholder={t('projectForm', 'descPlaceholder')} />
+              <p className="text-xs text-slate-400 mt-1">{t('projectForm', 'descMinPrefix')} {MIN_DESCRIPTION_LENGTH} {t('projectForm', 'descMinSuffix')}</p>
             </div>
 
             <div>
-              <label className={labelCls}>Вуз <span className="text-red-500">*</span></label>
+              <label className={labelCls}>{t('project', 'university')} <span className="text-red-500">*</span></label>
               <select name="universityId" defaultValue={project?.universityId || defaultUniversityId || ''} required className={inputCls}>
-                <option value="">— Выберите вуз —</option>
+                <option value="">{t('users', 'selectUni')}</option>
                 {universities.map(u => (
-                  <option key={u.id} value={u.id}>{u.shortName ? `${u.shortName} — ` : ''}{u.name}</option>
+                  <option key={u.id} value={u.id}>{u.shortName ? `${u.shortName} - ` : ''}{u.name}</option>
                 ))}
               </select>
             </div>
 
             <div>
-              <label className={labelCls}>Дата запуска</label>
+              <label className={labelCls}>{t('project', 'launched')}</label>
               <input name="launchDate" type="date" defaultValue={formatDateForInput(project?.launchDate)} className={inputCls} />
             </div>
 
             <div>
-              <label className={labelCls}>Руководитель</label>
+              <label className={labelCls}>{t('project', 'lead')}</label>
               <input name="leadName" defaultValue={project?.leadName || ''} className={inputCls} />
             </div>
 
             <div>
-              <label className={labelCls}>Email руководителя</label>
+              <label className={labelCls}>{t('projectForm', 'leadEmailLabel')}</label>
               <input name="leadEmail" type="email" defaultValue={project?.leadEmail || ''} className={inputCls} />
             </div>
 
             <div>
-              <label className={labelCls}>Размер команды</label>
-              <input name="teamSize" type="number" min="1" defaultValue={project?.teamSize || ''} className={inputCls} />
+              <label className={labelCls}>{t('projectForm', 'teamSize')}</label>
+              <input name="teamSize" type="number" min="0" defaultValue={project?.teamSize || ''} className={inputCls} />
             </div>
           </div>
         </section>
 
         <section>
-          <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-4 pb-2 border-b border-slate-100">Категория и статус</h2>
+          <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-4 pb-2 border-b border-slate-100">{t('projectForm', 'categoryStatus')}</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className={labelCls}>Категория <span className="text-red-500">*</span></label>
+              <label className={labelCls}>{t('importSection', 'cPcategory')} <span className="text-red-500">*</span></label>
               <select name="category" defaultValue={project?.category || 'EDUCATION'} required className={inputCls}>
-                {CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+                {CATEGORY_ORDER.map(c => <option key={c} value={c}>{t('category', c)}</option>)}
               </select>
             </div>
 
             <div>
-              <label className={labelCls}>Статус <span className="text-red-500">*</span></label>
+              <label className={labelCls}>{t('projectForm', 'statusLabel')} <span className="text-red-500">*</span></label>
               <select name="status" value={status} onChange={e => setStatus(e.target.value)} required className={inputCls}>
-                {STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+                {STATUS_ORDER.map(s => <option key={s} value={s}>{t('status', s)}</option>)}
               </select>
             </div>
 
             <div>
-              <label className={labelCls}>Отрасль применения</label>
+              <label className={labelCls}>{t('project', 'industry')}</label>
               <select name="industry" defaultValue={project?.industry || ''} className={inputCls}>
-                <option value="">— Не выбрано —</option>
-                {INDUSTRIES.map(i => <option key={i.value} value={i.value}>{i.ru}</option>)}
+                <option value="">{t('projectForm', 'notSelected')}</option>
+                {INDUSTRIES.map(i => <option key={i.value} value={i.value}>{i[lang]}</option>)}
               </select>
-              <p className="text-xs text-slate-400 mt-1">Сфера, где решение работает. Категория выше — это тип технологии.</p>
+              <p className="text-xs text-slate-400 mt-1">{t('projectForm', 'industryHint')}</p>
             </div>
 
             <div>
-              <label className={labelCls}>Где внедрено {deployed && <span className="text-red-500">*</span>}</label>
+              <label className={labelCls}>{t('project', 'implementedWhere')} {deployed && <span className="text-red-500">*</span>}</label>
               <input name="implementedAt" defaultValue={project?.implementedAt || ''} maxLength={2000} className={inputCls}
-                placeholder="Организация или подразделение, где решение работает" />
-              <p className="text-xs text-slate-400 mt-1">Обязательно для стадий «Внедрено» и «Масштабировано».</p>
+                placeholder={t('projectForm', 'implementedPlaceholder')} />
+              <p className="text-xs text-slate-400 mt-1">{t('projectForm', 'reqHintPrefix')} «{t('status', 'IMPLEMENTED')}» {t('common', 'and')} «{t('status', 'SCALED')}».</p>
             </div>
           </div>
 
           <div className="flex gap-6 mt-4">
             <label className="flex items-center gap-2 cursor-pointer">
               <input name="isBestPractice" type="checkbox" defaultChecked={project?.isBestPractice || false} className="w-4 h-4 rounded text-blue-600" />
-              <span className="text-sm text-slate-700">Лучшая практика</span>
+              <span className="text-sm text-slate-700">{t('project', 'bestPractice')}</span>
             </label>
             <label className="flex items-center gap-2 cursor-pointer">
               <input name="isScalable" type="checkbox" defaultChecked={project?.isScalable || false} className="w-4 h-4 rounded text-blue-600" />
-              <span className="text-sm text-slate-700">Готово к тиражированию</span>
+              <span className="text-sm text-slate-700">{t('best', 'sectionScale')}</span>
             </label>
           </div>
         </section>
 
         <section>
-          <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-4 pb-2 border-b border-slate-100">Технологии</h2>
+          <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-4 pb-2 border-b border-slate-100">{t('project', 'technologies')}</h2>
           <div className="flex flex-wrap gap-2">
             {technologies.map(tech => (
               <button
@@ -331,31 +318,31 @@ export function ProjectForm({ universities, technologies, project, defaultUniver
                     : 'bg-white text-slate-600 border-slate-200 hover:border-blue-300'
                 }`}
               >
-                {tech.name}
+                {technologyLabel(tech, lang)}
               </button>
             ))}
           </div>
         </section>
 
         <section>
-          <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-4 pb-2 border-b border-slate-100">Результаты и влияние</h2>
+          <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-4 pb-2 border-b border-slate-100">{t('projectForm', 'resultsSection')}</h2>
           <div className="space-y-4">
             <div>
-              <label className={labelCls}>Влияние / Impact</label>
-              <textarea name="impact" defaultValue={project?.impact || ''} rows={3} className={`${inputCls} resize-none`} placeholder="Количественные показатели эффекта..." />
+              <label className={labelCls}>{t('project', 'impact')}</label>
+              <textarea name="impact" defaultValue={project?.impact || ''} rows={3} className={`${inputCls} resize-none`} placeholder={t('projectForm', 'impactPlaceholder')} />
             </div>
             <div>
-              <label className={labelCls}>Результаты</label>
-              <textarea name="results" defaultValue={project?.results || ''} rows={3} className={`${inputCls} resize-none`} placeholder="Достигнутые результаты..." />
+              <label className={labelCls}>{t('project', 'results')}</label>
+              <textarea name="results" defaultValue={project?.results || ''} rows={3} className={`${inputCls} resize-none`} placeholder={t('projectForm', 'resultsPlaceholder')} />
             </div>
           </div>
         </section>
 
         <section>
-          <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-4 pb-2 border-b border-slate-100">Теги</h2>
+          <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-4 pb-2 border-b border-slate-100">{t('project', 'tags')}</h2>
           <div>
-            <label className={labelCls}>Теги (через запятую)</label>
-            <input name="tags" defaultValue={project?.tags?.join(', ') || ''} className={inputCls} placeholder="чат-бот, абитуриенты, NLP" />
+            <label className={labelCls}>{t('projectForm', 'tagsLabel')}</label>
+            <input name="tags" defaultValue={project?.tags?.join(', ') || ''} className={inputCls} placeholder={t('projectForm', 'tagsPlaceholder')} />
           </div>
         </section>
 
@@ -365,19 +352,19 @@ export function ProjectForm({ universities, technologies, project, defaultUniver
             disabled={loading}
             className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-6 py-2.5 rounded-lg text-sm font-medium transition-colors"
           >
-            {loading ? 'Сохранение...' : isEdit ? 'Сохранить изменения' : 'Создать проект'}
+            {loading ? t('universityForm', 'saving') : isEdit ? t('universityForm', 'saveChanges') : t('projectForm', 'createProject')}
           </button>
           <button
             type="button"
             onClick={() => router.push('/admin/projects')}
             className="border border-slate-200 text-slate-600 hover:bg-slate-50 px-6 py-2.5 rounded-lg text-sm font-medium transition-colors"
           >
-            Отмена
+            {t('common', 'cancel')}
           </button>
         </div>
       </form>
 
-      {/* Passport tab — only meaningful once the project exists */}
+      {/* Passport tab: only meaningful once the project exists */}
       {tab === 'passport' && (
         <div>
           {isEdit ? (
@@ -387,33 +374,33 @@ export function ProjectForm({ universities, technologies, project, defaultUniver
                   <FileText size={18} className="text-blue-600" />
                 </div>
                 <div>
-                  <h2 className="font-semibold text-slate-800">Паспорт агента</h2>
-                  <p className="text-xs text-slate-400 mt-0.5">PDF-документ с описанием ИИ-агента — отображается на странице проекта</p>
+                  <h2 className="font-semibold text-slate-800">{t('project', 'passportTitle')}</h2>
+                  <p className="text-xs text-slate-400 mt-0.5">{t('projectForm', 'passportAgentNote')}</p>
                 </div>
               </div>
               <AgentPassportViewer projectId={project!.id!} initialUrl={project?.agentPassportPdf} canEdit />
             </div>
           ) : (
-            <EmptyTabNotice text="Сначала сохраните основную информацию о проекте — после этого здесь можно будет загрузить паспорт агента." />
+            <EmptyTabNotice text={t('projectForm', 'passportSaveFirst')} />
           )}
         </div>
       )}
 
-      {/* Files tab — same story, needs an existing project id */}
+      {/* Files tab: same story, needs an existing project id */}
       {tab === 'files' && (
         <div>
           {isEdit ? (
             <div className="bg-white border border-slate-200 rounded-xl p-6">
               <div className="mb-5 pb-4 border-b border-slate-100">
-                <h2 className="font-semibold text-slate-800">Файлы и ссылки</h2>
+                <h2 className="font-semibold text-slate-800">{t('project', 'filesTitle')}</h2>
                 <p className="text-xs text-slate-400 mt-1">
-                  Акты внедрения, презентации, документация, видеозаписи и внешние ссылки
+                  {t('project', 'filesDesc')}
                 </p>
               </div>
               <ProjectFilesManager projectId={project!.id!} initialFiles={project?.files || []} />
             </div>
           ) : (
-            <EmptyTabNotice text="Сначала сохраните основную информацию о проекте — после этого здесь можно будет прикреплять файлы и ссылки." />
+            <EmptyTabNotice text={t('projectForm', 'filesSaveFirst')} />
           )}
         </div>
       )}

@@ -1,32 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server'
 import * as XLSX from 'xlsx'
 import { prisma } from '@/lib/prisma'
+import { requireApiUser } from '@/lib/auth'
 import { formatDate, formatDateTime } from '@/lib/datetime'
 import { PUBLISHED_ONLY } from '@/lib/publication'
-import { translations } from '@/lib/i18n'
+import { t } from '@/lib/i18n'
 import { getClientIp, rateLimit } from '@/lib/rate-limit'
 import { INDUSTRIES, industryLabel } from '@/lib/industries'
+import { technologyLabel } from '@/lib/technologies'
 import { isDescriptionEmpty } from '@/lib/project-completeness'
-import { requireApiUser } from '@/lib/auth'
 import { audit } from '@/lib/audit'
 
 export const dynamic = 'force-dynamic'
 
-// Русские подписи статусов/категорий из общего словаря переводов
-function label(section: 'projects', key: string): string {
-  const sec = translations[section] as Record<string, { ru: string }>
-  return sec?.[key]?.ru ?? key
-}
-
 export async function GET(request: NextRequest) {
   try {
-    // Middleware смотрит только наличие cookie — настоящая проверка сессии здесь
     const { user, response } = await requireApiUser(request)
     if (response) return response
-
-    const ip = getClientIp(request)
+    const lang = request.cookies.get('lang')?.value === 'kz' ? 'kz' : 'ru'
 
     // Генерация файла — недешёвая операция, ограничиваем: 5 выгрузок в минуту с IP
+    const ip = getClientIp(request)
     if (!rateLimit(`export:${ip}`, 5, 60 * 1000).ok) {
       return NextResponse.json({ error: 'Слишком много запросов на экспорт' }, { status: 429 })
     }
@@ -36,7 +30,7 @@ export async function GET(request: NextRequest) {
         where: PUBLISHED_ONLY,
         include: {
           university: { select: { name: true, shortName: true, region: { select: { name: true } } } },
-          technologies: { select: { name: true } },
+          technologies: { select: { name: true, slug: true } },
         },
         orderBy: { createdAt: 'desc' },
       }),
@@ -52,36 +46,40 @@ export async function GET(request: NextRequest) {
 
     const implemented = projects.filter(p => p.status === 'IMPLEMENTED' || p.status === 'SCALED')
 
+    const colIndicator = t('exportXlsx', 'colIndicator', lang)
+    const colValue = t('exportXlsx', 'colValue', lang)
+
     // ── Лист «Сводка» ──────────────────────────────────────────
     const summary = [
-      { 'Показатель': 'Всего проектов', 'Значение': projects.length },
-      { 'Показатель': 'Внедрено и масштабировано', 'Значение': implemented.length },
-      { 'Показатель': 'Лучших практик', 'Значение': projects.filter(p => p.isBestPractice).length },
-      { 'Показатель': 'К тиражированию', 'Значение': projects.filter(p => p.isScalable).length },
-      { 'Показатель': 'Участников команд (сумма по заполненным карточкам)', 'Значение': projects.reduce((s, p) => s + (p.teamSize || 0), 0) },
-      { 'Показатель': 'Карточек с указанным размером команды', 'Значение': projects.filter(p => p.teamSize).length },
-      { 'Показатель': 'Карточек без описания', 'Значение': projects.filter(p => isDescriptionEmpty(p.description)).length },
-      { 'Показатель': 'Вузов с проектами', 'Значение': new Set(projects.map(p => p.universityId)).size },
-      { 'Показатель': 'Дата выгрузки', 'Значение': formatDateTime(new Date()) },
+      { [colIndicator]: t('exportXlsx', 'sumTotal', lang), [colValue]: projects.length },
+      { [colIndicator]: t('exportXlsx', 'sumImplemented', lang), [colValue]: implemented.length },
+      { [colIndicator]: t('exportXlsx', 'sumBest', lang), [colValue]: projects.filter(p => p.isBestPractice).length },
+      { [colIndicator]: t('exportXlsx', 'sumScalable', lang), [colValue]: projects.filter(p => p.isScalable).length },
+      { [colIndicator]: t('exportXlsx', 'sumTeamSum', lang), [colValue]: projects.reduce((s, p) => s + (p.teamSize || 0), 0) },
+      { [colIndicator]: t('exportXlsx', 'sumTeamCards', lang), [colValue]: projects.filter(p => p.teamSize).length },
+      { [colIndicator]: t('exportXlsx', 'sumNoDesc', lang), [colValue]: projects.filter(p => isDescriptionEmpty(p.description)).length },
+      { [colIndicator]: t('exportXlsx', 'sumUniWith', lang), [colValue]: new Set(projects.map(p => p.universityId)).size },
+      { [colIndicator]: t('exportXlsx', 'sumExportDate', lang), [colValue]: formatDateTime(new Date()) },
     ]
 
+    const yes = t('exportXlsx', 'yes', lang)
     // ── Лист «Проекты» (реестр) ────────────────────────────────
     const registry = projects.map(p => ({
-      'Название': p.title,
-      'Вуз': p.university.shortName || p.university.name,
-      'Регион': p.university.region.name,
-      'Категория': label('projects', p.category),
-      'Статус': label('projects', p.status),
-      'Отрасль': industryLabel(p.industry),
-      'Где внедрено': p.implementedAt || '',
-      'Технологии': p.technologies.map(t => t.name).join(', '),
-      'Руководитель': p.leadName || '',
-      'Команда, чел.': p.teamSize ?? '',
-      'Дата запуска': p.launchDate ? formatDate(p.launchDate) : '',
-      'Лучшая практика': p.isBestPractice ? 'Да' : '',
-      'К тиражированию': p.isScalable ? 'Да' : '',
-      'Просмотров': p.viewCount,
-      'Попаданий в ИИ-поиск': p.searchHitCount,
+      [t('exportXlsx', 'colTitle', lang)]: p.title,
+      [t('exportXlsx', 'colUniversity', lang)]: p.university.shortName || p.university.name,
+      [t('exportXlsx', 'colRegion', lang)]: p.university.region.name,
+      [t('exportXlsx', 'colCategory', lang)]: t('category', p.category, lang),
+      [t('exportXlsx', 'colStatus', lang)]: t('status', p.status, lang),
+      [t('exportXlsx', 'colIndustry', lang)]: industryLabel(p.industry, lang),
+      [t('exportXlsx', 'colImplementedWhere', lang)]: p.implementedAt || '',
+      [t('exportXlsx', 'colTech', lang)]: p.technologies.map(tech => technologyLabel(tech, lang)).join(', '),
+      [t('exportXlsx', 'colLead', lang)]: p.leadName || '',
+      [t('exportXlsx', 'colTeam', lang)]: p.teamSize ?? '',
+      [t('exportXlsx', 'colLaunch', lang)]: p.launchDate ? formatDate(p.launchDate) : '',
+      [t('exportXlsx', 'colBest', lang)]: p.isBestPractice ? yes : '',
+      [t('exportXlsx', 'colScalable', lang)]: p.isScalable ? yes : '',
+      [t('exportXlsx', 'colViews', lang)]: p.viewCount,
+      [t('exportXlsx', 'colAiHits', lang)]: p.searchHitCount,
     }))
 
     // ── Лист «Стадии» ──────────────────────────────────────────
@@ -89,31 +87,33 @@ export async function GET(request: NextRequest) {
     const byStage = STAGES.map(status => {
       const rows = projects.filter(p => p.status === status)
       return {
-        'Стадия': label('projects', status),
-        'Проектов': rows.length,
-        'Доля, %': projects.length ? Math.round((rows.length / projects.length) * 100) : 0,
-        'Указано, где внедрено': rows.filter(p => p.implementedAt?.trim()).length,
-        'Без описания': rows.filter(p => isDescriptionEmpty(p.description)).length,
+        [t('exportXlsx', 'colStage', lang)]: t('status', status, lang),
+        [t('exportXlsx', 'colProjects', lang)]: rows.length,
+        [t('exportXlsx', 'colShare', lang)]: projects.length ? Math.round((rows.length / projects.length) * 100) : 0,
+        [t('exportXlsx', 'colWhereSpecified', lang)]: rows.filter(p => p.implementedAt?.trim()).length,
+        [t('exportXlsx', 'colNoDesc', lang)]: rows.filter(p => isDescriptionEmpty(p.description)).length,
       }
     })
 
     // ── Лист «Отрасли» ─────────────────────────────────────────
+    const colIndustry = t('exportXlsx', 'colIndustry', lang)
+    const colProjects = t('exportXlsx', 'colProjects', lang)
     const byIndustry = [
-      ...INDUSTRIES.map(i => ({ 'Отрасль': i.ru, 'Проектов': projects.filter(p => p.industry === i.value).length })),
-      { 'Отрасль': 'Не указана', 'Проектов': projects.filter(p => !p.industry).length },
+      ...INDUSTRIES.map(i => ({ [colIndustry]: i[lang], [colProjects]: projects.filter(p => p.industry === i.value).length })),
+      { [colIndustry]: t('exportXlsx', 'industryNone', lang), [colProjects]: projects.filter(p => !p.industry).length },
     ]
 
     // ── Лист «Регионы» ─────────────────────────────────────────
     const byRegion = regions.map(r => ({
-      'Регион': r.name,
-      'Вузов': r.universities.length,
-      'Проектов': r.universities.reduce((s, u) => s + u._count.projects, 0),
+      [t('exportXlsx', 'colRegion', lang)]: lang === 'kz' && r.nameKz ? r.nameKz : r.name,
+      [t('exportXlsx', 'colUniversities', lang)]: r.universities.length,
+      [t('exportXlsx', 'colProjects', lang)]: r.universities.reduce((s, u) => s + u._count.projects, 0),
     }))
 
     // ── Лист «Технологии» ──────────────────────────────────────
     const byTech = technologies
-      .filter(t => t._count.projects > 0)
-      .map(t => ({ 'Технология': t.name, 'Проектов': t._count.projects }))
+      .filter(tech => tech._count.projects > 0)
+      .map(tech => ({ [t('exportXlsx', 'colTech', lang)]: technologyLabel(tech, lang), [colProjects]: tech._count.projects }))
 
     const wb = XLSX.utils.book_new()
     const addSheet = (rows: object[], name: string, widths: number[]) => {
@@ -121,17 +121,17 @@ export async function GET(request: NextRequest) {
       ws['!cols'] = widths.map(wch => ({ wch }))
       XLSX.utils.book_append_sheet(wb, ws, name)
     }
-    addSheet(summary, 'Сводка', [34, 20])
-    addSheet(registry, 'Проекты', [40, 22, 24, 18, 14, 28, 30, 30, 22, 12, 14, 14, 14, 12, 18])
-    addSheet(byStage, 'Стадии', [20, 12, 10, 24, 14])
-    addSheet(byIndustry, 'Отрасли', [42, 12])
-    addSheet(byRegion, 'Регионы', [30, 10, 12])
-    addSheet(byTech, 'Технологии', [30, 12])
+    addSheet(summary, t('exportXlsx', 'sheetSummary', lang), [34, 20])
+    addSheet(registry, t('exportXlsx', 'sheetProjects', lang), [40, 22, 24, 18, 14, 28, 30, 30, 22, 12, 14, 14, 14, 12, 18])
+    addSheet(byStage, t('exportXlsx', 'sheetStages', lang), [20, 12, 10, 24, 14])
+    addSheet(byIndustry, t('exportXlsx', 'sheetIndustries', lang), [42, 12])
+    addSheet(byRegion, t('exportXlsx', 'sheetRegions', lang), [30, 10, 12])
+    addSheet(byTech, t('exportXlsx', 'sheetTech', lang), [30, 12])
 
     const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' })
     const date = new Date().toISOString().slice(0, 10)
 
-    await audit(user, 'EXPORT', 'dashboard', null, null,
+    await audit(user, 'EXPORT', 'dashboard', null, `lang=${lang}`,
       { ip, userAgent: request.headers.get('user-agent') })
 
     return new NextResponse(buffer, {

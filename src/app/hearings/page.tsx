@@ -1,4 +1,3 @@
-import { redirect } from 'next/navigation'
 // force-dynamic + кэш в data-cache (см. комментарий в src/app/page.tsx)
 export const dynamic = 'force-dynamic'
 
@@ -9,9 +8,11 @@ import Link from 'next/link'
 import { Mic, Plus, Calendar, CheckCircle, XCircle, Clock, AlertCircle, TrendingUp } from 'lucide-react'
 import { formatDateLong } from '@/lib/utils'
 import { HearingDecision } from '@prisma/client'
-import { HEARING_DECISION_LABELS } from '@/types'
 import { requireUser } from '@/lib/auth'
-import { visibleProjectsWhere, visibilityScope } from '@/lib/publication'
+import { redirect } from 'next/navigation'
+import { t } from '@/lib/i18n'
+import { getRequestLang } from '@/lib/i18n-server'
+import { canModerate, visibleProjectsWhere, visibilityScope } from '@/lib/publication'
 
 const DECISION_ICONS: Record<HearingDecision, React.ElementType> = {
   PENDING: Clock,
@@ -30,6 +31,7 @@ const DECISION_COLORS: Record<HearingDecision, string> = {
 }
 
 export default async function HearingsPage() {
+  const lang = await getRequestLang()
   // Настоящая проверка сессии: middleware смотрит только наличие cookie
   const user = await requireUser('/')
   // Заслушивания — внутренняя работа комиссии: бизнесу раздел закрыт
@@ -52,16 +54,18 @@ export default async function HearingsPage() {
     <PageLayout>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">Заслушивания</h1>
-          <p className="text-slate-500 mt-1">{hearings.length} протоколов</p>
+          <h1 className="text-2xl font-bold text-slate-800">{t('hearings', 'title', lang)}</h1>
+          <p className="text-slate-500 mt-1">{hearings.length} {t('hearings', 'protocols', lang)}</p>
         </div>
-        <Link
-          href="/admin/hearings/new"
-          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-        >
-          <Plus size={16} />
-          Добавить
-        </Link>
+        {canModerate(user) && (
+          <Link
+            href="/admin/hearings/new"
+            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+          >
+            <Plus size={16} />
+            {t('hearings', 'add', lang)}
+          </Link>
+        )}
       </div>
 
       {hearings.length > 0 ? (
@@ -76,11 +80,11 @@ export default async function HearingsPage() {
                     <div className="flex items-center gap-3 mb-2">
                       <div className="flex items-center gap-1.5 text-xs text-slate-400">
                         <Calendar size={12} />
-                        {formatDateLong(hearing.date)}
+                        {formatDateLong(hearing.date, lang)}
                       </div>
                       <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium border ${colorClass}`}>
                         <Icon size={11} />
-                        {HEARING_DECISION_LABELS[hearing.decision]}
+                        {t('hearings', hearing.decision, lang)}
                       </span>
                     </div>
 
@@ -90,28 +94,30 @@ export default async function HearingsPage() {
                     <p className="text-xs text-slate-400">
                       {hearing.project.university.shortName || hearing.project.university.name}
                       {' · '}
-                      {hearing.project.university.region.name}
+                      {lang === 'kz' && hearing.project.university.region.nameKz ? hearing.project.university.region.nameKz : hearing.project.university.region.name}
                     </p>
 
                     {hearing.commission.length > 0 && (
                       <p className="text-xs text-slate-500 mt-2">
-                        <span className="font-medium">Комиссия:</span> {hearing.commission.join(', ')}
+                        <span className="font-medium">{t('hearings', 'commission', lang)}:</span> {hearing.commission.join(', ')}
                       </p>
                     )}
                     {hearing.remarks && (
                       <p className="text-xs text-slate-500 mt-1 line-clamp-1">
-                        <span className="font-medium">Замечания:</span> {hearing.remarks}
+                        <span className="font-medium">{t('hearings', 'remarks', lang)}:</span> {hearing.remarks}
                       </p>
                     )}
                   </div>
-                  <div className="flex gap-2 shrink-0">
-                    <Link
-                      href={`/admin/hearings/${hearing.id}/edit`}
-                      className="text-xs text-slate-400 hover:text-blue-600 border border-slate-200 hover:border-blue-300 px-3 py-1.5 rounded-lg transition-colors"
-                    >
-                      Изменить
-                    </Link>
-                  </div>
+                  {canModerate(user) && (
+                    <div className="flex gap-2 shrink-0">
+                      <Link
+                        href={`/admin/hearings/${hearing.id}/edit`}
+                        className="text-xs text-slate-400 hover:text-blue-600 border border-slate-200 hover:border-blue-300 px-3 py-1.5 rounded-lg transition-colors"
+                      >
+                        {t('common', 'edit', lang)}
+                      </Link>
+                    </div>
+                  )}
                 </div>
               </div>
             )
@@ -120,8 +126,8 @@ export default async function HearingsPage() {
       ) : (
         <div className="text-center py-20 bg-white border border-slate-200 rounded-xl text-slate-400">
           <Mic size={48} className="mx-auto mb-3 opacity-30" />
-          <p className="text-lg font-medium">Нет заслушиваний</p>
-          <p className="text-sm mt-1">Добавьте первый протокол заслушивания</p>
+          <p className="text-lg font-medium">{t('hearings', 'empty', lang)}</p>
+          <p className="text-sm mt-1">{t('hearings', 'firstProtocol', lang)}</p>
         </div>
       )}
     </PageLayout>

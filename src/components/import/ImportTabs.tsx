@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { Building2, FolderKanban } from 'lucide-react'
+import { useLang } from '@/context/LangContext'
 
 interface Props {
   projectForm: React.ReactNode
@@ -18,6 +19,7 @@ export function ImportTabs({
   universityColumns,
   showUniversitiesTab = true,
 }: Props) {
+  const { t } = useLang()
   // If the user has no permission to import universities, default straight to projects
   const [tab, setTab] = useState<'universities' | 'projects'>(showUniversitiesTab ? 'universities' : 'projects')
 
@@ -37,7 +39,7 @@ export function ImportTabs({
             }`}
           >
             <Building2 size={15} />
-            Вузы
+            {t('importSection', 'tabUniversities')}
           </button>
         )}
         <button
@@ -49,7 +51,7 @@ export function ImportTabs({
           }`}
         >
           <FolderKanban size={15} />
-          Проекты
+          {t('importSection', 'tabProjects')}
         </button>
       </div>
 
@@ -59,20 +61,19 @@ export function ImportTabs({
       {/* Column reference */}
       <div className="rounded-xl border border-slate-200 bg-white p-6">
         <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-slate-500">
-          Колонки таблицы — {tab === 'universities' ? 'вузы' : 'проекты'}
+          {t('importSection', 'columnsPrefix')} — {tab === 'universities' ? t('importSection', 'tabUniversities').toLowerCase() : t('importSection', 'tabProjects').toLowerCase()}
         </h2>
 
         <div className="mb-4 p-3 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-500">
-          💡 Названия колонок могут быть на русском или английском языке — система распознаёт оба варианта.
-          Порядок колонок не важен. Пустые строки пропускаются автоматически.
+          {t('importSection', 'columnsNote')}
         </div>
 
         <div className="overflow-hidden rounded-lg border border-slate-200">
           <table className="w-full text-sm">
             <thead className="bg-slate-50">
               <tr>
-                <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-slate-500">Колонка</th>
-                <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-slate-500">Пояснение</th>
+                <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-slate-500">{t('importSection', 'colName')}</th>
+                <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-slate-500">{t('importSection', 'colNote')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">

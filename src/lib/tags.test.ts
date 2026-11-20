@@ -1,0 +1,33 @@
+import { describe, expect, it } from 'vitest'
+import { normalizeTag, TAG_LABELS, tagLabel } from '@/lib/tags'
+
+describe('tagLabel', () => {
+  it('переводит известные теги, сохраняя регистр первой буквы', () => {
+    expect(tagLabel('сварка', 'kz')).toBe('металл пісіру')
+    expect(tagLabel('Сварка', 'kz')).toBe('Металл пісіру')
+    expect(tagLabel('СВАРКА', 'kz')).toBe('Металл пісіру')
+    expect(tagLabel('#Сварка', 'kz')).toBe('Металл пісіру')
+  })
+
+  it('ищет без учёта регистра, ё и лишних пробелов', () => {
+    expect(tagLabel('  Контроль   качества ', 'kz')).toBe('Сапа бақылауы')
+    expect(tagLabel('КОНТРОЛЬ КАЧЕСТВА', 'kz')).toBe('Сапа бақылауы')
+  })
+
+  it('ключи словаря уже нормализованы', () => {
+    for (const key of Object.keys(TAG_LABELS)) {
+      expect(normalizeTag(key), key).toBe(key)
+    }
+  })
+
+  it('свободный текст автора остаётся как есть', () => {
+    expect(tagLabel('қазақ тілі', 'kz')).toBe('қазақ тілі')
+    expect(tagLabel('сварка', 'ru')).toBe('сварка')
+  })
+
+  it('ведущая решётка снимается и в ru, и в kz, перевод при этом работает', () => {
+    expect(tagLabel('#қазақ тілі', 'kz')).toBe('қазақ тілі')
+    expect(tagLabel('#сварка', 'ru')).toBe('сварка')
+    expect(tagLabel('#сварка', 'kz')).toBe('металл пісіру')
+  })
+})

@@ -9,9 +9,12 @@ import { prisma } from '@/lib/prisma'
 import { canAccessUniversity, requireRole } from '@/lib/auth'
 import { canModerate } from '@/lib/publication'
 import { PublicationBadge, PublicationControl } from '@/components/admin/PublicationControl'
+import { t } from '@/lib/i18n'
+import { getRequestLang } from '@/lib/i18n-server'
 
 export default async function EditProjectPage({ params }: { params: Promise<{ id: string }> }) {
   const user = await requireRole([UserRole.ADMIN, UserRole.EDITOR, UserRole.UNIVERSITY_REP], '/admin/projects')
+  const lang = await getRequestLang()
   const { id } = await params
 
   const [project, universities, technologies] = await Promise.all([
@@ -42,17 +45,17 @@ export default async function EditProjectPage({ params }: { params: Promise<{ id
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-700 border border-blue-200 hover:border-blue-300 px-3 py-1.5 rounded-lg mb-6 transition-colors"
           >
-            <ExternalLink size={13} /> Открыть на сайте
+            <ExternalLink size={13} /> {t('adminProjects', 'openOnSite', lang)}
           </a>
         )}
       </div>
       <h1 className="text-xl font-bold text-slate-800 mb-4">
-        Редактировать: {project.title}
+        {t('common', 'edit', lang)}: {project.title}
       </h1>
 
       {/* Статус публикации и действия модерации */}
       <div className="mb-6 flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-white p-4">
-        <span className="text-sm text-slate-500">Публикация:</span>
+        <span className="text-sm text-slate-500">{t('editProject', 'publication', lang)}</span>
         <PublicationBadge publication={project.publication} />
         <PublicationControl
           projectId={project.id}
@@ -61,17 +64,16 @@ export default async function EditProjectPage({ params }: { params: Promise<{ id
         />
         {project.publication !== PublicationStatus.PUBLISHED && (
           <p className="w-full text-xs text-slate-400">
-            {project.publication === PublicationStatus.DRAFT
-              ? 'Черновик виден только в админ-панели. Отправьте на проверку, когда всё заполнено.'
-              : 'Проект ждёт проверки администратора и пока не показывается на портале.'}
+            {project.publication === PublicationStatus.DRAFT ? t('editProject', 'draftHint', lang) : t('editProject', 'reviewHint', lang)}
           </p>
         )}
         {project.moderationNote && (
           <p className="w-full rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
-            Комментарий модератора: {project.moderationNote}
+            {t('editProject', 'moderationNote', lang)} {project.moderationNote}
           </p>
         )}
       </div>
+
       <div className="bg-white border border-slate-200 rounded-xl p-6">
         <ProjectForm
           universities={universities}

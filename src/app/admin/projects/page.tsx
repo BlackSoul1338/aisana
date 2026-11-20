@@ -12,6 +12,9 @@ import { DESCRIPTION_PLACEHOLDER, MIN_DESCRIPTION_LENGTH, isDescriptionEmpty } f
 import { formatDate } from '@/lib/datetime'
 import { ListFilters } from '@/components/admin/ListFilters'
 import { Pagination } from '@/components/admin/Pagination'
+import { t } from '@/lib/i18n'
+import { getRequestLang } from '@/lib/i18n-server'
+import { technologyLabel } from '@/lib/technologies'
 
 const DEFAULT_PAGE_SIZE = 25
 const PAGE_SIZES = [50, 100]
@@ -38,6 +41,7 @@ interface SearchParams {
 
 export default async function AdminProjectsPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
   const user = await requireRole([UserRole.ADMIN, UserRole.EDITOR, UserRole.UNIVERSITY_REP], '/admin/projects')
+  const lang = await getRequestLang()
   const params = await searchParams
 
   const page = Math.max(1, parseInt(params.page || '1', 10) || 1)
@@ -94,7 +98,7 @@ export default async function AdminProjectsPage({ searchParams }: { searchParams
       where,
       include: {
         university: { select: { name: true, shortName: true } },
-        technologies: { select: { name: true } },
+        technologies: { select: { name: true, slug: true } },
         _count: { select: { files: true } },
       },
       orderBy,
@@ -115,70 +119,70 @@ export default async function AdminProjectsPage({ searchParams }: { searchParams
     snippet: project.description.replace(/\s+/g, ' ').trim().slice(0, 220),
     university: project.university.shortName || project.university.name,
     status: project.status,
-    statusLabel: STATUS_LABELS[project.status],
+    statusLabel: t('status', project.status, lang),
     publication: project.publication,
-    technologies: project.technologies.map(t => t.name).join(', '),
+    technologies: project.technologies.map(tech => technologyLabel(tech, lang)).join(', '),
     noDescription: isDescriptionEmpty(project.description),
     noFiles: project._count.files === 0 && !project.agentPassportPdf,
     dateLabel: project.publication === 'REVIEW' && project.submittedAt
-      ? `На проверке с ${formatDate(project.submittedAt)}`
-      : `Создан ${formatDate(project.createdAt)}`,
+      ? `${t('adminProjects', 'dateReview', lang)} ${formatDate(project.submittedAt)}`
+      : `${t('adminProjects', 'dateCreated', lang)} ${formatDate(project.createdAt)}`,
   }))
 
   const filters = [
     ...(!isRep
       ? [{
           name: 'universityId',
-          label: 'Все вузы',
+          label: t('adminProjects', 'allUniversities', lang),
           options: universities.map(u => ({ value: u.id, label: u.shortName || u.name })),
         }]
       : []),
     {
       name: 'regionId',
-      label: 'Все регионы',
+      label: t('adminProjects', 'allRegions', lang),
       options: regions.map(r => ({ value: r.id, label: r.name })),
     },
     {
       name: 'status',
-      label: 'Все статусы',
-      options: Object.entries(STATUS_LABELS).map(([value, label]) => ({ value, label })),
+      label: t('adminProjects', 'allStatuses', lang),
+      options: Object.keys(STATUS_LABELS).map(value => ({ value, label: t('status', value, lang) })),
     },
     {
       name: 'publication',
-      label: 'Все публикации',
+      label: t('adminProjects', 'allPublication', lang),
       options: [
-        { value: 'REVIEW', label: 'На проверке' },
-        { value: 'DRAFT', label: 'Черновики' },
-        { value: 'PUBLISHED', label: 'Опубликованные' },
+        { value: 'REVIEW', label: t('adminProjects', 'pubReview', lang) },
+        { value: 'DRAFT', label: t('adminProjects', 'pubDrafts', lang) },
+        { value: 'PUBLISHED', label: t('adminProjects', 'pubPublished', lang) },
       ],
     },
     {
       name: 'issue',
-      label: 'Любая заполненность',
+      label: t('adminProjects', 'anyCompleteness', lang),
       options: [
-        { value: 'nodesc', label: 'Без описания' },
-        { value: 'nofiles', label: 'Без файлов и ссылок' },
-        { value: 'noindustry', label: 'Отрасль не указана' },
-        { value: 'noplace', label: 'Внедрено, но не указано где' },
+        { value: 'nodesc', label: t('adminProjects', 'noDesc', lang) },
+        { value: 'nofiles', label: t('adminProjects', 'noFiles', lang) },
+        { value: 'noindustry', label: t('adminProjects', 'noIndustry', lang) },
+        { value: 'noplace', label: t('adminProjects', 'noPlace', lang) },
       ],
     },
     {
       name: 'size',
-      label: `По ${DEFAULT_PAGE_SIZE} на странице`,
-      options: PAGE_SIZES.map(size => ({ value: String(size), label: `По ${size} на странице` })),
+      label: t('adminProjects', 'perPage', lang),
+      options: PAGE_SIZES.map(size => ({ value: String(size), label: `${t('adminProjects', 'perPage', lang)}: ${size}` })),
     },
   ]
 
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-bold text-slate-800">Проекты ({total})</h1>
+        <h1 className="text-xl font-bold text-slate-800">{t('admin', 'navProjects', lang)} ({total})</h1>
         <Link
           href="/admin/projects/new"
           className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
         >
           <Plus size={15} />
-          Добавить проект
+          {t('projects', 'addProject', lang)}
         </Link>
       </div>
 
@@ -186,19 +190,19 @@ export default async function AdminProjectsPage({ searchParams }: { searchParams
         basePath="/admin/projects"
         values={params as Record<string, string | undefined>}
         filters={filters}
-        searchPlaceholder="Поиск по названию…"
+        searchPlaceholder={t('adminProjects', 'searchPlaceholder', lang)}
         sortOptions={[
-          { value: 'newest', label: 'Сначала новые' },
-          { value: 'oldest', label: 'Сначала старые' },
-          { value: 'title', label: 'По названию А-Я' },
-          { value: 'submitted', label: 'Дольше всех на проверке' },
+          { value: 'newest', label: t('projects', 'sortNewest', lang) },
+          { value: 'oldest', label: t('projects', 'sortOldest', lang) },
+          { value: 'title', label: t('projects', 'sortTitle', lang) },
+          { value: 'submitted', label: t('adminProjects', 'sortSubmitted', lang) },
         ]}
       />
 
       <ProjectsTable rows={rows} canModerate={canModerate(user)} />
       {projects.length === 0 && (
         <div className="text-center py-12 text-slate-400 bg-white border border-slate-200 rounded-xl mt-3">
-          {total === 0 && !hasFilters ? 'Нет проектов' : 'Ничего не найдено по заданным фильтрам'}
+          {total === 0 && !hasFilters ? t('adminProjects', 'empty', lang) : t('adminProjects', 'nothingFound', lang)}
         </div>
       )}
 
@@ -208,6 +212,7 @@ export default async function AdminProjectsPage({ searchParams }: { searchParams
         totalItems={total}
         basePath="/admin/projects"
         searchParams={params as Record<string, string | undefined>}
+        totalLabel={t('common', 'total', lang)}
       />
     </div>
   )

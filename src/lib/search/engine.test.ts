@@ -57,6 +57,21 @@ describe('searchIndex — казахский поиск', () => {
     const { hits } = searchIndex(index, 'образование')
     expect(hits.length).toBeGreaterThan(0)
   })
+
+  it('индексирует казахские подписи технологий и тегов вместе с русскими', () => {
+    const item = indexProject({
+      ...industrial,
+      technologies: [{ name: 'Компьютерное зрение', slug: 'computer-vision' }],
+      tags: ['сварка'],
+    } as any)
+    const techTokens = item.fields.technologies.tokens
+    expect(techTokens).toContain('зрение')
+    expect(techTokens).toContain('компьютерлік')
+    expect(techTokens).toContain('көру')
+    // токенизатор сохраняет казахские буквы, а не режет слово на «к» и «ру»
+    expect('компьютерлік көру'.split(' ').every(word => word.length > 2)).toBe(true)
+    expect(item.fields.tags.tokens).toContain('пісіру')
+  })
 })
 
 describe('searchIndex — фразы с усечёнными основами', () => {

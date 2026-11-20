@@ -6,6 +6,8 @@ interface Props {
   totalItems: number
   basePath: string
   searchParams: Record<string, string | undefined>
+  /** Подпись перед числом: вызов передаёт локализованную подпись (вызывающая сторона — серверная). */
+  totalLabel: string
 }
 
 /**
@@ -13,7 +15,8 @@ interface Props {
  * страницы с нужными параметрами — как прямой заход по URL.
  * Клиентский роутер Next не участвует. Активные фильтры сохраняются.
  */
-export function Pagination({ page, totalPages, totalItems, basePath, searchParams }: Props) {
+export function Pagination({ page, totalPages, totalItems, basePath, searchParams, totalLabel }: Props) {
+  const label = totalLabel
   if (totalPages <= 1) return null
 
   const href = (p: number): string => {
@@ -27,7 +30,7 @@ export function Pagination({ page, totalPages, totalItems, basePath, searchParam
   }
 
   const navCls = (disabled: boolean) =>
-    `flex items-center gap-1 px-3 py-1.5 rounded-lg border text-sm transition-colors ${
+    `flex items-center gap-1 px-3.5 py-2 rounded-lg border text-sm transition-colors ${
       disabled
         ? 'pointer-events-none opacity-40 border-slate-100 text-slate-400'
         : 'border-slate-200 text-slate-600 hover:bg-slate-50'
@@ -42,7 +45,7 @@ export function Pagination({ page, totalPages, totalItems, basePath, searchParam
 
   return (
     <div className="flex items-center justify-between mt-4">
-      <span className="text-xs text-slate-400">Всего: {totalItems}</span>
+      <span className="text-xs text-slate-400">{label}: {totalItems}</span>
       <div className="flex items-center gap-1.5">
         <a href={href(page - 1)} className={navCls(page <= 1)}><ChevronLeft size={14} /></a>
         {pages.map((p, i) =>

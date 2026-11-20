@@ -4,12 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { FeedbackStatus } from '@prisma/client'
 import { Loader2 } from 'lucide-react'
-
-const LABELS: Record<FeedbackStatus, string> = {
-  NEW: 'Новое',
-  IN_PROGRESS: 'В работе',
-  DONE: 'Обработано',
-}
+import { useLang } from '@/context/LangContext'
 
 const COLORS: Record<FeedbackStatus, string> = {
   NEW: 'border-amber-200 bg-amber-50 text-amber-700',
@@ -18,7 +13,14 @@ const COLORS: Record<FeedbackStatus, string> = {
 }
 
 export function FeedbackStatusControl({ id, status }: { id: string; status: FeedbackStatus }) {
+  const { t } = useLang()
   const router = useRouter()
+
+  const LABELS: Record<FeedbackStatus, string> = {
+    NEW: t('admin', 'fbNew'),
+    IN_PROGRESS: t('admin', 'fbInProgress'),
+    DONE: t('admin', 'fbDone'),
+  }
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
 
@@ -33,7 +35,7 @@ export function FeedbackStatusControl({ id, status }: { id: string; status: Feed
       })
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
-        throw new Error(data.error || 'Не удалось обновить статус')
+        throw new Error(data.error || t('admin', 'fbStatusFailed'))
       }
       router.refresh()
     } catch (err: any) {

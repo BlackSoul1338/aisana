@@ -8,6 +8,7 @@ import { CheckCircle2, ExternalLink, FileX, FileWarning, Loader2, Pencil, Send, 
 import { PublicationBadge, PublicationControl, ReturnNoteDialog } from '@/components/admin/PublicationControl'
 import { DeleteProjectButton } from '@/app/admin/universities/DeleteButton'
 import { showToast } from '@/components/ui/toaster'
+import { useLang } from '@/context/LangContext'
 
 export interface ProjectRow {
   id: string
@@ -43,6 +44,7 @@ interface Skipped { id: string; title: string; error: string }
  * со спиннером, пока перезагружался весь список.
  */
 export function ProjectsTable({ rows, canModerate }: { rows: ProjectRow[]; canModerate: boolean }) {
+  const { t } = useLang()
   const router = useRouter()
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [overrides, setOverrides] = useState<Record<string, PublicationStatus>>({})
@@ -66,7 +68,7 @@ export function ProjectsTable({ rows, canModerate }: { rows: ProjectRow[]; canMo
     // Строки, которые уже в нужном статусе, не отправляем: это не ошибка
     const ids = rows.filter(row => selected.has(row.id) && publicationOf(row) !== next).map(row => row.id)
     if (ids.length === 0) {
-      showToast('Выбранные проекты уже в этом статусе', 'success')
+      showToast(t('adminProjects', 'alreadyThisStatus'), 'success')
       setAskNote(false)
       return
     }
@@ -78,7 +80,7 @@ export function ProjectsTable({ rows, canModerate }: { rows: ProjectRow[]; canMo
         body: JSON.stringify({ ids, publication: next, note: note || undefined }),
       })
       const data = await res.json().catch(() => ({}))
-      if (!res.ok) throw new Error(data.error || 'Не удалось изменить статус')
+      if (!res.ok) throw new Error(data.error || t('adminProjects', 'statusChangeFailed'))
 
       const updated: string[] = data.updated || []
       const failed: Skipped[] = data.skipped || []
@@ -88,10 +90,10 @@ export function ProjectsTable({ rows, canModerate }: { rows: ProjectRow[]; canMo
       setSelected(new Set(failed.map(item => item.id)))
       setAskNote(false)
 
-      const verb = next === PublicationStatus.PUBLISHED ? 'Опубликовано'
-        : next === PublicationStatus.REVIEW ? 'Отправлено на проверку' : 'Возвращено в черновики'
-      if (updated.length > 0) showToast(`${verb}: ${updated.length}` + (failed.length ? `. Пропущено: ${failed.length}` : ''), 'success')
-      else showToast(`Ни один проект не изменён. Пропущено: ${failed.length}`, 'error')
+      const verb = next === PublicationStatus.PUBLISHED ? t('adminProjects', 'publishedToast')
+        : next === PublicationStatus.REVIEW ? t('adminProjects', 'reviewToast') : t('adminProjects', 'returnedToast')
+      if (updated.length > 0) showToast(`${verb}: ${updated.length}` + (failed.length ? `. ${t('adminProjects', 'skipped')}: ${failed.length}` : ''), 'success')
+      else showToast(`${t('adminProjects', 'noneChanged')}. ${t('adminProjects', 'skipped')}: ${failed.length}`, 'error')
       router.refresh()
     } catch (err: any) {
       showToast(err.message, 'error')
@@ -107,17 +109,17 @@ export function ProjectsTable({ rows, canModerate }: { rows: ProjectRow[]; canMo
     <>
       {selected.size > 0 && (
         <div className="sticky top-2 z-10 mb-3 flex flex-wrap items-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 py-2.5">
-          <span className="text-sm font-medium text-blue-800 mr-1">Выбрано: {selected.size}</span>
+          <span className="text-sm font-medium text-blue-800 mr-1">{t('adminProjects', 'selectedCount')}: {selected.size}</span>
           {canModerate ? (
             <>
               <button type="button" disabled={busy !== null} onClick={() => bulk(PublicationStatus.PUBLISHED)}
                 className={`${bulkBtn} text-emerald-700 border-emerald-200 hover:bg-emerald-50`}>
                 {busy === PublicationStatus.PUBLISHED ? <Loader2 size={13} className="animate-spin" /> : <CheckCircle2 size={13} />}
-                Опубликовать
+                {t('adminProjects', 'publish')}
               </button>
               <button type="button" disabled={busy !== null} onClick={() => setAskNote(true)}
                 className={`${bulkBtn} text-slate-600 border-slate-200 hover:bg-slate-50`}>
-                <Undo2 size={13} /> Вернуть в черновики
+                <Undo2 size={13} /> {t('adminProjects', 'returnToDrafts')}
               </button>
             </>
           ) : (
@@ -125,18 +127,18 @@ export function ProjectsTable({ rows, canModerate }: { rows: ProjectRow[]; canMo
               <button type="button" disabled={busy !== null} onClick={() => bulk(PublicationStatus.REVIEW)}
                 className={`${bulkBtn} text-amber-700 border-amber-200 hover:bg-amber-50`}>
                 {busy === PublicationStatus.REVIEW ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}
-                Отправить на проверку
+                {t('adminProjects', 'sendReview')}
               </button>
               <button type="button" disabled={busy !== null} onClick={() => bulk(PublicationStatus.DRAFT)}
                 className={`${bulkBtn} text-slate-600 border-slate-200 hover:bg-slate-50`}>
                 {busy === PublicationStatus.DRAFT ? <Loader2 size={13} className="animate-spin" /> : <Undo2 size={13} />}
-                В черновики
+                {t('adminProjects', 'toDrafts')}
               </button>
             </>
           )}
           <button type="button" onClick={() => setSelected(new Set())}
             className="ml-auto flex items-center gap-1 text-xs text-slate-500 hover:text-slate-700">
-            <X size={13} /> Снять выбор
+            <X size={13} /> {t('adminProjects', 'clearSelection')}
           </button>
         </div>
       )}
@@ -144,8 +146,8 @@ export function ProjectsTable({ rows, canModerate }: { rows: ProjectRow[]; canMo
       {skipped.length > 0 && (
         <div className="mb-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm">
           <div className="flex items-start justify-between gap-3">
-            <p className="font-medium text-amber-800">Не изменены: {skipped.length}</p>
-            <button type="button" onClick={() => setSkipped([])} className="text-amber-500 hover:text-amber-700" aria-label="Закрыть">
+            <p className="font-medium text-amber-800">{t('adminProjects', 'notChanged')}: {skipped.length}</p>
+            <button type="button" onClick={() => setSkipped([])} className="text-amber-500 hover:text-amber-700" aria-label={t('project', 'close')}>
               <X size={14} />
             </button>
           </div>
@@ -170,14 +172,14 @@ export function ProjectsTable({ rows, canModerate }: { rows: ProjectRow[]; canMo
                   checked={allSelected}
                   onChange={() => setSelected(allSelected ? new Set() : new Set(rows.map(row => row.id)))}
                   className="w-4 h-4 rounded text-blue-600 cursor-pointer"
-                  aria-label="Выбрать все проекты на странице"
+                  aria-label={t('adminProjects', 'selectAllPage')}
                 />
               </th>
-              <th className={th}>Проект</th>
-              <th className={th}>Вуз</th>
-              <th className={th}>Статус</th>
-              <th className={th}>Публикация</th>
-              <th className={`${th} text-right`}>Действия</th>
+              <th className={th}>{t('adminProjects', 'colProject')}</th>
+              <th className={th}>{t('project', 'university')}</th>
+              <th className={th}>{t('adminProjects', 'colStatus')}</th>
+              <th className={th}>{t('adminProjects', 'colPublication')}</th>
+              <th className={`${th} text-right`}>{t('users', 'colActions')}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -191,14 +193,14 @@ export function ProjectsTable({ rows, canModerate }: { rows: ProjectRow[]; canMo
                       checked={selected.has(row.id)}
                       onChange={() => toggle(row.id)}
                       className="w-4 h-4 rounded text-blue-600 cursor-pointer mt-0.5"
-                      aria-label={`Выбрать проект «${row.title}»`}
+                      aria-label={`${t('adminProjects', 'selectProject')} «${row.title}»`}
                     />
                   </td>
                   <td className="px-4 py-3 w-[42%] min-w-[260px]">
                     <p className="font-medium text-slate-800 line-clamp-1">{row.title}</p>
                     {row.noDescription ? (
                       <p className="text-xs text-red-600 mt-0.5 flex items-center gap-1">
-                        <FileWarning size={12} className="shrink-0" /> Без описания — опубликовать нельзя
+                        <FileWarning size={12} className="shrink-0" /> {t('adminProjects', 'noDescPublishBlocked')}
                       </p>
                     ) : (
                       <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">{row.snippet}</p>
@@ -206,7 +208,7 @@ export function ProjectsTable({ rows, canModerate }: { rows: ProjectRow[]; canMo
                     <p className="text-[11px] text-slate-400 mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5">
                       <span>{row.dateLabel}</span>
                       {row.noFiles && (
-                        <span className="flex items-center gap-1 text-amber-600"><FileX size={11} /> без файлов</span>
+                        <span className="flex items-center gap-1 text-amber-600"><FileX size={11} /> {t('adminProjects', 'noFilesRow')}</span>
                       )}
                       {row.technologies && <span className="line-clamp-1">{row.technologies}</span>}
                     </p>
@@ -237,7 +239,7 @@ export function ProjectsTable({ rows, canModerate }: { rows: ProjectRow[]; canMo
                         href={`/projects/${row.id}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        title="Открыть на сайте"
+                        title={t('adminProjects', 'openOnSite')}
                         className="text-slate-400 hover:text-blue-600 p-1.5 rounded-lg hover:bg-blue-50 transition-colors"
                       >
                         <ExternalLink size={14} />
@@ -246,7 +248,7 @@ export function ProjectsTable({ rows, canModerate }: { rows: ProjectRow[]; canMo
                         href={`/admin/projects/${row.id}/edit`}
                         className="flex items-center gap-1 text-xs text-slate-500 hover:text-blue-600 border border-slate-200 hover:border-blue-300 px-2.5 py-1.5 rounded-lg transition-colors"
                       >
-                        <Pencil size={12} /> Изменить
+                        <Pencil size={12} /> {t('common', 'edit')}
                       </Link>
                       <DeleteProjectButton id={row.id} name={row.title} />
                     </div>
@@ -260,8 +262,8 @@ export function ProjectsTable({ rows, canModerate }: { rows: ProjectRow[]; canMo
 
       <ReturnNoteDialog
         open={askNote}
-        title={`Вернуть в черновики: ${selected.size}`}
-        hint="Опубликованные проекты пропадут с портала, проекты на проверке вернутся вузам."
+        title={`${t('adminProjects', 'returnToDrafts')}: ${selected.size}`}
+        hint={t('adminProjects', 'returnDialogHint')}
         busy={busy === PublicationStatus.DRAFT}
         onSubmit={note => bulk(PublicationStatus.DRAFT, note)}
         onCancel={() => setAskNote(false)}

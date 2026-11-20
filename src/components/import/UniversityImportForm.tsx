@@ -1,7 +1,9 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { AlertCircle, CheckCircle2, FileSpreadsheet, Upload, Download } from 'lucide-react'
+import { useLang } from '@/context/LangContext'
 
 interface ImportError { row: number; message: string }
 interface ImportResult {
@@ -15,6 +17,7 @@ interface ImportResult {
 }
 
 export function UniversityImportForm() {
+  const { t } = useLang()
   const [dryRun, setDryRun] = useState(true)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -31,7 +34,7 @@ export function UniversityImportForm() {
     const file = fileInput.files?.[0]
 
     if (!file) {
-      setError('Выберите файл для импорта')
+      setError(t('importSection', 'chooseFile'))
       setLoading(false)
       return
     }
@@ -46,7 +49,7 @@ export function UniversityImportForm() {
         body: formData,
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Не удалось импортировать файл')
+      if (!res.ok) throw new Error(data.error || t('importSection', 'importFailed'))
       setResult(data)
     } catch (err: any) {
       setError(err.message)
@@ -63,10 +66,9 @@ export function UniversityImportForm() {
             <FileSpreadsheet size={18} />
           </div>
           <div>
-            <h2 className="font-semibold text-slate-800">Импорт вузов</h2>
+            <h2 className="font-semibold text-slate-800">{t('importSection', 'importUrisTitle')}</h2>
             <p className="mt-1 text-sm text-slate-500">
-              Поддерживаются Excel (.xlsx, .xls) и CSV. Первая строка — названия колонок.
-              Если вуз с таким названием уже есть — он будет обновлён.
+              {t('importSection', 'urisFormat')}
             </p>
           </div>
         </div>
@@ -80,7 +82,7 @@ export function UniversityImportForm() {
 
         <div className="space-y-4">
           <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700">Файл</label>
+            <label className="mb-1 block text-sm font-medium text-slate-700">{t('importSection', 'file')}</label>
             <input
               name="file"
               type="file"
@@ -97,7 +99,7 @@ export function UniversityImportForm() {
               onChange={e => setDryRun(e.target.checked)}
               className="h-4 w-4 rounded border-slate-300 text-blue-600"
             />
-            Проверить файл без записи в базу
+            {t('importSection', 'dryRun')}
           </label>
 
           <button
@@ -106,7 +108,7 @@ export function UniversityImportForm() {
             className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-700 disabled:opacity-50"
           >
             <Upload size={15} />
-            {loading ? 'Обработка...' : dryRun ? 'Проверить файл' : 'Импортировать'}
+            {loading ? t('importSection', 'checking') : dryRun ? t('importSection', 'checkFile') : t('importSection', 'import')}
           </button>
         </div>
       </form>
@@ -116,17 +118,17 @@ export function UniversityImportForm() {
           <div className="mb-4 flex items-center gap-2">
             <CheckCircle2 size={18} className="text-emerald-600" />
             <h2 className="font-semibold text-slate-800">
-              {result.dryRun ? 'Проверка завершена' : 'Импорт завершён'}
+              {result.dryRun ? t('importSection', 'checkDone') : t('importSection', 'importDone')}
             </h2>
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
             {([
-              ['Строк',      result.totalRows],
-              ['Обработано', result.processed],
-              [result.dryRun ? 'Будет создано'   : 'Создано',   result.created],
-              [result.dryRun ? 'Будет обновлено' : 'Обновлено', result.updated],
-              ['Пропущено',  result.skipped],
+              [t('importSection', 'rows'), result.totalRows],
+              [t('importSection', 'processed'), result.processed],
+              [result.dryRun ? t('importSection', 'willCreate') : t('importSection', 'created'), result.created],
+              [result.dryRun ? t('importSection', 'willUpdate') : t('importSection', 'updated'), result.updated],
+              [t('importSection', 'skippedRows'), result.skipped],
             ] as [string, number][]).map(([label, value]) => (
               <div key={label} className="rounded-lg bg-slate-50 px-3 py-3">
                 <div className="text-xl font-bold text-slate-800">{value}</div>
@@ -138,14 +140,14 @@ export function UniversityImportForm() {
           {result.errors.length > 0 && (
             <div className="mt-5">
               <h3 className="mb-2 text-sm font-semibold text-slate-700">
-                Ошибки ({result.errors.length})
+                {t('importSection', 'errors')} ({result.errors.length})
               </h3>
               <div className="max-h-72 overflow-auto rounded-lg border border-slate-200">
                 <table className="w-full text-sm">
                   <thead className="bg-slate-50 sticky top-0">
                     <tr>
-                      <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-slate-500 w-20">Строка</th>
-                      <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-slate-500">Ошибка</th>
+                      <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-slate-500 w-20">{t('importSection', 'row')}</th>
+                      <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-slate-500">{t('importSection', 'errorWord')}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
@@ -163,8 +165,8 @@ export function UniversityImportForm() {
 
           {!result.dryRun && result.created + result.updated > 0 && (
             <div className="mt-4 p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-sm text-emerald-700">
-              ✓ Успешно: создано {result.created}, обновлено {result.updated} вузов.{' '}
-              <a href="/universities" className="underline hover:no-underline">Перейти к вузам →</a>
+              {t('importSection', 'successDone')}: {t('importSection', 'created').toLowerCase()} — {result.created}, {t('importSection', 'updated').toLowerCase()} — {result.updated}.{' '}
+              <Link href="/universities" className="underline hover:no-underline">{t('importSection', 'goToUniversities')}</Link>
             </div>
           )}
         </div>

@@ -6,16 +6,19 @@ import { Pagination } from '@/components/admin/Pagination'
 import Link from 'next/link'
 import { Building2, FolderKanban, MapPin, ExternalLink, Plus } from 'lucide-react'
 import { Prisma, UniversityType } from '@prisma/client'
-import { plural } from '@/lib/plural'
+import { pluralUnit } from '@/lib/plural'
 import { requireUser } from '@/lib/auth'
+import { canModerate } from '@/lib/publication'
+import { t } from '@/lib/i18n'
+import { getRequestLang } from '@/lib/i18n-server'
 
 const PAGE_SIZE = 24
 
-const TYPE_LABELS: Record<UniversityType, string> = {
-  NATIONAL: 'Национальный',
-  RESEARCH: 'Исследовательский',
-  STATE: 'Государственный',
-  PRIVATE: 'Частный',
+const TYPE_KEYS: Record<UniversityType, string> = {
+  NATIONAL: 'typeNational',
+  RESEARCH: 'typeResearch',
+  STATE: 'typeState',
+  PRIVATE: 'typePrivate',
 }
 
 interface Params { region?: string; q?: string; has?: string; type?: string; sort?: string; page?: string }
@@ -23,7 +26,7 @@ interface Params { region?: string; q?: string; has?: string; type?: string; sor
 function buildWhere({ q, region, has, type }: Params): Prisma.UniversityWhereInput {
   return {
     ...(region ? { region: { code: region.toUpperCase() } } : {}),
-    ...(type && type in TYPE_LABELS ? { type: type as UniversityType } : {}),
+    ...(type && type in TYPE_KEYS ? { type: type as UniversityType } : {}),
     ...(has === 'projects' ? { projects: { some: PUBLISHED_ONLY } } : {}),
     ...(has === 'none' ? { projects: { none: PUBLISHED_ONLY } } : {}),
     ...(q ? {
@@ -45,7 +48,8 @@ function shortNameClass(text: string): string {
 
 export default async function UniversitiesPage({ searchParams }: { searchParams: Promise<Params> }) {
   // Настоящая проверка сессии: middleware смотрит только наличие cookie
-  await requireUser('/')
+  const user = await requireUser('/')
+  const lang = await getRequestLang()
   const sp = await searchParams
   const page = Math.max(1, parseInt(sp.page || '1', 10) || 1)
   const where = buildWhere(sp)
@@ -69,54 +73,56 @@ export default async function UniversitiesPage({ searchParams }: { searchParams:
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
   const hasFilters = Boolean(sp.q || sp.region || sp.has || sp.type)
 
-  const select = 'border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white min-w-0'
+  const select = 'border border-slate-200 rounded-lg pl-3 pr-10 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white min-w-0'
 
   return (
     <PageLayout>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">Вузы</h1>
+          <h1 className="text-2xl font-bold text-slate-800">{t('universities', 'title', lang)}</h1>
           <p className="text-slate-500 mt-1">
             {hasFilters
-              ? <>Найдено: {total} {plural(total, 'вуз', 'вуза', 'вузов')}</>
-              : <>{totalAll} {plural(totalAll, 'вуз', 'вуза', 'вузов')}, с проектами: {withProjects}</>}
+              ? <>{t('universities', 'found', lang)}: {total} {pluralUnit(total, lang, 'unitUniversity')}</>
+              : <>{totalAll} {pluralUnit(totalAll, lang, 'unitUniversity')}, {t('universities', 'withProjects', lang)}: {withProjects}</>}
           </p>
         </div>
-        <Link href="/admin/universities/new" className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-          <Plus size={16} /> Добавить вуз
-        </Link>
+        {canModerate(user) && (
+          <Link href="/admin/universities/new" className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+            <Plus size={16} /> {t('universities', 'addUni', lang)}
+          </Link>
+        )}
       </div>
 
       <AutoSubmitForm className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
         <input
           name="q"
           defaultValue={sp.q}
-          placeholder="Поиск по названию..."
+          placeholder={t('universities', 'searchPlaceholder', lang)}
           className="col-span-2 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
         />
         <select name="region" defaultValue={sp.region || ''} className={select}>
-          <option value="">Все регионы</option>
-          {regions.map(r => <option key={r.id} value={r.code.toLowerCase()}>{r.name}</option>)}
+          <option value="">{t('universities', 'allRegions', lang)}</option>
+          {regions.map(r => <option key={r.id} value={r.code.toLowerCase()}>{lang === 'kz' && r.nameKz ? r.nameKz : r.name}</option>)}
         </select>
         <select name="has" defaultValue={sp.has || ''} className={select}>
-          <option value="">Все вузы</option>
-          <option value="projects">Только с проектами</option>
-          <option value="none">Без проектов</option>
+          <option value="">{t('universities', 'allUniversities', lang)}</option>
+          <option value="projects">{t('universities', 'onlyWithProjects', lang)}</option>
+          <option value="none">{t('universities', 'noProjectsFilter', lang)}</option>
         </select>
         <select name="type" defaultValue={sp.type || ''} className={select}>
-          <option value="">Все типы</option>
-          {Object.entries(TYPE_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+          <option value="">{t('universities', 'allTypes', lang)}</option>
+          {Object.entries(TYPE_KEYS).map(([value, key]) => <option key={value} value={value}>{t('universities', key, lang)}</option>)}
         </select>
         <select name="sort" defaultValue={sp.sort || ''} className={select}>
-          <option value="">По числу проектов</option>
-          <option value="name">По названию А-Я</option>
+          <option value="">{t('universities', 'sortByProjects', lang)}</option>
+          <option value="name">{t('universities', 'sortByName', lang)}</option>
         </select>
         <button type="submit" className="bg-slate-800 text-white px-4 py-2 rounded-lg text-sm hover:bg-slate-700 transition-colors">
-          Найти
+          {t('universities', 'find', lang)}
         </button>
         {(hasFilters || sp.sort) && (
           <Link href="/universities" className="text-center text-sm text-slate-400 hover:text-slate-600 py-2 border border-dashed border-slate-200 rounded-lg transition-colors">
-            Сбросить фильтры
+            {t('common', 'reset', lang)}
           </Link>
         )}
       </AutoSubmitForm>
@@ -135,13 +141,13 @@ export default async function UniversitiesPage({ searchParams }: { searchParams:
                     </span>
                   </div>
                   <div className="flex-1 min-w-0 border-l border-slate-100 pl-3">
-                    <h3 className="font-semibold text-slate-800 text-sm leading-snug line-clamp-2">{uni.name}</h3>
+                    <h3 className="font-semibold text-slate-800 text-sm leading-snug line-clamp-2">{lang === 'kz' && uni.nameKz ? uni.nameKz : uni.name}</h3>
                   </div>
                 </div>
 
                 <div className="space-y-2 text-xs text-slate-500">
                   <div className="flex items-center gap-1.5">
-                    <MapPin size={12} /><span>{uni.region.name}</span>
+                    <MapPin size={12} /><span>{lang === 'kz' && uni.region.nameKz ? uni.region.nameKz : uni.region.name}</span>
                   </div>
                   {uni.website && (
                     <div className="flex items-center gap-1.5">
@@ -156,14 +162,14 @@ export default async function UniversitiesPage({ searchParams }: { searchParams:
                     {uni._count.projects > 0 ? (
                       <>
                         <span className="font-semibold text-slate-700">{uni._count.projects}</span>
-                        <span className="text-slate-400">{plural(uni._count.projects, 'проект', 'проекта', 'проектов')}</span>
+                        <span className="text-slate-400">{pluralUnit(uni._count.projects, lang, 'unitProject')}</span>
                       </>
                     ) : (
-                      <span className="text-slate-400">нет проектов</span>
+                      <span className="text-slate-400">{t('universities', 'noProjects', lang)}</span>
                     )}
                   </div>
                   <span className="text-[10px] text-slate-400 bg-slate-50 px-2 py-0.5 rounded-full border">
-                    {TYPE_LABELS[uni.type]}
+                    {t('universities', TYPE_KEYS[uni.type], lang)}
                   </span>
                 </div>
               </div>
@@ -175,7 +181,7 @@ export default async function UniversitiesPage({ searchParams }: { searchParams:
       {universities.length === 0 && (
         <div className="text-center py-20 text-slate-400">
           <Building2 size={48} className="mx-auto mb-3 opacity-30" />
-          <p className="text-lg font-medium">Вузы не найдены</p>
+          <p className="text-lg font-medium">{t('universities', 'notFound', lang)}</p>
         </div>
       )}
 
@@ -185,6 +191,7 @@ export default async function UniversitiesPage({ searchParams }: { searchParams:
         totalItems={total}
         basePath="/universities"
         searchParams={sp as Record<string, string | undefined>}
+        totalLabel={t('common', 'total', lang)}
       />
     </PageLayout>
   )
