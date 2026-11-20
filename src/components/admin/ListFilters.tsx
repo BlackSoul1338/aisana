@@ -1,6 +1,7 @@
 'use client'
 
 import { Search, X } from 'lucide-react'
+import { useLang } from '@/context/LangContext'
 
 export interface FilterConfig {
   name: string            // имя query-параметра
@@ -24,7 +25,8 @@ interface Props {
  * нечему кэшироваться и ломаться. Смена фильтра сбрасывает страницу
  * на первую автоматически (поле page в форме отсутствует).
  */
-export function ListFilters({ basePath, values, filters, searchPlaceholder = 'Поиск…', sortOptions }: Props) {
+export function ListFilters({ basePath, values, filters, searchPlaceholder, sortOptions }: Props) {
+  const { t } = useLang()
   const submit = (e: { currentTarget: { form: HTMLFormElement | null } }) => {
     e.currentTarget.form?.requestSubmit()
   }
@@ -41,8 +43,8 @@ export function ListFilters({ basePath, values, filters, searchPlaceholder = 'П
           type="text"
           name="q"
           defaultValue={values.q || ''}
-          placeholder={searchPlaceholder}
-          className="pl-8 pr-3 py-2 w-56 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300"
+          placeholder={searchPlaceholder ?? t('common', 'searchShort')}
+          className="pl-8 pr-3 py-2 w-56 text-sm border border-slate-200 rounded-lg bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300"
         />
       </div>
 
@@ -52,7 +54,7 @@ export function ListFilters({ basePath, values, filters, searchPlaceholder = 'П
           name={f.name}
           defaultValue={values[f.name] || ''}
           onChange={submit}
-          className="px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-100 max-w-[220px]"
+          className="pl-3 pr-10 py-2 text-sm border border-slate-200 rounded-lg bg-white text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-100 max-w-[220px]"
         >
           <option value="">{f.label}</option>
           {f.options.map(o => (
@@ -66,7 +68,7 @@ export function ListFilters({ basePath, values, filters, searchPlaceholder = 'П
           name="sort"
           defaultValue={values.sort || sortOptions[0].value}
           onChange={submit}
-          className="px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-100 ml-auto"
+          className="pl-3 pr-10 py-2 text-sm border border-slate-200 rounded-lg bg-white text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-100"
         >
           {sortOptions.map(o => (
             <option key={o.value} value={o.value}>{o.label}</option>
@@ -80,16 +82,16 @@ export function ListFilters({ basePath, values, filters, searchPlaceholder = 'П
         type="submit"
         className="px-3.5 py-2 text-sm rounded-lg bg-slate-700 hover:bg-slate-800 text-white transition-colors"
       >
-        Применить
+        {t('projects', 'apply')}
       </button>
 
       {hasActiveFilters && (
         <a
           href={basePath}
-          className="flex items-center gap-1 px-2.5 py-2 text-xs text-slate-400 hover:text-slate-600 transition-colors"
-          title="Сбросить фильтры"
+          className="flex items-center gap-1.5 px-3 py-2 text-xs text-slate-400 hover:text-slate-600 transition-colors"
+          title={t('common', 'reset')}
         >
-          <X size={13} /> Сбросить
+          <X size={13} /> {t('common', 'resetShort')}
         </a>
       )}
     </form>

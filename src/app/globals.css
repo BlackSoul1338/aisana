@@ -32,17 +32,209 @@
     @apply border-border;
   }
   html {
-    /* Matches the map page background so route transitions
-       never show a flash of plain white before content paints. */
-    background-color: #0d1b3e;
+    background-color: #f8fafc;
   }
   body {
     @apply text-foreground;
-    background-color: #0d1b3e;
+    background-color: #f8fafc;
+  }
+  html.dark {
+    background-color: #0f172a;
+    color-scheme: dark;
+  }
+  html.dark body {
+    background-color: #0f172a;
   }
 }
 
-/* Kazakhstan government design system */
+/* ── Тёмная тема ───────────────────────────────────────────
+   Компоненты местами используют фиксированные светлые классы
+   (bg-white, text-slate-*). Вместо переписывания всех файлов
+   они переопределены здесь под .dark на <html>. Правила не в
+   @layer — так они гарантированно выигрывают у утилит Tailwind.
+   Токи каркаса по возможности — через CSS-переменные выше. */
+.dark {
+  --background: 222.2 47.4% 11.2%;
+  --foreground: 214.3 31.8% 91.4%;
+  --card: 217.2 32.6% 17.5%;
+  --card-foreground: 214.3 31.8% 91.4%;
+  --popover: 217.2 32.6% 17.5%;
+  --popover-foreground: 214.3 31.8% 91.4%;
+  --secondary: 217.2 32.6% 17.5%;
+  --secondary-foreground: 214.3 31.8% 91.4%;
+  --muted: 217.2 32.6% 17.5%;
+  --muted-foreground: 215.4 16.3% 66%;
+  --accent: 217.2 32.6% 22%;
+  --accent-foreground: 214.3 31.8% 91.4%;
+  --border: 215.4 32.6% 26.9%;
+  --input: 215.4 32.6% 26.9%;
+  --ring: 221 83% 53%;
+}
+
+/* Поверхности */
+.dark .bg-white { background-color: #1e293b; }
+.dark .hover\:bg-white:hover { background-color: #273449; }
+.dark .bg-slate-50 { background-color: rgba(148, 163, 184, 0.08); }
+.dark .hover\:bg-slate-50:hover { background-color: rgba(148, 163, 184, 0.13); }
+.dark .bg-slate-100 { background-color: rgba(148, 163, 184, 0.14); }
+.dark .hover\:bg-slate-100:hover { background-color: rgba(148, 163, 184, 0.18); }
+.dark .hover\:bg-blue-50:hover { background-color: rgba(96, 165, 250, 0.18); }
+.dark .hover\:bg-blue-100:hover { background-color: rgba(96, 165, 250, 0.24); }
+.dark .hover\:bg-blue-400:hover { background-color: #3b82f6; }
+.dark .hover\:bg-amber-50:hover { background-color: rgba(251, 191, 36, 0.18); }
+.dark .hover\:bg-amber-100:hover { background-color: rgba(251, 191, 36, 0.24); }
+.dark .hover\:bg-emerald-50:hover { background-color: rgba(52, 211, 153, 0.18); }
+.dark .bg-slate-200 { background-color: rgba(148, 163, 184, 0.22); }
+.dark .bg-slate-800 { background-color: #334155; }
+.dark .bg-slate-700 { background-color: #3f4d68; }
+.dark .hover\:bg-slate-700:hover { background-color: #3f4d68; }
+.dark .hover\:bg-slate-800:hover { background-color: #475569; }
+.dark .bg-amber-50\/80 { background-color: rgba(251, 191, 36, 0.12); }
+.dark .bg-blue-50\/60 { background-color: rgba(96, 165, 250, 0.12); }
+.dark .hover\:bg-slate-50\/50:hover { background-color: rgba(148, 163, 184, 0.1); }
+.dark .divide-slate-100 > :not([hidden]) ~ :not([hidden]),
+.dark .divide-slate-200 > :not([hidden]) ~ :not([hidden]) { border-color: #27364c; }
+
+/* Текст */
+.dark .text-slate-900 { color: #f1f5f9; }
+.dark .text-amber-900 { color: #fde68a; }
+.dark .text-emerald-900 { color: #a7f3d0; }
+.dark .text-blue-900 { color: #dbeafe; }
+.dark .text-violet-900 { color: #ddd6fe; }
+.dark .text-slate-800 { color: #e2e8f0; }
+.dark .text-slate-700 { color: #cbd5e1; }
+.dark .text-slate-600 { color: #a9b8d0; }
+.dark .text-slate-500 { color: #9db2d0; }
+.dark .text-slate-400 { color: #8598b5; }
+.dark .hover\:text-slate-600:hover,
+.dark .hover\:text-slate-700:hover { color: #cbd5e1; }
+.dark .hover\:text-slate-800:hover,
+.dark .hover\:text-slate-900:hover { color: #f1f5f9; }
+.dark .placeholder-slate-400::placeholder,
+.dark .placeholder\:text-slate-400::placeholder { color: #64748b; }
+.dark .placeholder-slate-300::placeholder { color: #556581; }
+
+/* Синий текст (ссылки, кнопки-тексты) */
+.dark .text-blue-600 { color: #60a5fa; }
+.dark .text-blue-700 { color: #93c5fd; }
+.dark .text-blue-800 { color: #bfdbfe; }
+.dark .text-blue-500 { color: #7cb3fc; }
+.dark .hover\:text-blue-600:hover,
+.dark .hover\:text-blue-700:hover,
+.dark .hover\:text-blue-800:hover { color: #93c5fd; }
+.dark .hover\:text-red-600:hover { color: #f87171; }
+.dark .hover\:text-emerald-900:hover { color: #a7f3d0; }
+.dark .hover\:text-amber-700:hover { color: #fcd34d; }
+.dark .hover\:text-slate-500:hover { color: #a9b8d0; }
+
+/* Границы */
+.dark .border-slate-100 { border-color: #27364c; }
+.dark .border-slate-200 { border-color: #334155; }
+.dark .border-slate-300 { border-color: #3f4d68; }
+.dark .hover\:border-slate-300:hover { border-color: #4b5b7d; }
+.dark .hover\:border-blue-300:hover { border-color: rgba(96, 165, 250, 0.5); }
+.dark .hover\:border-red-300:hover { border-color: rgba(248, 113, 113, 0.5); }
+
+/* Мягкие бейджи: подложка-«туман» + светлый текст на тёмном */
+.dark .bg-red-50 { background-color: rgba(248, 113, 113, 0.12); }
+.dark .text-red-700, .dark .text-red-600 { color: #fca5a5; }
+.dark .border-red-100, .dark .border-red-200 { border-color: rgba(248, 113, 113, 0.35); }
+.dark .bg-red-100 { background-color: rgba(248, 113, 113, 0.16); }
+
+.dark .bg-emerald-50 { background-color: rgba(52, 211, 153, 0.12); }
+.dark .text-emerald-700, .dark .text-emerald-600 { color: #6ee7b7; }
+.dark .border-emerald-100, .dark .border-emerald-200 { border-color: rgba(52, 211, 153, 0.35); }
+.dark .bg-emerald-100 { background-color: rgba(52, 211, 153, 0.16); }
+
+.dark .bg-amber-50 { background-color: rgba(251, 191, 36, 0.12); }
+.dark .text-amber-700, .dark .text-amber-600, .dark .text-amber-800 { color: #fcd34d; }
+.dark .border-amber-100, .dark .border-amber-200 { border-color: rgba(251, 191, 36, 0.35); }
+.dark .bg-amber-100 { background-color: rgba(251, 191, 36, 0.16); }
+
+.dark .bg-blue-50 { background-color: rgba(96, 165, 250, 0.12); }
+.dark .bg-blue-100 { background-color: rgba(96, 165, 250, 0.16); }
+.dark .text-blue-50 { color: #dbeafe; }
+.dark .border-blue-100, .dark .border-blue-200 { border-color: rgba(96, 165, 250, 0.35); }
+.dark .border-blue-300 { border-color: rgba(96, 165, 250, 0.5); }
+
+.dark .bg-violet-50 { background-color: rgba(167, 139, 250, 0.12); }
+.dark .bg-violet-50\/50 { background-color: rgba(167, 139, 250, 0.10); }
+.dark .bg-violet-100 { background-color: rgba(167, 139, 250, 0.16); }
+.dark .text-violet-700, .dark .text-violet-600, .dark .text-violet-800 { color: #c4b5fd; }
+.dark .border-violet-100, .dark .border-violet-200 { border-color: rgba(167, 139, 250, 0.35); }
+
+.dark .bg-sky-50 { background-color: rgba(56, 189, 248, 0.12); }
+.dark .bg-sky-100 { background-color: rgba(56, 189, 248, 0.16); }
+.dark .text-sky-600, .dark .text-sky-700 { color: #7dd3fc; }
+.dark .border-sky-100, .dark .border-sky-200 { border-color: rgba(56, 189, 248, 0.35); }
+
+.dark .bg-purple-100 { background-color: rgba(192, 132, 252, 0.16); }
+.dark .text-purple-700 { color: #d8b4fe; }
+.dark .bg-pink-50 { background-color: rgba(244, 114, 182, 0.12); }
+.dark .text-pink-600, .dark .text-pink-700 { color: #f9a8d4; }
+
+/* Палитра карты: светлая тема — контрастная и читаемая градация, тёмная — неоновая */
+:root {
+  --map-0: #e2e8f0;
+  --map-1: #60a5fa;
+  --map-2: #3b82f6;
+  --map-3: #2563eb;
+  --map-4: #1d4ed8;
+  --map-stroke: #94a3b8;
+}
+.dark {
+  --map-0: #1e3a5f;
+  --map-1: #1d4ed8;
+  --map-2: #2563eb;
+  --map-3: #3b82f6;
+  --map-4: #60a5fa;
+  --map-stroke: #0d1b3e;
+}
+
+/* Scrollbar */
+.dark ::-webkit-scrollbar-track {
+  background-color: #1e293b;
+}
+.dark ::-webkit-scrollbar-thumb {
+  @apply bg-slate-600 rounded-full;
+}
+.dark ::-webkit-scrollbar-thumb:hover {
+  @apply bg-slate-500;
+}
+
+/* Выпадающие списки: гармоничная стрелка с выверенным отступом от правого края */
+select {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2364748b' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 0.25rem center;
+  background-repeat: no-repeat;
+  background-size: 1.25rem 1.25rem;
+  padding-right: 2rem !important;
+  cursor: pointer;
+}
+
+.dark select {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2394a3b8' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+}
+
+/* Нативный список опций не наследует тему в Chromium — задаём явно */
+.dark select option {
+  background-color: #1e293b;
+  color: #f1f5f9;
+}
+
+/* Подписи осей графиков: читаемые в обеих темах */
+.recharts-cartesian-axis-tick text,
+.recharts-text { fill: #475569; }
+.dark .recharts-cartesian-axis-tick text,
+.dark .recharts-text { fill: #a9bcd0; }
+
+/* Скрытый скроллбар у горизонтальной навигации в шапке */
+.nav-scroll { scrollbar-width: none; }
+.nav-scroll::-webkit-scrollbar { display: none; }
+
 .gov-gradient {
   background: linear-gradient(135deg, #1A56DB 0%, #0b2f87 100%);
 }

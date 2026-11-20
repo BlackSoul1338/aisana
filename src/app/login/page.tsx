@@ -5,6 +5,7 @@ import { t } from '@/lib/i18n'
 import { getRequestLang } from '@/lib/i18n-server'
 import { sanitizeNextPath } from '@/lib/file-url'
 import { LangSwitcher } from '@/components/ui/LangSwitcher'
+import { ThemeSwitcher } from '@/components/ui/ThemeSwitcher'
 
 export default async function LoginPage({
   searchParams,
@@ -22,6 +23,7 @@ export default async function LoginPage({
     <main className="relative min-h-screen bg-slate-50 px-4 flex items-center justify-center py-12">
       <div className="absolute right-4 top-4 flex items-center gap-2">
         <LangSwitcher variant="light" />
+        <ThemeSwitcher variant="light" />
       </div>
       <div className="mx-auto w-full max-w-sm">
         <div className="mb-6 text-center">

@@ -12,6 +12,7 @@ import {
 import { redirect } from 'next/navigation'
 import { UserRole } from '@prisma/client'
 import { LangSwitcher } from '@/components/ui/LangSwitcher'
+import { ThemeSwitcher } from '@/components/ui/ThemeSwitcher'
 import { LogoutButton } from '@/components/auth/LogoutButton'
 import { canManageUsers, requireUser } from '@/lib/auth'
 import { canModerate } from '@/lib/publication'
@@ -88,6 +89,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
           <div className="flex items-center justify-between gap-2 px-1 pt-1">
             <LangSwitcher variant="light" />
+            <ThemeSwitcher variant="light" />
           </div>
 
           <LogoutButton />

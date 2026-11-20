@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { ComposableMap, Geographies, Geography, ZoomableGroup } from 'react-simple-maps'
 import { useRouter } from 'next/navigation'
 import { MapTooltip } from './MapTooltip'
+import { getMapColor } from './map-scale'
 
 const GEO_URL = '/data/kazakhstan.geojson'
 
@@ -19,13 +20,6 @@ interface RegionStat {
 interface Props { regions: RegionStat[] }
 interface TooltipState { x: number; y: number; region: RegionStat | null }
 
-function getColor(n: number): string {
-  if (n === 0) return '#1e3a5f'
-  if (n <= 5) return '#1d4ed8'
-  if (n <= 15) return '#2563eb'
-  if (n <= 30) return '#3b82f6'
-  return '#60a5fa'
-}
 
 const NAME_TO_CODE: Record<string, string> = {
   Akmola: 'AKM', 'Akmola Region': 'AKM',
@@ -91,7 +85,8 @@ export default function KazakhstanMap({ regions }: Props) {
       <ComposableMap
         projection="geoMercator"
         projectionConfig={{ scale: 1100, center: [67, 48] }}
-        style={{ width: '100%', height: '100%' }}
+        style={{ width: '100%', height: '100%', overflow: 'visible' }}
+        className="filter drop-shadow-[0_12px_24px_rgba(15,23,42,0.08)] dark:drop-shadow-none"
       >
         <ZoomableGroup zoom={1} minZoom={0.8} maxZoom={6}>
           <Geographies geography={GEO_URL}>
@@ -103,9 +98,9 @@ export default function KazakhstanMap({ regions }: Props) {
                   <Geography
                     key={geo.rsmKey}
                     geography={geo}
-                    fill={isHovered ? '#f59e0b' : (region ? getColor(region.projectCount) : '#1e3a5f')}
-                    stroke="#0d1b3e"
-                    strokeWidth={0.8}
+                    fill={isHovered ? '#f59e0b' : (region ? getMapColor(region.projectCount) : 'var(--map-0)')}
+                    stroke="var(--map-stroke)"
+                    strokeWidth={1}
                     style={{
                       default: { outline: 'none', transition: 'fill 0.2s ease' },
                       hover: { outline: 'none', fill: '#f59e0b', cursor: 'pointer' },

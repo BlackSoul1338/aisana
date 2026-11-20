@@ -54,11 +54,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang={lang === 'kz' ? 'kk' : 'ru'} suppressHydrationWarning>
       <body className={`${inter.variable} font-sans antialiased`}>
-        {/* Перенос старого выбора языка из localStorage в cookie — до первой
-            отрисовки, чтобы страница не мигала. Скрипт темы добавится в PR темы. */}
+        {/* Тема и перенос старого выбора языка из localStorage в cookie —
+            до первой отрисовки, чтобы страница не мигала */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var l=localStorage.getItem('lang');if((l==='kz'||l==='ru')&&!/(?:^|;\\s*)lang=/.test(document.cookie)){document.cookie='lang='+l+'; path=/; max-age=31536000; samesite=lax';document.documentElement.lang=l==='kz'?'kk':'ru'}}catch(e){}})()`,
+            __html: `(function(){try{var m=localStorage.getItem('theme');var q=window.matchMedia('(prefers-color-scheme: dark)');var d=m==='dark'||((!m||m==='system')&&q.matches);document.documentElement.classList.toggle('dark',d);q.addEventListener('change',function(){var cur=localStorage.getItem('theme');if(!cur||cur==='system')document.documentElement.classList.toggle('dark',q.matches)});var l=localStorage.getItem('lang');if((l==='kz'||l==='ru')&&!/(?:^|;\\s*)lang=/.test(document.cookie)){document.cookie='lang='+l+'; path=/; max-age=31536000; samesite=lax';document.documentElement.lang=l==='kz'?'kk':'ru'}}catch(e){}})()`,
           }}
         />
         <LangProvider initialLang={lang}>

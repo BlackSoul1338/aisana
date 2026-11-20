@@ -1,9 +1,10 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { Map, FolderKanban, Star, LayoutDashboard, Settings, Building2, Sparkles, Menu, X } from 'lucide-react'
 import { LangSwitcher } from '@/components/ui/LangSwitcher'
+import { ThemeSwitcher } from '@/components/ui/ThemeSwitcher'
 import { useLang } from '@/context/LangContext'
 
 export function Navbar() {
@@ -13,6 +14,23 @@ export function Navbar() {
   // Пока файла нет (или он не загрузился) — показывается запасной значок,
   // шапка не «ломается» пустой картинкой.
   const [logoFailed, setLogoFailed] = useState(false)
+
+  // Скролл колёсиком листает навигацию, а не страницу: иначе при наведении на
+  // шапку вертикальный скролл дёргает страницу вниз-вверх. React вешает wheel
+  // как passive, поэтому preventDefault не сработает — вешаем свой { passive: false }.
+  // Пока навигация помещается — страница листается как обычно.
+  const navRef = useRef<HTMLElement>(null)
+  useEffect(() => {
+    const el = navRef.current
+    if (!el) return
+    const onWheel = (event: WheelEvent) => {
+      if (el.scrollWidth <= el.clientWidth + 1) return
+      event.preventDefault()
+      el.scrollLeft += Math.abs(event.deltaY) >= Math.abs(event.deltaX) ? event.deltaY : event.deltaX
+    }
+    el.addEventListener('wheel', onWheel, { passive: false })
+    return () => el.removeEventListener('wheel', onWheel)
+  }, [])
 
   // Роль нужна, чтобы не показывать разделы, куда пользователя всё равно не пустят.
   // Это только удобство интерфейса — доступ проверяется на сервере.
@@ -64,8 +82,8 @@ export function Navbar() {
 
         <div className="hidden lg:block h-6 w-px bg-white/10" />
 
-        {/* Navigation */}
-        <nav className="hidden lg:flex items-center gap-1 flex-1 overflow-x-auto">
+        {/* Navigation: на узких экранах листается колесом мыши, скроллбар скрыт */}
+        <nav ref={navRef} className="nav-scroll hidden lg:flex items-center gap-1 flex-1 overflow-x-auto">
           {navLinks.map(({ href, label, icon: Icon }) => (
             <Link
               key={href}
@@ -89,8 +107,9 @@ export function Navbar() {
           )}
         </nav>
 
-        {/* Lang switcher */}
+        {/* Переключатели языка и темы */}
         <LangSwitcher />
+        <ThemeSwitcher />
 
         {/* Админ-панель для вошедших, иначе — приглашение войти */}
         <Link
