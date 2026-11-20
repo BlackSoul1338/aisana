@@ -1,6 +1,8 @@
+import crypto from 'crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { put } from '@vercel/blob'
 import { requireApiRole } from '@/lib/auth'
+import { rateLimit } from '@/lib/rate-limit'
 import { UserRole } from '@prisma/client'
 import { BLOB_PREFIX, BLOB_STORE_ID, MAX_UPLOAD_BYTES } from '@/lib/uploads'
 
@@ -9,8 +11,25 @@ import { BLOB_PREFIX, BLOB_STORE_ID, MAX_UPLOAD_BYTES } from '@/lib/uploads'
 // с EROFS, и загрузка не работала.
 export async function POST(request: NextRequest) {
   try {
-    const { response } = await requireApiRole(request, [UserRole.ADMIN, UserRole.EDITOR, UserRole.UNIVERSITY_REP])
+    const { user, response } = await requireApiRole(request, [UserRole.ADMIN, UserRole.EDITOR, UserRole.UNIVERSITY_REP])
     if (response) return response
+
+    if (!rateLimit(`upload:${user.id}`, 20, 60 * 1000).ok) {
+      return NextResponse.json({ error: 'Слишком много файлов. Повторите через минуту.' }, { status: 429 })
+    }
+
+    // Дешёвый precheck до чтения тела: formData() буферизует всё тело, поэтому
+    // chunked-запрос без Content-Length мог бы надуть память. Требуем объявленный
+    // размер — браузеры его шлют.
+    const declaredLength = request.headers.get('content-length')
+    const contentLength = declaredLength ? Number(declaredLength) : NaN
+    if (!declaredLength || !Number.isFinite(contentLength) || contentLength < 0) {
+      return NextResponse.json({ error: 'Не указан размер тела запроса (Content-Length)' }, { status: 411 })
+    }
+    if (contentLength > MAX_UPLOAD_BYTES + 16 * 1024) {
+      const limitMb = Math.round(MAX_UPLOAD_BYTES / 1024 / 1024)
+      return NextResponse.json({ error: `Файл больше ${limitMb}MB` }, { status: 413 })
+    }
 
     const formData = await request.formData()
     const file = formData.get('file') as File | null
@@ -47,7 +66,7 @@ export async function POST(request: NextRequest) {
       .replace(/[^a-zA-Z0-9._ -]/g, '_')
       .replace(/\s+/g, '_')
       .slice(0, 60)
-    const uniqueId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+    const uniqueId = `${Date.now()}-${crypto.randomBytes(8).toString('hex')}`
     const filename = `${uniqueId}-${baseName || 'document'}${ext}`
 
     await put(`${BLOB_PREFIX}/${filename}`, buffer, {

@@ -1,13 +1,7 @@
 import { redirect } from 'next/navigation'
 import { LoginForm } from '@/components/auth/LoginForm'
 import { getCurrentUser } from '@/lib/auth'
-
-// Same-site only — prevents "?next=https://evil.com" open-redirect attacks
-function sanitizeNextPath(path?: string): string {
-  if (!path) return '/admin'
-  if (!path.startsWith('/') || path.startsWith('//') || path.includes('://')) return '/admin'
-  return path
-}
+import { sanitizeNextPath } from '@/lib/file-url'
 
 export default async function LoginPage({
   searchParams,

@@ -7,6 +7,8 @@ import { translations } from '@/lib/i18n'
 import { getClientIp, rateLimit } from '@/lib/rate-limit'
 import { INDUSTRIES, industryLabel } from '@/lib/industries'
 import { isDescriptionEmpty } from '@/lib/project-completeness'
+import { requireApiUser } from '@/lib/auth'
+import { audit } from '@/lib/audit'
 
 export const dynamic = 'force-dynamic'
 
@@ -18,8 +20,13 @@ function label(section: 'projects', key: string): string {
 
 export async function GET(request: NextRequest) {
   try {
-    // Генерация файла — недешёвая операция, ограничиваем: 5 выгрузок в минуту с IP
+    // Middleware смотрит только наличие cookie — настоящая проверка сессии здесь
+    const { user, response } = await requireApiUser(request)
+    if (response) return response
+
     const ip = getClientIp(request)
+
+    // Генерация файла — недешёвая операция, ограничиваем: 5 выгрузок в минуту с IP
     if (!rateLimit(`export:${ip}`, 5, 60 * 1000).ok) {
       return NextResponse.json({ error: 'Слишком много запросов на экспорт' }, { status: 429 })
     }
@@ -123,6 +130,9 @@ export async function GET(request: NextRequest) {
 
     const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' })
     const date = new Date().toISOString().slice(0, 10)
+
+    await audit(user, 'EXPORT', 'dashboard', null, null,
+      { ip, userAgent: request.headers.get('user-agent') })
 
     return new NextResponse(buffer, {
       headers: {

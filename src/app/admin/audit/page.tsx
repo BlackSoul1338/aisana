@@ -14,9 +14,13 @@ const ACTION_STYLES: Record<string, string> = {
   UPDATE: 'bg-blue-50 text-blue-700 border-blue-100',
   DELETE: 'bg-red-50 text-red-700 border-red-100',
   IMPORT: 'bg-violet-50 text-violet-700 border-violet-100',
+  LOGIN: 'bg-slate-50 text-slate-600 border-slate-100',
+  LOGOUT: 'bg-slate-50 text-slate-600 border-slate-100',
+  EXPORT: 'bg-amber-50 text-amber-700 border-amber-100',
 }
 const ACTION_LABELS: Record<string, string> = {
   CREATE: 'Создание', UPDATE: 'Изменение', DELETE: 'Удаление', IMPORT: 'Импорт',
+  LOGIN: 'Вход', LOGOUT: 'Выход', EXPORT: 'Выгрузка',
 }
 const ENTITY_LABELS: Record<string, string> = {
   project: 'Проект', university: 'Вуз', user: 'Пользователь', hearing: 'Заслушивание',
@@ -58,6 +62,8 @@ export default async function AuditLogPage({ searchParams }: { searchParams: Pro
               <th className="px-4 py-3 font-medium">Действие</th>
               <th className="px-4 py-3 font-medium">Объект</th>
               <th className="px-4 py-3 font-medium">Детали</th>
+              <th className="px-4 py-3 font-medium">IP</th>
+              <th className="px-4 py-3 font-medium">User-Agent</th>
             </tr>
           </thead>
           <tbody>
@@ -76,11 +82,15 @@ export default async function AuditLogPage({ searchParams }: { searchParams: Pro
                 <td className="px-4 py-2.5 text-slate-500 max-w-xs truncate" title={log.details || undefined}>
                   {log.details || '—'}
                 </td>
+                <td className="px-4 py-2.5 text-slate-500 whitespace-nowrap tabular-nums">{log.ip || '—'}</td>
+                <td className="px-4 py-2.5 text-slate-400 max-w-[16rem] truncate" title={log.userAgent || undefined}>
+                  {log.userAgent || '—'}
+                </td>
               </tr>
             ))}
             {logs.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-10 text-center text-slate-400">
+                <td colSpan={7} className="px-4 py-10 text-center text-slate-400">
                   Записей пока нет — журнал начнёт заполняться при действиях в админке
                 </td>
               </tr>

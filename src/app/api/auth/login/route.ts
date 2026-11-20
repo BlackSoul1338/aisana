@@ -8,6 +8,10 @@ import { hashSessionToken } from '@/lib/session-token'
 import { resetRateLimit } from '@/lib/rate-limit'
 import { getClientIp, rateLimit } from '@/lib/rate-limit'
 import { loginSchema, parseBody } from '@/lib/schemas'
+import { audit } from '@/lib/audit'
+
+// Статический dummy bcrypt-хэш: время ответа не выдаёт наличие учётки (timing attack)
+const DUMMY_HASH = '$2a$10$vcfGxKKibj57yU2Xf2.1XOpbQ1XHc/HCQQbNh6Yht6wGegcGOHNwq'
 
 export async function POST(request: NextRequest) {
   try {
@@ -49,12 +53,8 @@ export async function POST(request: NextRequest) {
       where: { email: normalizedEmail },
     })
 
-    if (!user?.password) {
-      return NextResponse.json({ error: 'Неверный email или пароль' }, { status: 401 })
-    }
-
-    const valid = await bcrypt.compare(String(password), user.password)
-    if (!valid) {
+    const valid = await bcrypt.compare(String(password), user?.password || DUMMY_HASH)
+    if (!user?.password || !valid) {
       return NextResponse.json({ error: 'Неверный email или пароль' }, { status: 401 })
     }
 
@@ -74,6 +74,9 @@ export async function POST(request: NextRequest) {
         expires,
       },
     })
+
+    await audit(user, 'LOGIN', 'session', user.id, null,
+      { ip, userAgent: request.headers.get('user-agent') })
 
     // Отметка о входе: по ней в админке видно, кто из вузов ни разу не заходил.
     // Не критично для входа — ошибка записи не должна его ломать.

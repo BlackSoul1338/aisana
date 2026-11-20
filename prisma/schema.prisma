@@ -280,10 +280,12 @@ model AuditLog {
   id        String   @id @default(cuid())
   userId    String?
   userEmail String
-  action    String   // CREATE | UPDATE | DELETE | IMPORT
-  entity    String   // project | university | user | hearing | passport | project_file | import...
+  action    String   // CREATE | UPDATE | DELETE | IMPORT | LOGIN | LOGOUT | EXPORT
+  entity    String   // project | university | user | hearing | passport | project_file | import | session...
   entityId  String?
   details   String?
+  ip        String?
+  userAgent String?  @map("user_agent")
   createdAt DateTime @default(now())
 
   @@index([createdAt])

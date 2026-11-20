@@ -31,12 +31,14 @@ function sizeMessage(): string {
  * Проверяет объявленный размер тела запроса — до formData(), который
  * прочитал бы тело в память целиком.
  *
- * Возвращает текст ошибки или null. Без заголовка Content-Length проверка
- * пропускается: тогда сработает проверка размера самого файла.
+ * Возвращает текст ошибки или null. Без Content-Length (chunked) проверка
+ * размера невозможна до чтения тела, поэтому такой запрос не принимаем:
+ * браузеры и Excel-клиенты шлют заголовок, chunked — в основном скрипты.
  */
 export function checkImportRequestSize(contentLength: string | null): string | null {
+  if (!contentLength) return 'Не указан размер тела запроса (Content-Length)'
   const declared = Number(contentLength)
-  if (!contentLength || !Number.isFinite(declared)) return null
+  if (!Number.isFinite(declared)) return 'Не указан размер тела запроса (Content-Length)'
   return declared > MAX_IMPORT_BYTES + MULTIPART_OVERHEAD_BYTES ? sizeMessage() : null
 }
 
