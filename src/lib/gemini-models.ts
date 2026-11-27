@@ -23,7 +23,7 @@ import { GoogleGenerativeAI, type GenerativeModel } from '@google/generative-ai'
 export type GeminiTaskType = 'summary' | 'reasons' | 'assist' | 'analogs' | 'match'
 
 /** Модель для сложных задач: пояснения по проектам, структурированный JSON. */
-export const MODEL_MAIN = process.env.GEMINI_MODEL || 'gemini-3.5-flash'
+export const MODEL_MAIN = process.env.GEMINI_MODEL || 'gemini-3.6-flash'
 
 /** Модель для простых задач: короткое резюме в свободном тексте. */
 export const MODEL_LITE = process.env.GEMINI_MODEL_LITE || 'gemini-3.5-flash-lite'
@@ -38,7 +38,7 @@ export const MODEL_LITE = process.env.GEMINI_MODEL_LITE || 'gemini-3.5-flash-lit
  */
 export const MODEL_FALLBACKS: string[] = (
   process.env.GEMINI_MODEL_FALLBACKS ||
-  'gemini-3.8-flash,gemini-3-flash,gemini-3.5-flash-lite,gemini-3.1-flash-lite'
+  'gemini-3-flash-preview,gemini-3.6-flash,gemini-3.5-flash-lite,gemini-3.1-flash-lite'
 )
   .split(',')
   .map(name => name.trim())

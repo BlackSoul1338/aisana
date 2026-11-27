@@ -60,6 +60,15 @@ describe('выбор модели', () => {
   it('модели lite и main по умолчанию разные', () => {
     expect(MODEL_LITE).not.toBe(MODEL_MAIN)
   })
+
+  it('дефолтная цепочка не содержит несуществующих/недоступных моделей', () => {
+    // gemini-3-flash отдаёт 404, gemini-3.8-flash — 503 (проверка на ключе форка 16-18.11).
+    // На старом коде они были в цепочке — тест ловит регрессию.
+    expect(MODEL_MAIN).toBe('gemini-3.6-flash')
+    expect(MODEL_FALLBACKS).not.toContain('gemini-3-flash')
+    expect(MODEL_FALLBACKS).not.toContain('gemini-3.8-flash')
+    expect(MODEL_FALLBACKS).toContain('gemini-3-flash-preview')
+  })
 })
 
 describe('распознавание ошибок квоты', () => {
