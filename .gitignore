@@ -56,5 +56,3 @@ docs/
 public/uploads/
 backups/
 .vscode/
-!docs/acceptance.md
-!docs/tempusersrender.md
