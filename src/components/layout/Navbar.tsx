@@ -74,9 +74,10 @@ export function Navbar() {
               className="h-8 w-auto max-w-[140px] object-contain shrink-0"
             />
           )}
-          <div className="hidden md:block">
+          {/* Название — там, где рядом с переключателями есть место (от 440 px), подзаголовок — с md */}
+          <div className="hidden min-[440px]:block">
             <p className="text-white font-semibold text-sm leading-tight">AiSana</p>
-            <p className="text-white/50 text-[10px] leading-tight">{t('nav', 'tagline')}</p>
+            <p className="hidden md:block text-white/50 text-[10px] leading-tight">{t('nav', 'tagline')}</p>
           </div>
         </Link>
 

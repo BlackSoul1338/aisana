@@ -86,19 +86,19 @@ export default async function AdminPage() {
         </Link>
       )}
 
-      <div className="grid grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-8">
         {[
           { label: t('admin', 'statUni', lang), value: universities, icon: Building2, href: '/admin/universities', color: 'text-blue-600 bg-blue-50', show: canModerate(user) },
           { label: t('admin', 'statProjects', lang), value: projects, icon: FolderKanban, href: '/admin/projects', color: 'text-violet-600 bg-violet-50', show: true },
           { label: t('admin', 'statHearings', lang), value: hearings, icon: Mic, href: '/admin/hearings', color: 'text-emerald-600 bg-emerald-50', show: canModerate(user) },
         ].filter(item => item.show).map(item => (
           <Link key={item.label} href={item.href}>
-            <div className="bg-white border border-slate-200 rounded-xl p-5 hover:border-slate-300 transition-all">
+            <div className="bg-white border border-slate-200 rounded-xl p-2.5 sm:p-5 hover:border-slate-300 transition-all">
               <div className={`w-9 h-9 rounded-lg ${item.color} flex items-center justify-center mb-3`}>
                 <item.icon size={18} />
               </div>
               <div className="text-2xl font-bold text-slate-800">{item.value}</div>
-              <div className="text-sm text-slate-500 mt-0.5">{item.label}</div>
+              <div className="text-xs sm:text-sm text-slate-500 mt-0.5 break-words hyphens-auto">{item.label}</div>
             </div>
           </Link>
         ))}

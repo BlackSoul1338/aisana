@@ -102,12 +102,15 @@ export default async function AdminFeedbackPage({
         <div className="space-y-3">
           {items.map(item => (
             <div key={item.id} className="rounded-xl border border-slate-200 bg-white p-5">
-              <div className="mb-3 flex flex-wrap items-center gap-2">
-                <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${TOPIC_COLORS[item.topic]}`}>
-                  {TOPIC_LABELS[item.topic]}
-                </span>
-                <span className="text-xs text-slate-400">{formatDateLong(item.createdAt, lang)}</span>
-                <div className="ml-auto">
+              {/* Статус всегда справа в первой строке: переносятся только тема и дата */}
+              <div className="mb-3 flex items-start justify-between gap-2">
+                <div className="flex min-w-0 flex-wrap items-center gap-2">
+                  <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${TOPIC_COLORS[item.topic]}`}>
+                    {TOPIC_LABELS[item.topic]}
+                  </span>
+                  <span className="text-xs text-slate-400">{formatDateLong(item.createdAt, lang)}</span>
+                </div>
+                <div className="shrink-0">
                   <FeedbackStatusControl id={item.id} status={item.status} />
                 </div>
               </div>

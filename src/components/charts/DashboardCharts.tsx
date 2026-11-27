@@ -205,38 +205,41 @@ export function DashboardCharts({
 
       {/* Стадии с подтверждением */}
       <ChartCard title={t('dashboard', 'stages')} hint={t('dashboard', 'stagesHint')}>
-        <table className="w-full text-sm mt-2">
-          <thead>
-            <tr className="text-xs text-slate-400 border-b border-slate-100">
-              <th className="text-left font-medium py-2">{t('dashboard', 'stageCol')}</th>
-              <th className="text-right font-medium py-2">{t('dashboard', 'stageTotal')}</th>
-              <th className="text-right font-medium py-2">{t('dashboard', 'stageShare')}</th>
-              <th className="text-right font-medium py-2">{t('dashboard', 'stageConfirmed')}</th>
-              <th className="text-right font-medium py-2">{t('dashboard', 'stageNoDescription')}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {stageRows.map(row => (
-              <tr key={row.status} className="border-b border-slate-50">
-                <td className="py-2 text-slate-700">
-                  <span className="inline-block w-2.5 h-2.5 rounded-sm mr-2 align-middle" style={{ backgroundColor: row.color }} />
-                  <Link href={`/projects?status=${row.status}`} className="hover:text-blue-600 hover:underline">{row.name}</Link>
-                </td>
-                <td className="py-2 text-right font-semibold text-slate-800 tabular-nums">{row.total}</td>
-                <td className="py-2 text-right text-slate-500 tabular-nums">{share(row.total, stageTotal)}</td>
-                <td className="py-2 text-right text-slate-700 tabular-nums">{row.confirmed}</td>
-                <td className={`py-2 text-right tabular-nums ${row.noDescription > 0 ? 'text-red-600 font-medium' : 'text-slate-400'}`}>{row.noDescription}</td>
+        {/* На узком экране таблица прокручивается внутри карточки, а не растягивает страницу */}
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm mt-2">
+            <thead>
+              <tr className="text-xs text-slate-400 border-b border-slate-100">
+                <th className="text-left font-medium py-2">{t('dashboard', 'stageCol')}</th>
+                <th className="text-right font-medium py-2">{t('dashboard', 'stageTotal')}</th>
+                <th className="text-right font-medium py-2">{t('dashboard', 'stageShare')}</th>
+                <th className="text-right font-medium py-2">{t('dashboard', 'stageConfirmed')}</th>
+                <th className="text-right font-medium py-2">{t('dashboard', 'stageNoDescription')}</th>
               </tr>
-            ))}
-            <tr className="font-semibold text-slate-800">
-              <td className="py-2">{t('dashboard', 'stageSum')}</td>
-              <td className="py-2 text-right tabular-nums">{stageTotal}</td>
-              <td className="py-2 text-right tabular-nums">{stageTotal > 0 ? '100%' : '—'}</td>
-              <td className="py-2 text-right tabular-nums">{stageRows.reduce((sum, row) => sum + row.confirmed, 0)}</td>
-              <td className="py-2 text-right tabular-nums">{stageRows.reduce((sum, row) => sum + row.noDescription, 0)}</td>
-            </tr>
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {stageRows.map(row => (
+                <tr key={row.status} className="border-b border-slate-50">
+                  <td className="py-2 text-slate-700">
+                    <span className="inline-block w-2.5 h-2.5 rounded-sm mr-2 align-middle" style={{ backgroundColor: row.color }} />
+                    <Link href={`/projects?status=${row.status}`} className="hover:text-blue-600 hover:underline">{row.name}</Link>
+                  </td>
+                  <td className="py-2 text-right font-semibold text-slate-800 tabular-nums">{row.total}</td>
+                  <td className="py-2 text-right text-slate-500 tabular-nums">{share(row.total, stageTotal)}</td>
+                  <td className="py-2 text-right text-slate-700 tabular-nums">{row.confirmed}</td>
+                  <td className={`py-2 text-right tabular-nums ${row.noDescription > 0 ? 'text-red-600 font-medium' : 'text-slate-400'}`}>{row.noDescription}</td>
+                </tr>
+              ))}
+              <tr className="font-semibold text-slate-800">
+                <td className="py-2">{t('dashboard', 'stageSum')}</td>
+                <td className="py-2 text-right tabular-nums">{stageTotal}</td>
+                <td className="py-2 text-right tabular-nums">{stageTotal > 0 ? '100%' : '—'}</td>
+                <td className="py-2 text-right tabular-nums">{stageRows.reduce((sum, row) => sum + row.confirmed, 0)}</td>
+                <td className="py-2 text-right tabular-nums">{stageRows.reduce((sum, row) => sum + row.noDescription, 0)}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
         <p className="text-xs text-slate-500 mt-3">
           {t('dashboard', 'deployedLine')}: <span className="font-semibold text-slate-700">{deployed}</span>,{' '}
           {t('dashboard', 'deployedConfirmed')}: <span className="font-semibold text-slate-700">{deployedConfirmed}</span>
