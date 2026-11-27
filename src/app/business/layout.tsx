@@ -27,8 +27,8 @@ export default async function BusinessLayout({ children }: { children: React.Rea
   return (
     <PageLayout>
       <div className="mb-6 flex flex-wrap items-center gap-x-6 gap-y-3 rounded-xl border border-slate-200 bg-white px-5 py-3">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-100">
+        <div className="flex min-w-0 flex-1 items-center gap-2.5 sm:flex-none">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-100">
             <Briefcase size={16} className="text-emerald-700" />
           </div>
           <div>
@@ -37,17 +37,18 @@ export default async function BusinessLayout({ children }: { children: React.Rea
           </div>
         </div>
 
-        <nav className="flex flex-1 flex-wrap gap-1">
+        {/* На телефоне разделы — отдельной строкой под названием и кнопкой выхода */}
+        <nav className="order-last flex w-full flex-wrap gap-1 sm:order-none sm:w-auto sm:flex-1">
           {links.map(({ href, label, icon: Icon, badge }) => (
             <Link key={href} href={href}
-              className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm text-slate-600 transition-colors hover:bg-blue-50 hover:text-blue-700">
+              className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-1.5 text-sm text-slate-600 transition-colors hover:bg-blue-50 hover:text-blue-700">
               <Icon size={14} /> {label}
               {badge ? <span className="rounded-full bg-blue-600 px-1.5 text-xs font-medium text-white">{badge}</span> : null}
             </Link>
           ))}
         </nav>
 
-        <div className="w-36"><LogoutButton /></div>
+        <div className="w-auto shrink-0 sm:w-36"><LogoutButton /></div>
       </div>
 
       {children}

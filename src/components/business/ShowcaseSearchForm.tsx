@@ -54,7 +54,7 @@ export function ShowcaseSearchForm({ query, industry, status, all, topic }: Prop
   }
 
   const inputCls = 'w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
-  const selectCls = 'rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm'
+  const selectCls = 'w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm sm:w-auto'
   const filtered = Boolean(query || topic || industry || status || all)
 
   return (
@@ -67,11 +67,11 @@ export function ShowcaseSearchForm({ query, industry, status, all, topic }: Prop
         placeholder="Слова для поиска: чат-бот, распознавание документов. Или задача целиком: каждый день приходит 300 обращений клиентов, нужно определять тему и направлять в отдел" />
       <div className="mt-3 flex flex-wrap items-center gap-3">
         <button type="submit" value="search" disabled={pending}
-          className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-5 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60">
+          className="inline-flex grow items-center justify-center gap-1.5 whitespace-nowrap rounded-lg bg-blue-600 px-5 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60 sm:grow-0">
           {pending && mode === 'search' ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />} Найти
         </button>
         <button type="submit" value="ai" disabled={pending}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-violet-200 bg-violet-50 px-4 py-2 text-sm font-medium text-violet-700 hover:bg-violet-100 disabled:opacity-60">
+          className="inline-flex grow items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border border-violet-200 bg-violet-50 px-4 py-2 text-sm font-medium text-violet-700 hover:bg-violet-100 disabled:opacity-60 sm:grow-0">
           {pending && mode === 'ai' ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />} Подобрать с ИИ
         </button>
         <select name="industry" defaultValue={industry} className={selectCls}>

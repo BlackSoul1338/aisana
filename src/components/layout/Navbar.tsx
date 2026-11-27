@@ -58,7 +58,7 @@ export function Navbar() {
 
   return (
     <header className="gov-header border-b border-white/10 z-30 relative">
-      <div className="flex items-center h-14 px-4 gap-4">
+      <div className="flex items-center h-14 px-4 gap-2 sm:gap-4">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-3 shrink-0">
           {logoFailed ? (
@@ -106,6 +106,9 @@ export function Navbar() {
             </Link>
           )}
         </nav>
+
+        {/* Без навигации (узкий экран) переключатели прижимает к правому краю распорка */}
+        <div className="flex-1 lg:hidden" />
 
         {/* Переключатели языка и темы */}
         <LangSwitcher />
