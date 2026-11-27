@@ -17,6 +17,14 @@ const shortText = (max: number) =>
   z.string().trim().max(max).nullish().transform(value => value || null)
 
 /**
+ * Как shortText, но отсутствующее поле остаётся undefined — PUT его не меняет.
+ * Для полей, которых нет в форме проекта: иначе каждое сохранение формы
+ * стирало видео и презентацию, загруженные импортом или через API.
+ */
+const keptText = (max: number) =>
+  z.string().trim().max(max).nullish().transform(value => value === undefined ? undefined : (value || null))
+
+/**
  * Предел ячейки Excel — 32 767 символов.
  *
  * Поля, которые заполняет импорт из Excel, ограничены не строже ячейки:
@@ -117,11 +125,11 @@ export const projectSchema = z.object({
   isScalable: z.boolean().optional(),
   impact: shortText(EXCEL_CELL_MAX),
   results: shortText(EXCEL_CELL_MAX),
-  presentationPdf: shortText(500),
-  presentationPptx: shortText(500),
-  zoomLink: shortText(500),
-  videoUrl: shortText(500),
-  documentation: shortText(500),
+  presentationPdf: keptText(500),
+  presentationPptx: keptText(500),
+  zoomLink: keptText(500),
+  videoUrl: keptText(500),
+  documentation: keptText(500),
   tags: tagsList,
   technologyIds,
 })
