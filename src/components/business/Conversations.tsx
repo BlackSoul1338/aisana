@@ -101,7 +101,7 @@ export async function ConversationView({ user, id, basePath }: { user: AuthUser;
   const requestHref = basePath === '/business/chats' ? '/business/requests' : '/admin/requests'
 
   return (
-    <div className="max-w-3xl">
+    <div className="mx-auto max-w-3xl">
       <Link href={basePath} className="mb-4 inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700">
         <ArrowLeft size={14} /> Все диалоги
       </Link>
