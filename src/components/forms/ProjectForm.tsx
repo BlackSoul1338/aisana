@@ -9,6 +9,7 @@ import { AgentPassportViewer } from '@/components/project/AgentPassportViewer'
 import { ProjectFilesManager } from '@/components/project/ProjectFilesManager'
 import { INDUSTRIES } from '@/lib/industries'
 import { MIN_DESCRIPTION_LENGTH } from '@/lib/project-completeness'
+import { SHORT_DESCRIPTION_LENGTH } from '@/lib/card-checklist'
 import { AiAssistPanel } from '@/components/forms/AiAssistPanel'
 import { technologyLabel } from '@/lib/technologies'
 import { useLang } from '@/context/LangContext'
@@ -57,6 +58,9 @@ const TABS = [
 
 type TabId = typeof TABS[number]['id']
 
+// Длина так же, как её считает cardChecklist: пробелы схлопнуты, края обрезаны
+const descriptionLength = (text: string) => text.replace(/\s+/g, ' ').trim().length
+
 export function ProjectForm({ universities, technologies, project, defaultUniversityId }: Props) {
   const { t, lang } = useLang()
   const router = useRouter()
@@ -72,6 +76,7 @@ export function ProjectForm({ universities, technologies, project, defaultUniver
   // Место внедрения показываем обязательным, когда выбрана стадия «внедрено» или «масштабировано»
   const [status, setStatus] = useState(project?.status || 'IDEA')
   const deployed = status === 'IMPLEMENTED' || status === 'SCALED'
+  const [descLength, setDescLength] = useState(() => descriptionLength(project?.description || ''))
 
   const formRef = useRef<HTMLFormElement>(null)
 
@@ -99,6 +104,8 @@ export function ProjectForm({ universities, technologies, project, defaultUniver
   function applyText(name: 'description' | 'impact' | 'results', text: string) {
     const input = field(name)
     if (input) input.value = text
+    // Значение пишется напрямую, событие input не возникает — счётчик обновляем сами
+    if (name === 'description') setDescLength(descriptionLength(text))
   }
 
   function applyTags(tags: string[]) {
@@ -217,13 +224,20 @@ export function ProjectForm({ universities, technologies, project, defaultUniver
             <div className="md:col-span-2">
               <label className={labelCls}>{t('projectForm', 'title')} <span className="text-red-500">*</span></label>
               <input name="title" defaultValue={project?.title || ''} required className={inputCls} />
+              <p className="text-xs text-slate-400 mt-1">{t('projectForm', 'exampleTitle')}</p>
             </div>
 
             <div className="md:col-span-2">
               <label className={labelCls}>{t('importSection', 'cPdesc')} <span className="text-red-500">*</span></label>
               <textarea name="description" defaultValue={project?.description || ''} required rows={4} className={`${inputCls} resize-none`}
-                placeholder={t('projectForm', 'descPlaceholder')} />
-              <p className="text-xs text-slate-400 mt-1">{t('projectForm', 'descMinPrefix')} {MIN_DESCRIPTION_LENGTH} {t('projectForm', 'descMinSuffix')}</p>
+                placeholder={t('projectForm', 'descPlaceholder')} onInput={e => setDescLength(descriptionLength(e.currentTarget.value))} />
+              <div className="flex flex-wrap justify-between gap-x-4 gap-y-1 mt-1 text-xs">
+                <p className="text-slate-400">{t('projectForm', 'descMinPrefix')} {MIN_DESCRIPTION_LENGTH} {t('projectForm', 'descMinSuffix')}</p>
+                <p className={`tabular-nums ${descLength >= SHORT_DESCRIPTION_LENGTH ? 'text-emerald-600' : 'text-slate-400'}`}>
+                  {descLength} / {SHORT_DESCRIPTION_LENGTH} {t('projectForm', 'descCounterUnit')}
+                </p>
+              </div>
+              <p className="text-xs text-slate-400 mt-1">{t('projectForm', 'exampleDesc')}</p>
             </div>
 
             <div>
@@ -289,6 +303,7 @@ export function ProjectForm({ universities, technologies, project, defaultUniver
               <input name="implementedAt" defaultValue={project?.implementedAt || ''} maxLength={2000} className={inputCls}
                 placeholder={t('projectForm', 'implementedPlaceholder')} />
               <p className="text-xs text-slate-400 mt-1">{t('projectForm', 'reqHintPrefix')} «{t('status', 'IMPLEMENTED')}» {t('common', 'and')} «{t('status', 'SCALED')}».</p>
+              <p className="text-xs text-slate-400 mt-1">{t('projectForm', 'exampleImplemented')}</p>
             </div>
           </div>
 
@@ -334,6 +349,7 @@ export function ProjectForm({ universities, technologies, project, defaultUniver
             <div>
               <label className={labelCls}>{t('project', 'results')}</label>
               <textarea name="results" defaultValue={project?.results || ''} rows={3} className={`${inputCls} resize-none`} placeholder={t('projectForm', 'resultsPlaceholder')} />
+              <p className="text-xs text-slate-400 mt-1">{t('projectForm', 'exampleResults')}</p>
             </div>
           </div>
         </section>
