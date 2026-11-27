@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { FileText, Video, Link2, Trash2, Plus, ExternalLink, FileCheck, Loader2, AlertCircle } from 'lucide-react'
 import { useLang } from '@/context/LangContext'
 
@@ -36,13 +36,15 @@ interface Props {
   projectId: string
   initialFiles?: ProjectFile[]
   readonly?: boolean
+  /** Список изменился (добавлен или удалён файл) — для панели заполнения формы */
+  onFilesChange?: (files: ProjectFile[]) => void
 }
 
 function isValidUrl(url: string): boolean {
   return /^https?:\/\/.+/i.test(url.trim()) || url.trim().startsWith('/uploads/')
 }
 
-export function ProjectFilesManager({ projectId, initialFiles = [], readonly = false }: Props) {
+export function ProjectFilesManager({ projectId, initialFiles = [], readonly = false, onFilesChange }: Props) {
   const { t } = useLang()
   const [files, setFiles] = useState<ProjectFile[]>(initialFiles)
   const [adding, setAdding] = useState(false)
@@ -50,6 +52,8 @@ export function ProjectFilesManager({ projectId, initialFiles = [], readonly = f
   const [saving, setSaving] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [error, setError] = useState('')
+
+  useEffect(() => { onFilesChange?.(files) }, [files, onFilesChange])
 
   async function addFile() {
     setError('')

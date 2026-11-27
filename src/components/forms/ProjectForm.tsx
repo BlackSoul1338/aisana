@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { formatDateInput } from '@/lib/datetime'
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { SaveToast } from '@/components/ui/SaveToast'
 import { FileText, AlertCircle } from 'lucide-react'
 import { AgentPassportViewer } from '@/components/project/AgentPassportViewer'
@@ -12,6 +12,8 @@ import { MIN_DESCRIPTION_LENGTH } from '@/lib/project-completeness'
 import { AiAssistPanel } from '@/components/forms/AiAssistPanel'
 import { technologyLabel } from '@/lib/technologies'
 import { useLang } from '@/context/LangContext'
+import { CardProgress } from '@/components/forms/CardProgress'
+import type { ChecklistInput } from '@/lib/card-checklist'
 
 interface University { id: string; name: string; shortName?: string | null }
 interface Technology { id: string; name: string; slug: string }
@@ -35,6 +37,10 @@ interface Project {
   impact?: string | null
   results?: string | null
   agentPassportPdf?: string | null
+  // Старые поля импорта: в форме их нет, но подтверждением они считаются
+  videoUrl?: string | null
+  presentationPdf?: string | null
+  presentationPptx?: string | null
   tags?: string[]
   technologies?: { id: string }[]
   files?: ProjectFile[]
@@ -108,6 +114,26 @@ export function ProjectForm({ universities, technologies, project, defaultUniver
     const known = new Set(current.map(t => t.toLowerCase()))
     input.value = [...current, ...tags.filter(t => !known.has(t.toLowerCase()))].join(', ')
   }
+
+  // Панель заполнения: текущие значения формы и материалы, загруженные на вкладках
+  // паспорта и файлов. Вкладки монтируются заново, поэтому список живёт здесь
+  const [files, setFiles] = useState(project?.files || [])
+  const [passport, setPassport] = useState(project?.agentPassportPdf || '')
+  const [progress, setProgress] = useState<ChecklistInput | null>(null)
+
+  function refreshProgress() {
+    setProgress({
+      ...assistValues(),
+      agentPassportPdf: passport,
+      files,
+      videoUrl: project?.videoUrl,
+      presentationPdf: project?.presentationPdf,
+      presentationPptx: project?.presentationPptx,
+    })
+  }
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(refreshProgress, [files, passport])
 
   function toggleTech(id: string) {
     setSelectedTechs(prev => prev.includes(id) ? prev.filter(t => t !== id) : [...prev, id])
@@ -183,7 +209,9 @@ export function ProjectForm({ universities, technologies, project, defaultUniver
   const labelCls = 'block text-sm font-medium text-slate-700 mb-1'
 
   return (
-    <div>
+    // На широком экране панель — колонка справа во всю высоту (вкладки и содержимое
+    // — две строки первой колонки), на узком — блок под формой
+    <div className="xl:grid xl:grid-cols-[minmax(0,1fr)_17rem] xl:grid-rows-[auto_1fr] xl:gap-x-6">
       {/* Tabs */}
       <div className="flex gap-1 border-b border-slate-200 mb-6">
         {TABS.map(tabItem => (
@@ -203,13 +231,13 @@ export function ProjectForm({ universities, technologies, project, defaultUniver
       </div>
 
       {/* Main info, category, tech, results, materials, tags in one submit */}
-      <form ref={formRef} onSubmit={handleSubmit} className={tab === 'main' ? 'space-y-6' : 'hidden'}>
+      <form ref={formRef} onSubmit={handleSubmit} onChange={refreshProgress} className={tab === 'main' ? 'space-y-6' : 'hidden'}>
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">{error}</div>
         )}
         <SaveToast show={saved} />
 
-        <AiAssistPanel getValues={assistValues} applyText={applyText} applyTags={applyTags} />
+        <AiAssistPanel getValues={assistValues} applyText={(name, text) => { applyText(name, text); refreshProgress() }} applyTags={applyTags} />
 
         <section>
           <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-4 pb-2 border-b border-slate-100">{t('projectForm', 'mainInfo')}</h2>
@@ -378,7 +406,7 @@ export function ProjectForm({ universities, technologies, project, defaultUniver
                   <p className="text-xs text-slate-400 mt-0.5">{t('projectForm', 'passportAgentNote')}</p>
                 </div>
               </div>
-              <AgentPassportViewer projectId={project!.id!} initialUrl={project?.agentPassportPdf} canEdit />
+              <AgentPassportViewer projectId={project!.id!} initialUrl={passport} canEdit onUrlChange={setPassport} />
             </div>
           ) : (
             <EmptyTabNotice text={t('projectForm', 'passportSaveFirst')} />
@@ -397,13 +425,17 @@ export function ProjectForm({ universities, technologies, project, defaultUniver
                   {t('project', 'filesDesc')}
                 </p>
               </div>
-              <ProjectFilesManager projectId={project!.id!} initialFiles={project?.files || []} />
+              <ProjectFilesManager projectId={project!.id!} initialFiles={files} onFilesChange={setFiles} />
             </div>
           ) : (
             <EmptyTabNotice text={t('projectForm', 'filesSaveFirst')} />
           )}
         </div>
       )}
+
+      <div className="mt-6 xl:mt-0 xl:col-start-2 xl:row-start-1 xl:row-span-2">
+        <CardProgress values={progress} />
+      </div>
     </div>
   )
 }

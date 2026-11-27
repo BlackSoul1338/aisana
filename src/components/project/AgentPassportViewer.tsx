@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { FileText, Upload, Trash2, ExternalLink, Maximize2, X, Link2, Loader2 } from 'lucide-react'
 import { toEmbedUrl } from '@/lib/embed'
 import { useLang } from '@/context/LangContext'
@@ -9,9 +9,11 @@ interface Props {
   projectId: string
   initialUrl?: string | null
   canEdit?: boolean
+  /** Ссылка изменилась (загрузка, замена, удаление) — для панели заполнения формы */
+  onUrlChange?: (url: string) => void
 }
 
-export function AgentPassportViewer({ projectId, initialUrl, canEdit = false }: Props) {
+export function AgentPassportViewer({ projectId, initialUrl, canEdit = false, onUrlChange }: Props) {
   const { t } = useLang()
   const [url, setUrl] = useState(initialUrl || '')
   const [mode, setMode] = useState<'closed' | 'upload' | 'link'>('closed')
@@ -20,6 +22,8 @@ export function AgentPassportViewer({ projectId, initialUrl, canEdit = false }: 
   const [fullscreen, setFullscreen] = useState(false)
   const [error, setError] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => { onUrlChange?.(url) }, [url, onUrlChange])
 
   async function saveUrl(newUrl: string) {
     setSaving(true)
