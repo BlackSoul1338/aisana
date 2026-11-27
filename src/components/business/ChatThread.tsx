@@ -97,9 +97,18 @@ export function ChatThread({ conversationId, initialMessages, side, businessLabe
         {messages.length === 0 && <p className="text-sm text-slate-400">Сообщений пока нет.</p>}
         {messages.map(message => {
           const mine = side === 'business' ? message.fromBusiness : side === 'university' ? !message.fromBusiness : false
+          // Модератор не участник: партнёр слева, вуз справа, у каждой стороны свой цвет
+          const right = side === 'moderator' ? !message.fromBusiness : mine
+          const bubble = mine
+            ? 'bg-blue-600 text-white'
+            : side !== 'moderator'
+              ? 'bg-slate-100 text-slate-800'
+              : message.fromBusiness
+                ? 'border border-emerald-200 bg-emerald-50 text-slate-800'
+                : 'border border-blue-200 bg-blue-50 text-slate-800'
           return (
-            <div key={message.id} className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
-              <div className={`max-w-[80%] rounded-xl px-3.5 py-2.5 ${mine ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-800'}`}>
+            <div key={message.id} className={`flex ${right ? 'justify-end' : 'justify-start'}`}>
+              <div className={`max-w-[80%] rounded-xl px-3.5 py-2.5 ${bubble}`}>
                 <p className={`mb-1 text-xs ${mine ? 'text-blue-100' : 'text-slate-500'}`}>
                   {message.sender?.name || (message.fromBusiness ? businessLabel : universityLabel)}
                   {' · '}
@@ -123,24 +132,28 @@ export function ChatThread({ conversationId, initialMessages, side, businessLabe
       ) : (
         <form onSubmit={send} className="border-t border-slate-100 p-3">
           {error && <p className="mb-2 text-sm text-red-600">{error}</p>}
-          <div className="flex items-end gap-2">
+          {/* Поле и кнопка в одной рамке: кнопка в нижней строке справа, на любой ширине */}
+          <div className="rounded-lg border border-slate-200 bg-white focus-within:ring-2 focus-within:ring-blue-500">
             <textarea
               value={text}
               onChange={e => setText(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) send(e) }}
               rows={2}
               maxLength={4000}
-              placeholder="Сообщение. Ctrl+Enter — отправить"
-              className="min-w-0 flex-1 resize-none rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Сообщение"
+              className="block w-full resize-none rounded-t-lg bg-transparent px-3 py-2 text-sm focus:outline-none"
             />
-            <button
-              type="submit"
-              disabled={sending || !text.trim()}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-            >
-              {sending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
-              Отправить
-            </button>
+            <div className="flex items-center justify-end gap-3 px-2 pb-2">
+              <span className="hidden text-xs text-slate-400 sm:inline">Ctrl+Enter — отправить</span>
+              <button
+                type="submit"
+                disabled={sending || !text.trim()}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+              >
+                {sending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+                Отправить
+              </button>
+            </div>
           </div>
         </form>
       )}
